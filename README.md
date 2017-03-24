@@ -1,2 +1,2 @@
-# Boombr
-Static site generator for DotNetRu
+# Boombr - Work in process
+
