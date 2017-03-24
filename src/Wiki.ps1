@@ -15,6 +15,7 @@ $VerbosePreference = "Continue"
 $artifactsDir = "$PSScriptRoot\..\artifacts"
 $dbDir = Join-Path $artifactsDir 'db'
 $wikiDir = Join-Path $artifactsDir 'wiki'
+$offline = $true
 
 
 if (Test-Path $wikiDir -PathType Container)
@@ -35,7 +36,7 @@ function Read-NiceXml()
 {
     process
     {
-        $content = $_ | Get-Content -Encoding UTF8
+        $content = $_ | Get-Content -Encoding UTF8 -Raw
         $doc = [System.Xml.Linq.XDocument]::Parse($content)
         ConvertFrom-NiceXml ($doc.Root)
     }
@@ -121,6 +122,34 @@ function Export-Talk()
     }
 }
 
+function Get-OpenGraph()
+{
+    process
+    {
+        $url = [Uri]$_
+        $content = Invoke-WebRequest -Uri $url
+        $meta = $content.ParsedHtml.getElementsByTagName('meta') | ? { ($_.outerHTML -ne $null) -and ($_.outerHTML.Contains("property=`"og:")) }
+
+        function Get-PropertyContent([string] $propertyValue)
+        {
+            $meta |
+            # This is not the correct search, but the fastest
+            ? { $_.outerHTML.Contains("property=`"og:$propertyValue`"") } |
+            % { $_.content } |
+            Select-Object -First 1
+        }
+
+        @{
+            SiteName = Get-PropertyContent 'site_name'
+            Type = Get-PropertyContent 'type'
+            #Url = Get-PropertyContent 'url'
+            Title = Get-PropertyContent 'title'
+            Description = Get-PropertyContent 'description'
+            Image = Get-PropertyContent 'image'
+        }
+    }
+}
+
 function Format-RuDate([DateTime] $Date = $(throw "Date required"))
 {
     Get-Date -Date $Date -Format ([Globalization.CultureInfo]::GetCultureInfo("ru").DateTimeFormat.LongDatePattern)
@@ -158,6 +187,58 @@ function Format-SpeakerLine()
     }
 }
 
+function Format-ImageLinkLine()
+{
+    process
+    {
+        $url = [Uri]$_
+        if ($offline)
+        {
+            return $url
+        }
+
+        $og = $link.Url | Get-OpenGraph
+        if (($og.Title -eq $null) -or ($og.Image -eq $null))
+        {
+            return $url
+        }
+
+        "[![$($og.Title)]($($og.Image))]($url)"
+    }
+}
+
+function Format-LinkLine()
+{
+    process
+    {
+        $link = [Link]$_
+        switch ($link.Relation)
+        {
+            Code
+            {
+                '## Демо'
+            }
+            Slide
+            {
+                '## Слайды'
+            }
+
+            Video
+            {
+                '## Видео'
+            }
+
+            default
+            {
+                throw "Format not found link relation: $_"
+            }
+        }
+
+        $link.Url | Format-ImageLinkLine
+        ''
+    }
+}
+
 function Format-ChainLine()
 {
     begin
@@ -177,6 +258,14 @@ function Format-ChainLine()
         $last = $all | Select-Object -Last 1
 
         "$($head -join ', ') и $last"
+    }
+}
+
+filter Only-NotNull()
+{
+    if (($_ -ne $null) -and ($_ -ne ''))
+    {
+        $_
     }
 }
 
@@ -241,13 +330,13 @@ function Format-TalkPage()
     # [Talk]
     process
     {
-        $speakers = $_.SpeakerIds | % { $allSpeakers[$_] }
+        [array]$speakers = $_.SpeakerIds | % { $allSpeakers[$_] }
         $speakersVerb = if ($speakers.Length -eq 1) { 'представил' } else { 'представили' }
 
         $id = $_.Id
         $meetup = $allMeetups.Values |
         ? { $_.TalkIds -contains $id } |
-        % { "[[Встречи №$($_.Number)|Meetup-$($_.Number)" }
+        % { "[[Встречи №$($_.Number)|Meetup-$($_.Number)]]" }
 
 @"
 # $($speakers | % { $_.Name } | Format-ChainLine) «$($_.Title)»
@@ -258,12 +347,8 @@ $($_.Description)
 
 Доклад $speakersVerb $($speakers | Format-SpeakerLine | Format-ChainLine) в рамках $meetup.
 
-## Слайды
-[![Слайды](http://cdn.slidesharecdn.com/ss_thumbnails/spb-161128231825-thumbnail-4.jpg)](http://www.slideshare.net/SpbDotNet/rider-69615139)
-
-## Видео
-[![Видео](http://i.ytimg.com/vi/Eb4ZgRQAaqI/sddefault.jpg)](https://www.youtube.com/watch?v=Eb4ZgRQAaqI)
 "@
+        $_.Links | Only-NotNull | Format-LinkLine
     }
 }
 
@@ -280,7 +365,6 @@ Read-Venues | % { $allVenues.Add($_.Id, $_) }
 Write-Debug "Load $($allVenues.Count) venues"
 
 ### Export all
-$allMeetups.Values | Export-Meetup
-$allFriends.Values | Export-Friend -FriendDir (Join-Path $dbDir 'friends')
-#$allTalks.Values | Export-Talk
-#$allTalks.Values | ? { $_.Id -like 'Rider*' } |Format-TalkPage
+#$allMeetups.Values | Export-Meetup
+#$allFriends.Values | Export-Friend -FriendDir (Join-Path $dbDir 'friends')
+$allTalks.Values | Export-Talk

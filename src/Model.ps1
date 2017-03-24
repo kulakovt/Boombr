@@ -18,6 +18,11 @@ class Link
 {
     [LinkRelation] $Relation
     [Uri] $Url
+
+    [string] ToString()
+    {
+        return "$($this.Relation)=$($this.Url)"
+    }
 }
 
 class Speaker : Entity
