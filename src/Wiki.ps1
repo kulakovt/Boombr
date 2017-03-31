@@ -100,9 +100,9 @@ function Export-Friend([string] $FriendDir = $(throw "Friend dir required"))
     {
         Write-Information $_.Id
 
-        $dbImagemageDir = Join-Path $FriendDir $_.Id
-        Copy-Item -Path (Join-Path $dbImagemageDir 'logo.png') -Destination (Join-Path $wikiImageDir "$($_.Id).png")
-        Copy-Item -Path (Join-Path $dbImagemageDir 'logo.small.png') -Destination (Join-Path $wikiImageDir "$($_.Id)-small.png")
+        $dbImageDir = Join-Path $FriendDir $_.Id
+        Copy-Item -Path (Join-Path $dbImageDir 'logo.png') -Destination (Join-Path $wikiImageDir "$($_.Id).png")
+        Copy-Item -Path (Join-Path $dbImageDir 'logo.small.png') -Destination (Join-Path $wikiImageDir "$($_.Id)-small.png")
 
         $path = Join-Path $wikiDir "$($_.Id).md"
         $content = $_ | Format-FriendPage
@@ -118,6 +118,29 @@ function Export-Talk()
         Write-Information $_.Id
         $path = Join-Path $wikiDir "$($_.Id).md"
         $content = $_ | Format-TalkPage
+        $content | Set-Content -Path $path -Encoding UTF8
+    }
+}
+
+function Export-Speaker([string] $SpeakerDir = $(throw "Speaker dir required"))
+{
+    process
+    {
+        $speaker = [Speaker]$_
+        $id = $speaker.Id
+        Write-Information $id
+
+        $wikiImageDir = Join-Path $wikiDir $id
+        if (-not (Test-Path $wikiImageDir -PathType Container))
+        {
+            New-Item $wikiImageDir -ItemType Directory | Out-Null
+        }
+        $dbImageDir = Join-Path $SpeakerDir $id
+        Copy-Item -Path (Join-Path $dbImageDir 'avatar.jpg') -Destination (Join-Path $wikiImageDir "$id.jpg")
+        Copy-Item -Path (Join-Path $dbImageDir 'avatar.small.jpg') -Destination (Join-Path $wikiImageDir "$id-small.jpg")
+
+        $path = Join-Path $wikiDir "$id.md"
+        $content = $speaker | Format-SpeakerPage
         $content | Set-Content -Path $path -Encoding UTF8
     }
 }
@@ -187,7 +210,7 @@ function Format-SpeakerLine()
     }
 }
 
-function Format-ImageLinkLine()
+function Format-ImageLink()
 {
     process
     {
@@ -207,7 +230,7 @@ function Format-ImageLinkLine()
     }
 }
 
-function Format-LinkLine()
+function Format-LinkSection()
 {
     process
     {
@@ -234,8 +257,44 @@ function Format-LinkLine()
             }
         }
 
-        $link.Url | Format-ImageLinkLine
+        $link.Url | Format-ImageLink
         ''
+    }
+}
+
+function Format-LinkLine()
+{
+    process
+    {
+        if (-not $_) { return }
+
+        $link = [Link]$_
+        $name = ''
+        switch ($link.Relation)
+        {
+            Twitter
+            {
+                $name ='Twitter'
+            }
+            Blog
+            {
+                $name = 'Блог'
+            }
+
+            Habr
+            {
+                $name = 'Хабрахабр'
+            }
+            Contact
+            {
+                $name = 'Контакты'
+            }
+            default
+            {
+                throw "Format not found link relation: $_"
+            }
+        }
+        "$($name): $($link.Url)"
     }
 }
 
@@ -348,7 +407,88 @@ $($_.Description)
 Доклад $speakersVerb $($speakers | Format-SpeakerLine | Format-ChainLine) в рамках $meetup.
 
 "@
-        $_.Links | Only-NotNull | Format-LinkLine
+        $_.Links | Only-NotNull | Format-LinkSection
+    }
+}
+
+function Select-Single()
+{
+    begin
+    {
+        $count = 0
+    }
+    process
+    {
+        if ($_)
+        {
+            $count++
+            $_
+        }
+    }
+    end
+    {
+        if ($count -ne 1)
+        {
+            throw "Found $count elements in collection"
+        }
+    }
+}
+
+function Get-MeetupByTalk([string] $TalkId)
+{
+    $allMeetups.Values |
+    ? { $_.TalkIds -contains $TalkId } |
+    Select-Single
+}
+
+function Format-TalkTitle()
+{
+    process
+    {
+        $talk = [Talk]$_
+        $meetup = Get-MeetupByTalk -TalkId $talk.Id
+        $date = Format-RuDate -Date $meetup.Date
+
+        "[[$($talk.Title)|$($talk.Id)]] ($date)"
+    }
+}
+
+function Format-SpeakerPage()
+{
+    process
+    {
+        $speaker = [Speaker]$_
+        $id = $speaker.Id
+
+@"
+# $($speaker.Name)
+
+[![Photo](./$id/$id-small.jpg)](./$id/$id.jpg)
+
+Работает в компании [$($speaker.CompanyName)]($($speaker.CompanyUrl))
+
+$($speaker.Description)
+
+"@
+        if ($speaker.Links)
+        {
+            '## Контакты'
+            ''
+            $speaker.Links | Format-LinkLine | % { "- $_" }
+            ''
+        }
+
+        '## Доклады'
+        ''
+        $allTalks.Values |
+        ? { $_.SpeakerIds -contains $id } |
+        Sort-Object -Property @{ Expression = {
+            $talkId = $_.Id
+            $meetup = Get-MeetupByTalk -TalkId $talkId
+            @($meetup.Date, $meetup.TalkIds.IndexOf($talkId))
+        } } |
+        Format-TalkTitle |
+        % { "- $_" }
     }
 }
 
@@ -365,6 +505,7 @@ Read-Venues | % { $allVenues.Add($_.Id, $_) }
 Write-Debug "Load $($allVenues.Count) venues"
 
 ### Export all
-#$allMeetups.Values | Export-Meetup
-#$allFriends.Values | Export-Friend -FriendDir (Join-Path $dbDir 'friends')
+$allMeetups.Values | Export-Meetup
+$allFriends.Values | Export-Friend -FriendDir (Join-Path $dbDir 'friends')
 $allTalks.Values | Export-Talk
+$allSpeakers.Values | Export-Speaker -SpeakerDir (Join-Path $dbDir 'speakers')

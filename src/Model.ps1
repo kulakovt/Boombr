@@ -28,7 +28,7 @@ class Link
 class Speaker : Entity
 {
     [string] $Name
-    [Uri] $CompanyName
+    [string] $CompanyName
     [Uri] $CompanyUrl
     [string] $Description
     [Link[]] $Links
