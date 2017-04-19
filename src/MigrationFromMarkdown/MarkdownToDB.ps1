@@ -308,6 +308,12 @@ function ReadTalk($Path)
                        | Only-NotNull | Parse-Link
     )
 
+    $knownRefs = @('Lack-of-CPlusPlus-in-CSharp-1','Lack-of-CPlusPlus-in-CSharp-2','Lack-of-CPlusPlus-in-CSharp-3')
+    if ($knownRefs -contains $talk.Id)
+    {
+        $talk.SeeAlsoTalkIds = $knownRefs -ne $talk.Id
+    }
+
     return $talk
 }
 

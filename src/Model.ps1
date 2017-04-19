@@ -39,6 +39,7 @@ class Talk : Entity
     [string[]] $SpeakerIds
     [string] $Title
     [string] $Description
+    [string[]] $SeeAlsoTalkIds
     [Link[]] $Links
 }
 

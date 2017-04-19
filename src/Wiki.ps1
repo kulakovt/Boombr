@@ -15,6 +15,7 @@ $VerbosePreference = "Continue"
 $artifactsDir = "$PSScriptRoot\..\artifacts"
 $dbDir = Join-Path $artifactsDir 'db'
 $wikiDir = Join-Path $artifactsDir 'wiki'
+$cacheDir = Join-Path $artifactsDir 'cache'
 $offline = $true
 
 
@@ -23,6 +24,7 @@ if (Test-Path $wikiDir -PathType Container)
     Remove-Item $wikiDir -Recurse -Force -ErrorAction SilentlyContinue | Out-Null
 }
 New-Item $wikiDir -ItemType Directory -ErrorAction SilentlyContinue | Out-Null
+New-Item $cacheDir -ItemType Directory -ErrorAction SilentlyContinue | Out-Null
 
 
 $allCommunities = @{}
@@ -165,6 +167,29 @@ function Export-Speaker([string] $SpeakerDir = $(throw "Speaker dir required"))
     }
 }
 
+function Get-UrlHash()
+{
+    begin
+    {
+        $hasher = New-Object -TypeName System.Security.Cryptography.MD5CryptoServiceProvider
+    }
+    process
+    {
+        $url = [Uri]$_
+
+        $site = $url.Host -replace '^www\.|\.com$|\.net$',''
+
+        $buff = [System.Text.Encoding]::UTF8.GetBytes($url.PathAndQuery)
+        $hash = $hasher.ComputeHash($buff) | % { '{0:x2}' -f $_ }
+
+        "$site-$($hash -join '')"
+    }
+    end
+    {
+        $hasher.Dispose()
+    }
+}
+
 function Get-OpenGraph()
 {
     process
@@ -186,10 +211,53 @@ function Get-OpenGraph()
             SiteName = Get-PropertyContent 'site_name'
             Type = Get-PropertyContent 'type'
             #Url = Get-PropertyContent 'url'
+            Url = [string]$url
             Title = Get-PropertyContent 'title'
             Description = Get-PropertyContent 'description'
             Image = Get-PropertyContent 'image'
         }
+    }
+}
+
+function Resolve-OpenGraph()
+{
+    process
+    {
+        $url = [Uri]$_
+        $hash = $url | Get-UrlHash
+        $cachePath = Join-Path $cacheDir "$hash.json"
+
+        $og = @{}
+        if (Test-Path -Path $cachePath -PathType Leaf)
+        {
+            $json = Get-Content -Path $cachePath -Encoding UTF8 -Raw | ConvertFrom-Json
+            # Convert from PSObject to Dict
+            $json | Get-Member -MemberType NoteProperty | % { $og.Add($_.Name, [string]$json."$($_.Name)") }
+        }
+        elseif ($offline)
+        {
+            $og = @{
+                SiteName = $null
+                Type = $null
+                Url = [string]$url
+                Title = $null
+                Description = $null
+                Image = $null
+            }
+        }
+        else
+        {
+            $og = $url | Get-OpenGraph
+            $og | ConvertTo-Json | Set-Content -Path $cachePath -Encoding UTF8 -Force
+        }
+
+        # HACK: Choose small image for YouTube
+        if ($og.SiteName -eq 'YouTube')
+        {
+            $og.Image = $og.Image -replace '/maxresdefault\.jpg','/sddefault.jpg' -replace '/hqdefault\.jpg','/sddefault.jpg'
+        }
+
+        $og
     }
 }
 
@@ -230,24 +298,15 @@ function Format-SpeakerLine()
     }
 }
 
-function Format-ImageLink()
+function Format-ImageLink([Uri] $Url = $(throw "Url required"), [string] $Hint = $(throw "Hint required"))
 {
-    process
+    $og = $url | Resolve-OpenGraph
+    if (($og.Title -eq $null) -or ($og.Image -eq $null))
     {
-        $url = [Uri]$_
-        if ($offline)
-        {
-            return $url
-        }
-
-        $og = $link.Url | Get-OpenGraph
-        if (($og.Title -eq $null) -or ($og.Image -eq $null))
-        {
-            return $url
-        }
-
-        "[![$($og.Title)]($($og.Image))]($url)"
+        return $url
     }
+
+    "[![$Hint]($($og.Image))]($url)"
 }
 
 function Format-FriendImage()
@@ -292,29 +351,20 @@ function Format-LinkSection()
     process
     {
         $link = [Link]$_
+
+        $title = ''
         switch ($link.Relation)
         {
-            Code
-            {
-                '## Демо'
-            }
-            Slide
-            {
-                '## Слайды'
-            }
+            Code { $title = 'Демо' }
+            Slide { $title = 'Слайды' }
+            Video { $title = 'Видео' }
 
-            Video
-            {
-                '## Видео'
-            }
-
-            default
-            {
-                throw "Format not found link relation: $_"
-            }
+            default { throw "Format not found link relation: $_" }
         }
 
-        $link.Url | Format-ImageLink
+        "## $title"
+        ''
+        Format-ImageLink -Url $link.Url -Hint $title
         ''
     }
 }
@@ -479,13 +529,14 @@ $($_.Description)
 
 function Format-TalkPage()
 {
-    # [Talk]
     process
     {
-        [array]$speakers = $_.SpeakerIds | % { $allSpeakers[$_] }
+        $talk = [Talk]$_
+
+        [array]$speakers = $talk.SpeakerIds | % { $allSpeakers[$_] }
         $speakersVerb = if ($speakers.Length -eq 1) { 'представил' } else { 'представили' }
 
-        $id = $_.Id
+        $id = $talk.Id
         $meetup = $allMeetups.Values |
         ? { $_.TalkIds -contains $id } |
         % { "[[Встречи №$($_.Number)|Meetup-$($_.Number)]]" }
@@ -493,14 +544,24 @@ function Format-TalkPage()
 @"
 # $($speakers | % { $_.Name } | Format-ChainLine) «$($_.Title)»
 
-$($_.Description)
+$($talk.Description)
 
 ---
 
 Доклад $speakersVerb $($speakers | Format-SpeakerLine | Format-ChainLine) в рамках $meetup.
 
 "@
-        $_.Links | Only-NotNull | Format-LinkSection
+        if ($talk.SeeAlsoTalkIds)
+        {
+            '## См. также'
+            ''
+            $talk.SeeAlsoTalkIds |
+                % { $allTalks[$_] } |
+                % { "- [[$($_.Title)|$($_.Id)]]" }
+            ''
+        }
+
+        $talk.Links | Only-NotNull | Format-LinkSection
     }
 }
 
@@ -548,6 +609,10 @@ function Format-TalkTitle()
 
 function Format-SpeakerPage()
 {
+    begin
+    {
+        $epoch = (Get-Date -Date '2015-01-01T00:00:00Z').Ticks
+    }
     process
     {
         $speaker = [Speaker]$_
@@ -578,7 +643,8 @@ $($speaker.Description)
         Sort-Object -Property @{ Expression = {
             $talkId = $_.Id
             $meetup = Get-MeetupByTalk -TalkId $talkId
-            @($meetup.Date, $meetup.TalkIds.IndexOf($talkId))
+            ($meetup.Date.Ticks - $epoch) * 100 + $meetup.TalkIds.IndexOf($talkId)
+
         } } |
         Format-TalkTitle |
         % { "- $_" }
@@ -601,7 +667,11 @@ Write-Debug "Load $($allVenues.Count) venues"
 
 ### Export all
 $allCommunities.Values | Export-Community
-#$allMeetups.Values | Export-Meetup
-#$allFriends.Values | Export-Friend -FriendDir (Join-Path $dbDir 'friends')
-#$allTalks.Values | Export-Talk
-#$allSpeakers.Values | Export-Speaker -SpeakerDir (Join-Path $dbDir 'speakers')
+$allMeetups.Values | Export-Meetup
+$allFriends.Values | Export-Friend -FriendDir (Join-Path $dbDir 'friends')
+$allTalks.Values | Export-Talk
+$allSpeakers.Values | Export-Speaker -SpeakerDir (Join-Path $dbDir 'speakers')
+
+# TODO:
+
+# - Move Meetup-\d images to VK
