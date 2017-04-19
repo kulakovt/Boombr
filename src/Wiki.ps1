@@ -25,6 +25,7 @@ if (Test-Path $wikiDir -PathType Container)
 New-Item $wikiDir -ItemType Directory -ErrorAction SilentlyContinue | Out-Null
 
 
+$allCommunities = @{}
 $allMeetups = @{}
 $allTalks = @{}
 $allSpeakers = @{}
@@ -40,6 +41,13 @@ function Read-NiceXml()
         $doc = [System.Xml.Linq.XDocument]::Parse($content)
         ConvertFrom-NiceXml ($doc.Root)
     }
+}
+
+
+function Read-Communities()
+{
+    Get-ChildItem -Path (Join-Path $dbDir 'communities') -Filter '*.xml' |
+    Read-NiceXml
 }
 
 function Read-Meetups()
@@ -71,6 +79,18 @@ function Read-Venues()
 {
     Get-ChildItem -Path (Join-Path $dbDir 'venues') -Filter '*.xml' |
     Read-NiceXml
+}
+
+function Export-Community()
+{
+    process
+    {
+        $community = [Community]$_
+        Write-Information $community.Id
+        $path = Join-Path $wikiDir "$($community.Id).md"
+        $content = $community | Format-CommunityPage
+        $content | Set-Content -Path $path -Encoding UTF8
+    }
 }
 
 function Export-Meetup()
@@ -230,6 +250,43 @@ function Format-ImageLink()
     }
 }
 
+function Format-FriendImage()
+{
+    process
+    {
+        $friend = [Friend]$_
+        "[![$($friend.Name)](./Friends/$($friend.Id)-small.png)](./$($friend.Id))"
+    }
+}
+
+function Get-FriendRank()
+{
+    process
+    {
+        $friendId = [string]$_
+
+        if ($friendId -eq 'DotNext')
+        {
+            # yep, we like DotNext
+            return 1000
+        }
+
+        $allMeetups.Values |
+        % {
+            if ($_.FriendIds -contains $friendId)
+            {
+                1
+            }
+            else
+            {
+                0
+            }
+        } |
+        Measure-Object -Sum |
+        Select-Object -ExpandProperty Sum
+    }
+}
+
 function Format-LinkSection()
 {
     process
@@ -325,6 +382,42 @@ filter Only-NotNull()
     if (($_ -ne $null) -and ($_ -ne ''))
     {
         $_
+    }
+}
+
+function Format-CommunityPage()
+{
+    process
+    {
+        $community = [Community]$_
+        $meetups = $allMeetups.Values | ? { $_.CommunityId -eq $community.Id } | Sort-Object -Property Number -Descending
+
+        '## Встречи'
+        ''
+        $meetups |
+        % {
+            $meetup = [Meetup]$_
+            $speakers = $meetup.TalkIds |
+                % { $allTalks[$_].SpeakerIds } |
+                % { $allSpeakers[$_] } |
+                Format-SpeakerLine |
+                Select-Object -Unique |
+                % { "_$($_)_" }
+
+            "- $($meetup | Format-MeetupLine): $($speakers -join ', ')"
+        }
+
+        ''
+        '## Друзья'
+        ''
+        $fiends = $meetups |
+            % { $_.FriendIds } |
+            Select-Object -Unique |
+            Sort-Object -Property @{ Expression = { $_ | Get-FriendRank } } -Descending |
+            % { $allFriends[$_] } |
+            Format-FriendImage
+
+        $fiends -join ' '
     }
 }
 
@@ -493,6 +586,8 @@ $($speaker.Description)
 }
 
 ### Load all
+Read-Communities | % { $allCommunities.Add($_.Id, $_) }
+Write-Debug "Load $($allCommunities.Count) communities"
 Read-Meetups | % { $allMeetups.Add($_.Id, $_) }
 Write-Debug "Load $($allMeetups.Count) meetups"
 Read-Talks | % { $allTalks.Add($_.Id, $_) }
@@ -505,7 +600,8 @@ Read-Venues | % { $allVenues.Add($_.Id, $_) }
 Write-Debug "Load $($allVenues.Count) venues"
 
 ### Export all
-$allMeetups.Values | Export-Meetup
-$allFriends.Values | Export-Friend -FriendDir (Join-Path $dbDir 'friends')
-$allTalks.Values | Export-Talk
-$allSpeakers.Values | Export-Speaker -SpeakerDir (Join-Path $dbDir 'speakers')
+$allCommunities.Values | Export-Community
+#$allMeetups.Values | Export-Meetup
+#$allFriends.Values | Export-Friend -FriendDir (Join-Path $dbDir 'friends')
+#$allTalks.Values | Export-Talk
+#$allSpeakers.Values | Export-Speaker -SpeakerDir (Join-Path $dbDir 'speakers')

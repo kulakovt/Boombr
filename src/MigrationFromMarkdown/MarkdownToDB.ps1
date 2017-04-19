@@ -9,6 +9,10 @@ $ErrorActionPreference = 'Stop'
 $srcHome = "$PSScriptRoot\..\..\..\SpbDotNet.wiki"
 $outHome = "$PSScriptRoot\..\..\artifacts\db"
 
+$community = [Community]::new()
+$community.Id = 'SpbDotNet'
+$community.Name = 'SpbDotNet'
+
 if (-not (Test-Path $srcHome))
 {
     throw 'Markdown wiki source not found'
@@ -262,6 +266,7 @@ filter Only-Talks()
 {
     if (
         ($_.Name -ne 'Home.md') -and
+        ($_.Name -ne 'SpbDotNet.md') -and
         (($_ | Only-Meetups) -eq $null) -and
         (($_ | Only-Venue) -eq $null) -and
         (($_ | Only-Speakers) -eq $null))
@@ -430,6 +435,7 @@ function ReadMeetup($Path)
     #$dict | Out-Host
 
     $m = [Meetup]::new()
+    $m.CommunityId = $community.Id
 
     $dict['Имя'] -match '^Встреча №(?<Num>\d+)$' | Assert { $_ -eq $true }
     $m.Number = $Matches.Num
@@ -515,4 +521,12 @@ ls $srcHome -File '*.md' | Only-Meetups | % {
     $meetup = ReadMeetup -Path $_.FullName
     $file = Join-Path "$outHome\meetups" ($meetup.Id + '.xml')
     (ConvertTo-NiceXml $meetup 'Meetup').ToString() | Out-File -FilePath $file -Encoding UTF8
+}
+
+"$outHome\communities" | ReCreateDirectory
+$community | % {
+
+    Write-Host $_.Name
+    $file = Join-Path "$outHome\communities" ($_.Id + '.xml')
+    (ConvertTo-NiceXml $_ 'Community').ToString() | Out-File -FilePath $file -Encoding UTF8
 }
