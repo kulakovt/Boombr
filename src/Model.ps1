@@ -18,12 +18,17 @@ class Link
 {
     [LinkRelation] $Relation
     [Uri] $Url
+
+    [string] ToString()
+    {
+        return "$($this.Relation)=$($this.Url)"
+    }
 }
 
 class Speaker : Entity
 {
     [string] $Name
-    [Uri] $CompanyName
+    [string] $CompanyName
     [Uri] $CompanyUrl
     [string] $Description
     [Link[]] $Links
@@ -34,6 +39,7 @@ class Talk : Entity
     [string[]] $SpeakerIds
     [string] $Title
     [string] $Description
+    [string[]] $SeeAlsoTalkIds
     [Link[]] $Links
 }
 
@@ -54,8 +60,14 @@ class Venue : Entity
 class Meetup : Entity
 {
     [int] $Number
+    [string] $CommunityId
     [DateTime] $Date
     [string[]] $FriendIds
     [string] $VenueId
     [string[]] $TalkIds
+}
+
+class Community : Entity
+{
+    [string] $Name
 }

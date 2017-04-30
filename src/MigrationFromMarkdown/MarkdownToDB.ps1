@@ -9,6 +9,10 @@ $ErrorActionPreference = 'Stop'
 $srcHome = "$PSScriptRoot\..\..\..\SpbDotNet.wiki"
 $outHome = "$PSScriptRoot\..\..\artifacts\db"
 
+$community = [Community]::new()
+$community.Id = 'SpbDotNet'
+$community.Name = 'SpbDotNet'
+
 if (-not (Test-Path $srcHome))
 {
     throw 'Markdown wiki source not found'
@@ -27,6 +31,40 @@ function ReCreateDirectory()
     }
 }
 
+function TrimArray($content)
+{
+    function GetSpaceCount([array] $lines)
+    {
+        $count = 0
+        foreach ($line in $lines)
+        {
+            if ($line -eq '')
+            { $count++ }
+            else
+            { return $count }
+        }
+    }
+
+    $result = $content.Trim()
+    if (-not ($result -is [array]))
+    {
+        return $result
+    }
+    $start = GetSpaceCount $result
+    $end = GetSpaceCount ($result[($result.Length - 1)..0])
+    $end = $result.Length - $end - 1
+    $result = $result[$start..$end]
+
+    if ($result.Length -eq 1)
+    {
+        return $result[0]
+    }
+    else
+    {
+        return $result
+    }
+}
+
 function MarkdownToDict()
 {
     begin
@@ -41,14 +79,14 @@ function MarkdownToDict()
         {
             if ($key -ne $null)
             {
-                $c = if ($content.Count -eq 1) { $content[0] } else { $content }
+                $c = TrimArray $content
                 $dict.Add($key, $c)
             }
  
             $key = $_.Trim('#',' ')
             $content = @()
         }
-        elseif ($_.Trim() -ne '')
+        else
         {
             $content += $_
         }
@@ -57,7 +95,7 @@ function MarkdownToDict()
     {
         if ($key -ne $null)
         {
-            $c = if ($content.Count -eq 1) { $content[0] } else { $content }
+            $c = TrimArray $content
             $dict.Add($key, $c)
         }
  
@@ -228,6 +266,7 @@ filter Only-Talks()
 {
     if (
         ($_.Name -ne 'Home.md') -and
+        ($_.Name -ne 'SpbDotNet.md') -and
         (($_ | Only-Meetups) -eq $null) -and
         (($_ | Only-Venue) -eq $null) -and
         (($_ | Only-Speakers) -eq $null))
@@ -249,7 +288,9 @@ function ReadTalk($Path)
     $talk.Title = $Matches.Title
     $talk.SpeakerIds = $Matches.Speakers.Trim() -split ',\s*' | % { Lookup-SpeakerIdByName $_ }
     
-    $talk.Description = $dict['Описание'] | ? { ($_ -ne '---') -and ($_ -notlike 'Доклад был представлен*') } | Out-String
+    $talk.Description = $dict['Описание'] |
+        ? { ($_ -ne '---') -and ($_ -notlike 'Доклад был представлен*')  -and ($_ -notlike 'Круглый стол был представлен*') } |
+        Out-String
     $talk.Description = $talk.Description.Trim()
     $dict['Описание'] | ? { ($_ -like 'Доклад был представлен*') -or ($_ -like 'Круглый стол был представлен*') } |
                         % { $_ -match 'Meetup (?<Meetup>\d+)' } | Assert { $_ -eq $true }
@@ -258,14 +299,20 @@ function ReadTalk($Path)
     $talk.Links = @(
         $dict['Демо'] | Only-NotNull | Parse-Link
         $dict['Слайды'] -replace 'https?://cdn.slidesharecdn.com/','' `
-                        -replace 'Ждём :hourglass:','http://www.slideshare.net/waiting' `
+                        -replace 'Ждём :hourglass:','' `
                         -replace '.*http://dmitriyvlasov.github.io/Presentations/review-fsharp-4.html\)','' `
                         | Only-NotNull | Parse-Link
         $dict['Видео'] -replace 'http://i.ytimg.com/','' `
-                       -replace 'Ждём :hourglass:','http://www.youtube.com/waiting' `
+                       -replace 'Ждём :hourglass:','' `
                        -replace ':movie_camera: Видео нет','' `
                        | Only-NotNull | Parse-Link
     )
+
+    $knownRefs = @('Lack-of-CPlusPlus-in-CSharp-1','Lack-of-CPlusPlus-in-CSharp-2','Lack-of-CPlusPlus-in-CSharp-3')
+    if ($knownRefs -contains $talk.Id)
+    {
+        $talk.SeeAlsoTalkIds = $knownRefs -ne $talk.Id
+    }
 
     return $talk
 }
@@ -301,6 +348,7 @@ function ReadFriend($Path)
     # Company
     $descLine = $dict['Описание'] | ? { $_ -notlike '`[!`[Logo`]*' } | Out-String
     $descLine | Assert { $_ -ne $null }
+    $descLine = $descLine.Trim()
     $descLine -match '^\[(?<Name>.+)\]\((?<Url>.+?)\)(?<Desc>.*)' | Assert { $_ -eq $true }
 
     $f.Url = $Matches.Url
@@ -393,6 +441,7 @@ function ReadMeetup($Path)
     #$dict | Out-Host
 
     $m = [Meetup]::new()
+    $m.CommunityId = $community.Id
 
     $dict['Имя'] -match '^Встреча №(?<Num>\d+)$' | Assert { $_ -eq $true }
     $m.Number = $Matches.Num
@@ -418,7 +467,6 @@ function ReadMeetup($Path)
 
 
 ######## Main #########
-
 
 "$outHome\speakers" | ReCreateDirectory
 ls $srcHome -File '*.md' | Only-Speakers | % {
@@ -479,4 +527,12 @@ ls $srcHome -File '*.md' | Only-Meetups | % {
     $meetup = ReadMeetup -Path $_.FullName
     $file = Join-Path "$outHome\meetups" ($meetup.Id + '.xml')
     (ConvertTo-NiceXml $meetup 'Meetup').ToString() | Out-File -FilePath $file -Encoding UTF8
+}
+
+"$outHome\communities" | ReCreateDirectory
+$community | % {
+
+    Write-Host $_.Name
+    $file = Join-Path "$outHome\communities" ($_.Id + '.xml')
+    (ConvertTo-NiceXml $_ 'Community').ToString() | Out-File -FilePath $file -Encoding UTF8
 }
