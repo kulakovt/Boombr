@@ -16,7 +16,7 @@ $artifactsDir = "$PSScriptRoot\..\artifacts"
 $dbDir = Join-Path $artifactsDir 'db'
 $wikiDir = Join-Path $artifactsDir 'wiki'
 $cacheDir = Join-Path $artifactsDir 'cache'
-$offline = $true
+$offline = $false
 
 
 if (Test-Path $wikiDir -PathType Container)
@@ -200,11 +200,14 @@ function Get-OpenGraph()
 
         function Get-PropertyContent([string] $propertyValue)
         {
-            $meta |
-            # This is not the correct search, but the fastest
-            ? { $_.outerHTML.Contains("property=`"og:$propertyValue`"") } |
-            % { $_.content } |
-            Select-Object -First 1
+            $value = $meta |
+                # This is not the correct search, but the fastest
+                ? { $_.outerHTML.Contains("property=`"og:$propertyValue`"") } |
+                % { $_.content } |
+                Select-Object -First 1
+
+            # Remove empty set
+            if ($value) { $value } else { $null }
         }
 
         @{
@@ -671,7 +674,3 @@ $allMeetups.Values | Export-Meetup
 $allFriends.Values | Export-Friend -FriendDir (Join-Path $dbDir 'friends')
 $allTalks.Values | Export-Talk
 $allSpeakers.Values | Export-Speaker -SpeakerDir (Join-Path $dbDir 'speakers')
-
-# TODO:
-
-# - Move Meetup-\d images to VK
