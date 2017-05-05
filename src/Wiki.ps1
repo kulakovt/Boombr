@@ -13,18 +13,15 @@ $VerbosePreference = "Continue"
 . $PSScriptRoot\Serialization.ps1 
 
 $artifactsDir = "$PSScriptRoot\..\artifacts"
-$dbDir = Join-Path $artifactsDir 'db'
-$wikiDir = Join-Path $artifactsDir 'wiki'
+$auditDir = Join-Path $PSScriptRoot '..\..\Audit' -Resolve
+$wikiDir = Join-Path $PSScriptRoot '..\..\SpbDotNet.wiki' -Resolve
 $cacheDir = Join-Path $artifactsDir 'cache'
 $offline = $false
 
-
-if (Test-Path $wikiDir -PathType Container)
+if (-not (Test-Path $cacheDir))
 {
-    Remove-Item $wikiDir -Recurse -Force -ErrorAction SilentlyContinue | Out-Null
+    New-Item $cacheDir -ItemType Directory | Out-Null
 }
-New-Item $wikiDir -ItemType Directory -ErrorAction SilentlyContinue | Out-Null
-New-Item $cacheDir -ItemType Directory -ErrorAction SilentlyContinue | Out-Null
 
 
 $allCommunities = @{}
@@ -48,38 +45,38 @@ function Read-NiceXml()
 
 function Read-Communities()
 {
-    Get-ChildItem -Path (Join-Path $dbDir 'communities') -Filter '*.xml' |
+    Get-ChildItem -Path (Join-Path $auditDir 'communities') -Filter '*.xml' |
     Read-NiceXml
 }
 
 function Read-Meetups()
 {
-    Get-ChildItem -Path (Join-Path $dbDir 'meetups') -Filter '*.xml' |
+    Get-ChildItem -Path (Join-Path $auditDir 'meetups') -Filter '*.xml' |
     Read-NiceXml |
     Sort-Object -Property Number
 }
 
 function Read-Talks()
 {
-    Get-ChildItem -Path (Join-Path $dbDir 'talks') -Filter '*.xml' |
+    Get-ChildItem -Path (Join-Path $auditDir 'talks') -Filter '*.xml' |
     Read-NiceXml
 }
 
 function Read-Speakers()
 {
-    Get-ChildItem -Path (Join-Path $dbDir 'speakers') -Filter 'index.xml' -Recurse |
+    Get-ChildItem -Path (Join-Path $auditDir 'speakers') -Filter 'index.xml' -Recurse |
     Read-NiceXml
 }
 
 function Read-Friends()
 {
-    Get-ChildItem -Path (Join-Path $dbDir 'friends') -Filter 'index.xml' -Recurse |
+    Get-ChildItem -Path (Join-Path $auditDir 'friends') -Filter 'index.xml' -Recurse |
     Read-NiceXml
 }
 
 function Read-Venues()
 {
-    Get-ChildItem -Path (Join-Path $dbDir 'venues') -Filter '*.xml' |
+    Get-ChildItem -Path (Join-Path $auditDir 'venues') -Filter '*.xml' |
     Read-NiceXml
 }
 
@@ -671,6 +668,7 @@ Write-Debug "Load $($allVenues.Count) venues"
 ### Export all
 $allCommunities.Values | Export-Community
 $allMeetups.Values | Export-Meetup
-$allFriends.Values | Export-Friend -FriendDir (Join-Path $dbDir 'friends')
+$allFriends.Values | Export-Friend -FriendDir (Join-Path $auditDir 'friends')
 $allTalks.Values | Export-Talk
-$allSpeakers.Values | Export-Speaker -SpeakerDir (Join-Path $dbDir 'speakers')
+$allSpeakers.Values | Export-Speaker -SpeakerDir (Join-Path $auditDir 'speakers')
+
