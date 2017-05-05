@@ -8,8 +8,13 @@ function New-XElement([string] $Name = $(throw "Name required"), $Value = $null)
     return New-Object -TypeName System.Xml.Linq.XElement -ArgumentList $xName,$Value
 }
 
-function ConvertTo-NiceXml($Entity = $(throw "Entity required"), [string] $EntityName = $(throw "Entity Name required"))
+function ConvertTo-NiceXml($Entity = $(throw "Entity required"), [string] $EntityName)
 {
+    if (!$EntityName)
+    {
+        $EntityName = $Entity.GetType().Name
+    }
+
     $xEntity = New-XElement $EntityName
 
     $props = $Entity.GetType().GetProperties()
@@ -28,7 +33,7 @@ function ConvertTo-NiceXml($Entity = $(throw "Entity required"), [string] $Entit
 
         if ([Entity].IsAssignableFrom($property.PropertyType))
         {
-            $xProperty = ConvertTo-NiceXml $value $property.Name
+            $xProperty = ConvertTo-NiceXml -Entity $value -EntityName $property.Name
             $xEntity.Add($xProperty)
         }
         elseif ($property.PropertyType.IsArray)
@@ -47,7 +52,7 @@ function ConvertTo-NiceXml($Entity = $(throw "Entity required"), [string] $Entit
             }
             else
             {
-                $value | % { ConvertTo-NiceXml $_ $itemType.Name } | % { $xList.Add($_) }
+                $value | % { ConvertTo-NiceXml -Entity $_ -EntityName $itemType.Name } | % { $xList.Add($_) }
             }
 
             $xEntity.Add($xList)
@@ -59,6 +64,7 @@ function ConvertTo-NiceXml($Entity = $(throw "Entity required"), [string] $Entit
         }
     }
 
+    # TODO: return string?
     return $xEntity
 }
 
