@@ -202,7 +202,7 @@ function Parse-InputFormLines()
         }
         else
         {
-            default { throw "Invalid input form line: $_" }
+            throw "Invalid input form line: $_"
         }
     }
     end
@@ -254,18 +254,21 @@ function Save-Entity([switch] $CreateOnly)
 function New-Meetup()
 {
     $file = Join-Path $artifactsDirectory 'New Meetup.txt'
-    @(
-        'meetups/SpbDotNet-8.xml' 
-        'friends/DataArt/index.xml'
-        'venues/Spb-Telekom.xml'
-        'talks/Structured-logging.xml'
-        'talks/Design-of-RESTFul-API.xml'
-        'speakers/Anatoly-Kulakov/index.xml'
-    ) |
-    % { Join-Path $auditDirectory $_ } |
-    Read-NiceXml |
-    Render-Entity |
-    Set-Content -Path $file -Encoding UTF8
+    if (-not (Test-Path $file))
+    {
+        @(
+            'meetups/SpbDotNet-8.xml' 
+            'friends/DataArt/index.xml'
+            'venues/Spb-Telekom.xml'
+            'talks/Structured-logging.xml'
+            'talks/Design-of-RESTFul-API.xml'
+            'speakers/Anatoly-Kulakov/index.xml'
+        ) |
+        % { Join-Path $auditDirectory $_ } |
+        Read-NiceXml |
+        Render-Entity |
+        Set-Content -Path $file -Encoding UTF8
+    }
 
     Start-Process -FilePath 'notepad.exe' -ArgumentList $file -Wait
 
