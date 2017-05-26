@@ -346,65 +346,6 @@ function Get-FriendRank()
     }
 }
 
-function Format-LinkSection()
-{
-    process
-    {
-        $link = [Link]$_
-
-        $title = ''
-        switch ($link.Relation)
-        {
-            Code { $title = 'Демо' }
-            Slide { $title = 'Слайды' }
-            Video { $title = 'Видео' }
-
-            default { throw "Format not found link relation: $_" }
-        }
-
-        "## $title"
-        ''
-        Format-ImageLink -Url $link.Url -Hint $title
-        ''
-    }
-}
-
-function Format-LinkLine()
-{
-    process
-    {
-        if (-not $_) { return }
-
-        $link = [Link]$_
-        $name = ''
-        switch ($link.Relation)
-        {
-            Twitter
-            {
-                $name ='Twitter'
-            }
-            Blog
-            {
-                $name = 'Блог'
-            }
-
-            Habr
-            {
-                $name = 'Хабрахабр'
-            }
-            Contact
-            {
-                $name = 'Контакты'
-            }
-            default
-            {
-                throw "Format not found link relation: $_"
-            }
-        }
-        "$($name): $($link.Url)"
-    }
-}
-
 function Format-ChainLine()
 {
     begin
@@ -561,7 +502,28 @@ $($talk.Description)
             ''
         }
 
-        $talk.Links | Only-NotNull | Format-LinkSection
+        $links = @()
+        if ($talk.CodeUrl)
+        {
+            $links += @{ 'Демо' = $talk.CodeUrl }
+        }
+        if ($talk.SlidesUrl)
+        {
+            $links += @{ 'Слайды' = $talk.SlidesUrl }
+        }
+        if ($talk.VideoUrl)
+        {
+            $links += @{ 'Видео' = $talk.VideoUrl }
+        }
+
+        $links | % {
+            $title = $_.Keys | Select-Single
+            $url = $_.Values | Select-Single
+            "## $title"
+            ''
+            Format-ImageLink -Url $url -Hint $title
+            ''
+        }
     }
 }
 
@@ -628,11 +590,34 @@ function Format-SpeakerPage()
 $($speaker.Description)
 
 "@
-        if ($speaker.Links)
+
+        $links = @()
+        if ($speaker.BlogUrl)
+        {
+            $links += @{ 'Блог' = $speaker.BlogUrl }
+        }
+        if ($speaker.ContactsUrl)
+        {
+            $links += @{ 'Контакты' = $speaker.ContactsUrl }
+        }
+        if ($speaker.TwitterUrl)
+        {
+            $links += @{ 'Twitter' = $speaker.TwitterUrl }
+        }
+        if ($speaker.HabrUrl)
+        {
+            $links += @{ 'Хабрахабр' = $speaker.HabrUrl }
+        }
+
+        if ($links)
         {
             '## Контакты'
             ''
-            $speaker.Links | Format-LinkLine | % { "- $_" }
+            $links | % {
+                $title = $_.Keys | Select-Single
+                $url = $_.Values | Select-Single
+                "- $($title): $url"
+            }
             ''
         }
 
