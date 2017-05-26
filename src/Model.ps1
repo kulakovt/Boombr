@@ -3,35 +3,17 @@ class Entity
     [string] $Id
 }
 
-enum LinkRelation
-{
-    Twitter
-    Blog
-    Contact
-    Code
-    Slide
-    Video
-    Habr
-}
-
-class Link
-{
-    [LinkRelation] $Relation
-    [Uri] $Url
-
-    [string] ToString()
-    {
-        return "$($this.Relation)=$($this.Url)"
-    }
-}
-
 class Speaker : Entity
 {
     [string] $Name
     [string] $CompanyName
     [Uri] $CompanyUrl
     [string] $Description
-    [Link[]] $Links
+
+    [Uri] $BlogUrl
+    [Uri] $ContactsUrl
+    [Uri] $TwitterUrl
+    [Uri] $HabrUrl
 }
 
 class Talk : Entity
@@ -40,7 +22,10 @@ class Talk : Entity
     [string] $Title
     [string] $Description
     [string[]] $SeeAlsoTalkIds
-    [Link[]] $Links
+
+    [Uri] $CodeUrl
+    [Uri] $SlidesUrl
+    [Uri] $VideoUrl
 }
 
 class Friend: Entity

@@ -101,18 +101,11 @@ function Render-Property($Property, $Value)
     $valueView = $Value
     switch ($Property.PropertyType)
     {
-        ([DateTime])   { $valueView = '{0:yyyy.MM.dd}' -f $Value }
+        ([DateTime]) { $valueView = '{0:yyyy.MM.dd}' -f $Value }
         ([string[]]) { $valueView = $Value -join ', ' }
     }
 
-    if ($Property.PropertyType -eq [Link[]])
-    {
-        $value | % { "$($_.Relation): $($_.Url)" }
-    }
-    else
-    {
-        "${nameView}: $valueView"
-    }
+    "${nameView}: $valueView"
 }
 
 function Render-Entity()
@@ -141,7 +134,6 @@ function Parse-InputFormLines()
     {
         $entity = $null
         $props = @{}
-        $linkRels = [Enum]::GetNames([LinkRelation])
     }
     process
     {
@@ -171,22 +163,6 @@ function Parse-InputFormLines()
             if (-not $propertyValue)
             {
                 # Skip empty values
-                return
-            }
-
-            if ($linkRels -contains $propertyName)
-            {
-                $link = [Link]::new()
-                $link.Relation = $propertyName
-                $link.Url = $propertyValue
-
-                $linksProperty =
-                    $props.GetEnumerator() |
-                    ? { $_.Value -eq [Link[]] } |
-                    Select-Object -ExpandProperty 'Name' |
-                    Select-Single -ElementNames 'link properties'
-
-                $entity."$linksProperty" += $link
                 return
             }
 
