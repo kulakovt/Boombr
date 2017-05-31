@@ -2,6 +2,17 @@
 
 [Reflection.Assembly]::LoadWithPartialName("System.Xml.Linq") | Out-Null
 
+function Get-EntityProperties([Type] $EntityType)
+{
+    $props = $EntityType.GetProperties()
+    if ([Entity].IsAssignableFrom($EntityType))
+    {
+        $props = $props[-1..($props.Length - 2)]
+    }
+
+    $props
+}
+
 function New-XElement([string] $Name = $(throw "Name required"), $Value = $null)
 {
     $xName = [System.Xml.Linq.XName]::Get($Name)
@@ -16,12 +27,7 @@ function ConvertTo-NiceXml($Entity = $(throw "Entity required"), [string] $Entit
     }
 
     $xEntity = New-XElement $EntityName
-
-    $props = $Entity.GetType().GetProperties()
-    if ([Entity].IsAssignableFrom($Entity.GetType()))
-    {
-        $props = $props[-1..($props.Length - 2)]
-    }
+    $props = Get-EntityProperties -EntityType ($Entity.GetType())
 
     foreach ($property in $props)
     {
@@ -48,7 +54,20 @@ function ConvertTo-NiceXml($Entity = $(throw "Entity required"), [string] $Entit
 
             if ($itemType.IsValueType -or ($itemType -eq [string]))
             {
-                $value | % { New-XElement $itemType.Name $_ } | % { $xList.Add($_) }
+                $elementName = $itemType.Name
+                if ($property.Name -like '*Ids')
+                {
+                    if ($property.Name -eq 'SeeAlsoTalkIds')
+                    {
+                        $elementName = 'TalkId'
+                    }
+                    else
+                    {
+                        $elementName = $property.Name -replace 'Ids$','Id'
+                    }
+                }
+
+                $value | % { New-XElement $elementName $_ } | % { $xList.Add($_) }
             }
             else
             {
@@ -104,7 +123,13 @@ function ConvertFrom-NiceXml([System.Xml.Linq.XElement] $XEntity = $(throw "XEnt
         }
         else
         {
-            $entity."$propertyName" = $xProperty.Value
+            $value = $xProperty.Value
+            if ($property.PropertyType -eq [DateTime])
+            {
+                $value = ([DateTime]$value).ToUniversalTime()
+            }
+            
+            $entity."$propertyName" = $value
         }
     }
 
