@@ -9,7 +9,7 @@ $VerbosePreference = "Continue"
 . $PSScriptRoot\Model.ps1
 . $PSScriptRoot\Serialization.ps1 
 
-$auditDirectory = Join-Path $PSScriptRoot '../../Audit' -Resolve
+$auditDirectory = Join-Path $PSScriptRoot '../../Audit/db' -Resolve
 $artifactsDirectory = Join-Path $PSScriptRoot '../artifacts' -Resolve
 
 function Select-Single($ElementNames = 'elements')

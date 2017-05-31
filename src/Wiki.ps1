@@ -13,7 +13,7 @@ $VerbosePreference = "Continue"
 . $PSScriptRoot\Serialization.ps1 
 
 $artifactsDir = "$PSScriptRoot\..\artifacts"
-$auditDir = Join-Path $PSScriptRoot '..\..\Audit' -Resolve
+$auditDir = Join-Path $PSScriptRoot '..\..\Audit\db' -Resolve
 $wikiDir = Join-Path $PSScriptRoot '..\..\SpbDotNet.wiki' -Resolve
 $cacheDir = Join-Path $artifactsDir 'cache'
 $offline = $false
