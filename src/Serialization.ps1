@@ -78,6 +78,11 @@ function ConvertTo-NiceXml($Entity = $(throw "Entity required"), [string] $Entit
         }
         else
         {
+            if ($property.PropertyType -eq [DateTime])
+            {
+                $value = $value.ToUniversalTime().ToString('yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture)
+            }
+
             $xProperty = New-XElement $property.Name $value
             $xEntity.Add($xProperty)
         }
@@ -126,7 +131,8 @@ function ConvertFrom-NiceXml([System.Xml.Linq.XElement] $XEntity = $(throw "XEnt
             $value = $xProperty.Value
             if ($property.PropertyType -eq [DateTime])
             {
-                $value = ([DateTime]$value).ToUniversalTime()
+                $value = [DateTime]::ParseExact($value, 'yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture)
+                $value = [DateTime]::SpecifyKind($value, 'Utc')
             }
             
             $entity."$propertyName" = $value
