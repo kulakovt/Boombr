@@ -1,18 +1,4 @@
-﻿clear
-Set-StrictMode -version Latest
-$ErrorActionPreference = 'Stop'
-
-$InformationPreference = "Continue"
-$DebugPreference = "Continue"
-$VerbosePreference = "Continue"
-
-. $PSScriptRoot\Model.ps1
-. $PSScriptRoot\Serialization.ps1 
-
-$auditDirectory = Join-Path $PSScriptRoot '../../Audit/db' -Resolve
-$artifactsDirectory = Join-Path $PSScriptRoot '../artifacts' -Resolve
-
-function Select-Single($ElementNames = 'elements')
+﻿function Select-Single($ElementNames = 'elements')
 {
     begin
     {
@@ -209,7 +195,7 @@ function Save-Entity([switch] $CreateOnly)
             default       { throw "Entity not detected: $($_.FullName)" }
         }
 
-        $file = Join-Path $auditDirectory $fileName
+        $file = Join-Path $Config.AuditDir $fileName
         if ((Test-Path $file -PathType Leaf) -and ($CreateOnly))
         {
             throw "Can't override existed file: $file"
@@ -229,7 +215,7 @@ function Save-Entity([switch] $CreateOnly)
 
 function New-Meetup()
 {
-    $file = Join-Path $artifactsDirectory 'New Meetup.txt'
+    $file = Join-Path $Config.ArtifactsDir 'New Meetup.txt'
     if (-not (Test-Path $file))
     {
         @(
@@ -240,7 +226,7 @@ function New-Meetup()
             'talks/Design-of-RESTFul-API.xml'
             'speakers/Anatoly-Kulakov/index.xml'
         ) |
-        % { Join-Path $auditDirectory $_ } |
+        % { Join-Path $Config.AuditDir $_ } |
         Read-NiceXml |
         Render-Entity |
         Set-Content -Path $file -Encoding UTF8
@@ -248,11 +234,12 @@ function New-Meetup()
 
     Start-Process -FilePath 'notepad.exe' -ArgumentList $file -Wait
 
-    $entities =
-        Get-Content -Path $file -Encoding UTF8 |
-        Parse-InputFormLines |
-        # TODO: Add content validation
-        Save-Entity -CreateOnly
-}
+    $timer = Start-TimeOperation -Name 'New Meetup'
 
-New-Meetup
+    Get-Content -Path $file -Encoding UTF8 |
+    Parse-InputFormLines |
+    # TODO: Add content validation
+    Save-Entity -CreateOnly
+
+    $timer | Stop-TimeOperation
+}
