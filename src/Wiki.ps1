@@ -1,36 +1,34 @@
-﻿clear
-
-#Requires -Version 5.0
-
-Set-StrictMode -version Latest
-$ErrorActionPreference = 'Stop'
-
-$InformationPreference = "Continue"
-$DebugPreference = "Continue"
-$VerbosePreference = "Continue"
-
-. $PSScriptRoot\Model.ps1
-. $PSScriptRoot\Serialization.ps1 
-
-$artifactsDir = "$PSScriptRoot\..\artifacts"
-$auditDir = Join-Path $PSScriptRoot '..\..\Audit\db' -Resolve
-$wikiDir = Join-Path $PSScriptRoot '..\..\SpbDotNet.wiki' -Resolve
-$cacheDir = Join-Path $artifactsDir 'cache'
-$offline = $false
-
-if (-not (Test-Path $cacheDir))
-{
-    New-Item $cacheDir -ItemType Directory | Out-Null
+﻿$WikiConfig = @{
+    CacheDir = Resolve-FullPath $Config.ArtifactsDir 'cache'
+    WikiDir = Resolve-FullPath $Config.RootDir '..\..\SpbDotNet.wiki'
 }
 
+$WikiRepository = @{
+    Communities = @{}
+    Meetups = @{}
+    Talks = @{}
+    Speakers = @{}
+    Friends = @{}
+    Venues = @{}
+}
 
-$allCommunities = @{}
-$allMeetups = @{}
-$allTalks = @{}
-$allSpeakers = @{}
-$allFriends = @{}
-$allVenues = @{}
+function Test-WikiEnvironment()
+{
+    if (-not (Test-Path $WikiConfig.CacheDir))
+    {
+        New-Item -Path $WikiConfig.CacheDir -ItemType Directory | Out-Null
+        Write-Information "Create Cache directory «$($WikiConfig.CacheDir)»"
+    }
+    else
+    {
+        Write-Information "Use Cache directory «$($WikiConfig.CacheDir)»"
+    }
 
+    if (-not (Test-Path -Path $WikiConfig.WikiDir))
+    {
+        throw "Wiki directory is not found at «$($WikiConfig.WikiDir)»"
+    }
+}
 
 function Read-NiceXml()
 {
@@ -42,41 +40,40 @@ function Read-NiceXml()
     }
 }
 
-
 function Read-Communities()
 {
-    Get-ChildItem -Path (Join-Path $auditDir 'communities') -Filter '*.xml' |
+    Get-ChildItem -Path (Join-Path $Config.AuditDir 'communities') -Filter '*.xml' |
     Read-NiceXml
 }
 
 function Read-Meetups()
 {
-    Get-ChildItem -Path (Join-Path $auditDir 'meetups') -Filter '*.xml' |
+    Get-ChildItem -Path (Join-Path $Config.AuditDir 'meetups') -Filter '*.xml' |
     Read-NiceXml |
     Sort-Object -Property Number
 }
 
 function Read-Talks()
 {
-    Get-ChildItem -Path (Join-Path $auditDir 'talks') -Filter '*.xml' |
+    Get-ChildItem -Path (Join-Path $Config.AuditDir 'talks') -Filter '*.xml' |
     Read-NiceXml
 }
 
 function Read-Speakers()
 {
-    Get-ChildItem -Path (Join-Path $auditDir 'speakers') -Filter 'index.xml' -Recurse |
+    Get-ChildItem -Path (Join-Path $Config.AuditDir 'speakers') -Filter 'index.xml' -Recurse |
     Read-NiceXml
 }
 
 function Read-Friends()
 {
-    Get-ChildItem -Path (Join-Path $auditDir 'friends') -Filter 'index.xml' -Recurse |
+    Get-ChildItem -Path (Join-Path $Config.AuditDir 'friends') -Filter 'index.xml' -Recurse |
     Read-NiceXml
 }
 
 function Read-Venues()
 {
-    Get-ChildItem -Path (Join-Path $auditDir 'venues') -Filter '*.xml' |
+    Get-ChildItem -Path (Join-Path $Config.AuditDir 'venues') -Filter '*.xml' |
     Read-NiceXml
 }
 
@@ -85,8 +82,9 @@ function Export-Community()
     process
     {
         $community = [Community]$_
-        Write-Information $community.Id
-        $path = Join-Path $wikiDir "$($community.Id).md"
+        Write-Verbose "Export community $($community.Id)"
+
+        $path = Join-Path $WikiConfig.WikiDir "$($community.Id).md"
         $content = $community | Format-CommunityPage
         $content | Set-Content -Path $path -Encoding UTF8
     }
@@ -94,12 +92,13 @@ function Export-Community()
 
 function Export-Meetup()
 {
-    # [Meetup]
     process
     {
-        Write-Information $_.Id
-        $path = Join-Path $wikiDir "Meetup-$($_.Number).md"
-        $content = $_ | Format-MeetupPage
+        $meetup = [Meetup]$_
+        Write-Verbose "Export meetup $($meetup.Id)"
+
+        $path = Join-Path $WikiConfig.WikiDir "Meetup-$($meetup.Number).md"
+        $content = $meetup | Format-MeetupPage
         $content | Set-Content -Path $path -Encoding UTF8
     }
 }
@@ -108,35 +107,36 @@ function Export-Friend([string] $FriendDir = $(throw "Friend dir required"))
 {
     begin
     {
-        $wikiImageDir = Join-Path $wikiDir "Friends"
+        $wikiImageDir = Join-Path $WikiConfig.WikiDir "Friends"
         if (-not (Test-Path $wikiImageDir -PathType Container))
         {
             New-Item $wikiImageDir -ItemType Directory | Out-Null
         }
     }
-    # [Friend]
     process
     {
-        Write-Information $_.Id
+        $friend = [Friend]$_
+        Write-Verbose "Export friend $($friend.Id)"
 
-        $dbImageDir = Join-Path $FriendDir $_.Id
-        Copy-Item -Path (Join-Path $dbImageDir 'logo.png') -Destination (Join-Path $wikiImageDir "$($_.Id).png")
-        Copy-Item -Path (Join-Path $dbImageDir 'logo.small.png') -Destination (Join-Path $wikiImageDir "$($_.Id)-small.png")
+        $dbImageDir = Join-Path $FriendDir $friend.Id
+        Copy-Item -Path (Join-Path $dbImageDir 'logo.png') -Destination (Join-Path $wikiImageDir "$($friend.Id).png")
+        Copy-Item -Path (Join-Path $dbImageDir 'logo.small.png') -Destination (Join-Path $wikiImageDir "$($friend.Id)-small.png")
 
-        $path = Join-Path $wikiDir "$($_.Id).md"
-        $content = $_ | Format-FriendPage
+        $path = Join-Path $WikiConfig.WikiDir "$($friend.Id).md"
+        $content = $friend | Format-FriendPage
         $content | Set-Content -Path $path -Encoding UTF8
     }
 }
 
 function Export-Talk()
 {
-    # [Talk]
     process
     {
-        Write-Information $_.Id
-        $path = Join-Path $wikiDir "$($_.Id).md"
-        $content = $_ | Format-TalkPage
+        $talk = [Talk]$_
+        Write-Verbose "Export talk $($talk.Id)"
+
+        $path = Join-Path $WikiConfig.WikiDir "$($talk.Id).md"
+        $content = $talk | Format-TalkPage
         $content | Set-Content -Path $path -Encoding UTF8
     }
 }
@@ -147,9 +147,9 @@ function Export-Speaker([string] $SpeakerDir = $(throw "Speaker dir required"))
     {
         $speaker = [Speaker]$_
         $id = $speaker.Id
-        Write-Information $id
+        Write-Verbose "Export speaker $id"
 
-        $wikiImageDir = Join-Path $wikiDir $id
+        $wikiImageDir = Join-Path $WikiConfig.WikiDir $id
         if (-not (Test-Path $wikiImageDir -PathType Container))
         {
             New-Item $wikiImageDir -ItemType Directory | Out-Null
@@ -158,7 +158,7 @@ function Export-Speaker([string] $SpeakerDir = $(throw "Speaker dir required"))
         Copy-Item -Path (Join-Path $dbImageDir 'avatar.jpg') -Destination (Join-Path $wikiImageDir "$id.jpg")
         Copy-Item -Path (Join-Path $dbImageDir 'avatar.small.jpg') -Destination (Join-Path $wikiImageDir "$id-small.jpg")
 
-        $path = Join-Path $wikiDir "$id.md"
+        $path = Join-Path $WikiConfig.WikiDir "$id.md"
         $content = $speaker | Format-SpeakerPage
         $content | Set-Content -Path $path -Encoding UTF8
     }
@@ -225,7 +225,7 @@ function Resolve-OpenGraph()
     {
         $url = [Uri]$_
         $hash = $url | Get-UrlHash
-        $cachePath = Join-Path $cacheDir "$hash.json"
+        $cachePath = Join-Path $WikiConfig.CacheDir "$hash.json"
 
         $og = @{}
         if (Test-Path -Path $cachePath -PathType Leaf)
@@ -234,7 +234,7 @@ function Resolve-OpenGraph()
             # Convert from PSObject to Dict
             $json | Get-Member -MemberType NoteProperty | % { $og.Add($_.Name, [string]$json."$($_.Name)") }
         }
-        elseif ($offline)
+        elseif ($Config.IsOffline)
         {
             $og = @{
                 SiteName = $null
@@ -271,9 +271,9 @@ function Format-TalkLine()
     # [Talk].Id
     process
     {
-        $talk = $allTalks[$_]
+        $talk = $WikiRepository.Talks[$_]
         $speaker = $talk.SpeakerIds |
-        % { $allSpeakers[$_] } |
+        % { $WikiRepository.Speakers[$_] } |
         % { "[[$($_.Name)|$($_.Id)]]" }
 
         "$($speaker -join ', ') [[«$($talk.Title)»|$($talk.Id)]]"
@@ -330,7 +330,7 @@ function Get-FriendRank()
             return 1000
         }
 
-        $allMeetups.Values |
+        $WikiRepository.Meetups.Values |
         % {
             if ($_.FriendIds -contains $friendId)
             {
@@ -381,7 +381,7 @@ function Format-CommunityPage()
     process
     {
         $community = [Community]$_
-        $meetups = $allMeetups.Values | ? { $_.CommunityId -eq $community.Id } | Sort-Object -Property Number -Descending
+        $meetups = $WikiRepository.Meetups.Values | ? { $_.CommunityId -eq $community.Id } | Sort-Object -Property Number -Descending
 
         '## Встречи'
         ''
@@ -389,8 +389,8 @@ function Format-CommunityPage()
         % {
             $meetup = [Meetup]$_
             $speakers = $meetup.TalkIds |
-                % { $allTalks[$_].SpeakerIds } |
-                % { $allSpeakers[$_] } |
+                % { $WikiRepository.Talks[$_].SpeakerIds } |
+                % { $WikiRepository.Speakers[$_] } |
                 Format-SpeakerLine |
                 Select-Object -Unique |
                 % { "_$($_)_" }
@@ -405,7 +405,7 @@ function Format-CommunityPage()
             % { $_.FriendIds } |
             Select-Object -Unique |
             Sort-Object -Property @{ Expression = { $_ | Get-FriendRank } } -Descending |
-            % { $allFriends[$_] } |
+            % { $WikiRepository.Friends[$_] } |
             Format-FriendImage
 
         $fiends -join ' '
@@ -429,7 +429,7 @@ function Format-MeetupPage()
         $rank = if ($_.FriendIds -contains 'ITGM') { '' } elseif ($_.FriendIds -contains 'DotNext') { 'конференции ' } else { 'компании ' }
         # TODO: refer to Friend Name
         $friends = $_.FriendIds | % { "[[$_]]" }
-        $venue = $allVenues[$_.VenueId]
+        $venue = $WikiRepository.Venues[$_.VenueId]
         # TODO: remove venue Name from Address part
 @"
 
@@ -460,7 +460,7 @@ $($_.Description)
 
 "@
 
-        $allMeetups.Values |
+        $WikiRepository.Meetups.Values |
         Sort-Object -Property 'Number' |
         ? { $_.FriendIds -contains $id } |
         Format-MeetupLine |
@@ -474,11 +474,11 @@ function Format-TalkPage()
     {
         $talk = [Talk]$_
 
-        [array]$speakers = $talk.SpeakerIds | % { $allSpeakers[$_] }
+        [array]$speakers = $talk.SpeakerIds | % { $WikiRepository.Speakers[$_] }
         $speakersVerb = if ($speakers.Length -eq 1) { 'представил' } else { 'представили' }
 
         $id = $talk.Id
-        $meetup = $allMeetups.Values |
+        $meetup = $WikiRepository.Meetups.Values |
         ? { $_.TalkIds -contains $id } |
         % { "[[Встречи №$($_.Number)|Meetup-$($_.Number)]]" }
 
@@ -497,7 +497,7 @@ $($talk.Description)
             '## См. также'
             ''
             $talk.SeeAlsoTalkIds |
-                % { $allTalks[$_] } |
+                % { $WikiRepository.Talks[$_] } |
                 % { "- [[$($_.Title)|$($_.Id)]]" }
             ''
         }
@@ -552,7 +552,7 @@ function Select-Single()
 
 function Get-MeetupByTalk([string] $TalkId)
 {
-    $allMeetups.Values |
+    $WikiRepository.Meetups.Values |
     ? { $_.TalkIds -contains $TalkId } |
     Select-Single
 }
@@ -623,7 +623,7 @@ $($speaker.Description)
 
         '## Доклады'
         ''
-        $allTalks.Values |
+        $WikiRepository.Talks.Values |
         ? { $_.SpeakerIds -contains $id } |
         Sort-Object -Property @{ Expression = {
             $talkId = $_.Id
@@ -636,24 +636,32 @@ $($speaker.Description)
     }
 }
 
-### Load all
-Read-Communities | % { $allCommunities.Add($_.Id, $_) }
-Write-Debug "Load $($allCommunities.Count) communities"
-Read-Meetups | % { $allMeetups.Add($_.Id, $_) }
-Write-Debug "Load $($allMeetups.Count) meetups"
-Read-Talks | % { $allTalks.Add($_.Id, $_) }
-Write-Debug "Load $($allTalks.Count) talks"
-Read-Speakers | % { $allSpeakers.Add($_.Id, $_) }
-Write-Debug "Load $($allSpeakers.Count) speakers"
-Read-Friends | % { $allFriends.Add($_.Id, $_) }
-Write-Debug "Load $($allFriends.Count) friends"
-Read-Venues | % { $allVenues.Add($_.Id, $_) }
-Write-Debug "Load $($allVenues.Count) venues"
+function Build-Wiki()
+{
+    Test-WikiEnvironment
 
-### Export all
-$allCommunities.Values | Export-Community
-$allMeetups.Values | Export-Meetup
-$allFriends.Values | Export-Friend -FriendDir (Join-Path $auditDir 'friends')
-$allTalks.Values | Export-Talk
-$allSpeakers.Values | Export-Speaker -SpeakerDir (Join-Path $auditDir 'speakers')
+    $timer = Start-TimeOperation -Name 'Build wiki'
 
+    # Load all
+    Read-Communities | % { $WikiRepository.Communities.Add($_.Id, $_) }
+    Write-Information "Load $($WikiRepository.Communities.Count) communities"
+    Read-Meetups | % { $WikiRepository.Meetups.Add($_.Id, $_) }
+    Write-Information "Load $($WikiRepository.Meetups.Count) meetups"
+    Read-Talks | % { $WikiRepository.Talks.Add($_.Id, $_) }
+    Write-Information "Load $($WikiRepository.Talks.Count) talks"
+    Read-Speakers | % { $WikiRepository.Speakers.Add($_.Id, $_) }
+    Write-Information "Load $($WikiRepository.Speakers.Count) speakers"
+    Read-Friends | % { $WikiRepository.Friends.Add($_.Id, $_) }
+    Write-Information "Load $($WikiRepository.Friends.Count) friends"
+    Read-Venues | % { $WikiRepository.Venues.Add($_.Id, $_) }
+    Write-Information "Load $($WikiRepository.Venues.Count) venues"
+
+    # Export all
+    $WikiRepository.Communities.Values | Export-Community
+    $WikiRepository.Meetups.Values | Export-Meetup
+    $WikiRepository.Friends.Values | Export-Friend -FriendDir (Join-Path $Config.AuditDir 'friends')
+    $WikiRepository.Talks.Values | Export-Talk
+    $WikiRepository.Speakers.Values | Export-Speaker -SpeakerDir (Join-Path $Config.AuditDir 'speakers')
+
+    $timer | Stop-TimeOperation
+}
