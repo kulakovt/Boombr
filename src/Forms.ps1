@@ -1,27 +1,4 @@
-﻿function Select-Single($ElementNames = 'elements')
-{
-    begin
-    {
-        $count = 0
-    }
-    process
-    {
-        if ($_)
-        {
-            $count++
-            $_
-        }
-    }
-    end
-    {
-        if ($count -ne 1)
-        {
-            throw "Found $count $ElementNames in collection"
-        }
-    }
-}
-
-function Read-NiceXml()
+﻿function Read-NiceXml()
 {
     process
     {
@@ -29,35 +6,6 @@ function Read-NiceXml()
         $doc = [System.Xml.Linq.XDocument]::Parse($content)
         ConvertFrom-NiceXml ($doc.Root)
     }
-}
-
-function ConvertTo-Hashtable([ScriptBlock] $KeySelector = $(throw "Key selector required"), [ScriptBlock] $ElementSelector = { $_ })
-{
-    begin
-    {
-        $hash = @{}
-    }
-    process
-    {
-        $key = & $KeySelector $_
-        $element = & $ElementSelector $_
-        $hash[$key] = $element
-    }
-    end
-    {
-        $hash
-    }
-}
-
-function Get-EntityProperties([Type] $EntityType)
-{
-    $props = $EntityType.GetProperties()
-    if ([Entity].IsAssignableFrom($EntityType))
-    {
-        $props = $props[-1..($props.Length - 2)]
-    }
-
-    $props
 }
 
 function Format-PretyName()

@@ -1,7 +1,5 @@
 ﻿#Requires -Version 5.0
 
-clear
-
 Set-StrictMode -version Latest
 $ErrorActionPreference = 'Stop'
 
@@ -43,8 +41,18 @@ function Run-BoombrCommand([string] $Command = $(throw 'Command required'))
 {
     switch ($Command)
     {
-        'build wiki' { Build-Wiki }
-        'new meetup' { New-Meetup }
+        'build wiki'
+        {
+            . $PSScriptRoot\Wiki.ps1
+            Build-Wiki
+        }
+
+        'new meetup'
+        {
+            . $PSScriptRoot\Forms.ps1
+            New-Meetup
+        }
+
         default { "Command not found: $Command" }
     }
 }
@@ -52,15 +60,17 @@ function Run-BoombrCommand([string] $Command = $(throw 'Command required'))
 
 ### Main ###
 
-$args = @('new', 'meetup')
-$Config.IsOffline = $true
-
-. $PSScriptRoot\Wiki.ps1
-. $PSScriptRoot\Forms.ps1
+#clear
+#$args = @('build', 'wiki')
+#$args = @('new', 'meetup')
+#$Config.IsOffline = $true
 
 if ($args.Length -lt 2)
 {
-    Write-Information "Command not found: $args"
+    if ($args)
+    {
+        Write-Information "Command not found: $args"
+    }
     Write-Information 'Supported commands:'
     Write-Information '- build wiki'
     Write-Information '- new meetup'

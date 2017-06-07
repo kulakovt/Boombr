@@ -368,14 +368,6 @@ function Format-ChainLine()
     }
 }
 
-filter Only-NotNull()
-{
-    if (($_ -ne $null) -and ($_ -ne ''))
-    {
-        $_
-    }
-}
-
 function Format-CommunityPage()
 {
     process
@@ -523,29 +515,6 @@ $($talk.Description)
             ''
             Format-ImageLink -Url $url -Hint $title
             ''
-        }
-    }
-}
-
-function Select-Single()
-{
-    begin
-    {
-        $count = 0
-    }
-    process
-    {
-        if ($_)
-        {
-            $count++
-            $_
-        }
-    }
-    end
-    {
-        if ($count -ne 1)
-        {
-            throw "Found $count elements in collection"
         }
     }
 }

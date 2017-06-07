@@ -32,3 +32,53 @@ function Stop-TimeOperation()
         Write-Information "$($operation.Name) completed in $($operation.Timer.Elapsed)"
     }
 }
+
+filter Only-NotNull()
+{
+    if ($_)
+    {
+        $_
+    }
+}
+
+function Select-Single($ElementNames = 'elements')
+{
+    begin
+    {
+        $count = 0
+    }
+    process
+    {
+        if ($_)
+        {
+            $count++
+            $_
+        }
+    }
+    end
+    {
+        if ($count -ne 1)
+        {
+            throw "Found $count $ElementNames in collection"
+        }
+    }
+}
+
+function ConvertTo-Hashtable([ScriptBlock] $KeySelector = $(throw "Key selector required"), [ScriptBlock] $ElementSelector = { $_ })
+{
+    begin
+    {
+        $hash = @{}
+    }
+    process
+    {
+        $item = $_
+        $key = & $KeySelector $item
+        $element = & $ElementSelector $item
+        $hash[$key] = $element
+    }
+    end
+    {
+        $hash
+    }
+}
