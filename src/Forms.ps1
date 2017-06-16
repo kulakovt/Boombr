@@ -152,7 +152,7 @@ function Save-Entity([switch] $CreateOnly)
         $dir = Split-Path $file -Parent
         if (-not (Test-Path $dir -PathType Container))
         {
-            New-Item -Path $dir -ItemType Directory
+            New-Item -Path $dir -ItemType Directory | Out-Null
         }
 
         Write-Information "Save $($entity.Id)"

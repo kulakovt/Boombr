@@ -303,10 +303,12 @@ function Format-ImageLink([Uri] $Url = $(throw "Url required"), [string] $Hint =
     $og = $url | Resolve-OpenGraph
     if (($og.Title -eq $null) -or ($og.Image -eq $null))
     {
-        return $url
+        "$url"
     }
-
-    "[![$Hint]($($og.Image))]($url)"
+    else
+    {
+        "[![$Hint]($($og.Image))]($url)"
+    }
 }
 
 function Format-FriendImage()

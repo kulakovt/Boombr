@@ -15,9 +15,6 @@ $VerbosePreference = 'SilentlyContinue'
 # run, new, publish, test, clean, restore
 # add, remove, list
 
-# build wiki
-# new meetup
-
 $Config = @{
     RootDir = $PSScriptRoot
     ArtifactsDir = Resolve-FullPath $PSScriptRoot '..\artifacts'
