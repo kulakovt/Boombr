@@ -44,7 +44,7 @@ class Venue : Entity
 
 class Meetup : Entity
 {
-    [int] $Number
+    [string] $Name
     [string] $CommunityId
     [DateTime] $Date
     [string[]] $FriendIds

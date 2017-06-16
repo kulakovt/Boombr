@@ -50,7 +50,7 @@ function Read-Meetups()
 {
     Get-ChildItem -Path (Join-Path $Config.AuditDir 'meetups') -Filter '*.xml' |
     Read-NiceXml |
-    Sort-Object -Property Number
+    Sort-Object -Property Date
 }
 
 function Read-Talks()
@@ -97,7 +97,7 @@ function Export-Meetup()
         $meetup = [Meetup]$_
         Write-Verbose "Export meetup $($meetup.Id)"
 
-        $path = Join-Path $WikiConfig.WikiDir "Meetup-$($meetup.Number).md"
+        $path = Join-Path $WikiConfig.WikiDir "$($meetup.Id).md"
         $content = $meetup | Format-MeetupPage
         $content | Set-Content -Path $path -Encoding UTF8
     }
@@ -285,7 +285,7 @@ function Format-MeetupLine()
     # [Meetup]
     process
     {
-        "[[Встреча №$($_.Number) ($(Format-RuDate -Date $_.Date))|Meetup-$($_.Number)]]"
+        "[[$($_.Name) ($(Format-RuDate -Date $_.Date))|$($_.Id)]]"
     }
 }
 
@@ -375,7 +375,7 @@ function Format-CommunityPage()
     process
     {
         $community = [Community]$_
-        $meetups = $WikiRepository.Meetups.Values | ? { $_.CommunityId -eq $community.Id } | Sort-Object -Property Number -Descending
+        $meetups = $WikiRepository.Meetups.Values | ? { $_.CommunityId -eq $community.Id } | Sort-Object -Property Date -Descending
 
         '## Встречи'
         ''
@@ -412,9 +412,9 @@ function Format-MeetupPage()
     process
     {
 @"
-# Встреча №$($_.Number)
+# $($_.Name)
 
-Встреча №$($_.Number) состоялась $(Format-RuDate -Date $_.Date)
+$($_.Name) состоялась $(Format-RuDate -Date $_.Date)
 
 ## Доклады
 
@@ -455,7 +455,7 @@ $($_.Description)
 "@
 
         $WikiRepository.Meetups.Values |
-        Sort-Object -Property 'Number' |
+        Sort-Object -Property Date |
         ? { $_.FriendIds -contains $id } |
         Format-MeetupLine |
         % { "- $_" }
@@ -474,7 +474,7 @@ function Format-TalkPage()
         $id = $talk.Id
         $meetup = $WikiRepository.Meetups.Values |
         ? { $_.TalkIds -contains $id } |
-        % { "[[Встречи №$($_.Number)|Meetup-$($_.Number)]]" }
+        % { "[[$($_.Name -replace 'Встреча','Встречи')|$($_.Id)]]" }
 
 @"
 # $($speakers | % { $_.Name } | Format-ChainLine) «$($_.Title)»

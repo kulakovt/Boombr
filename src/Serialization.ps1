@@ -83,8 +83,11 @@ function ConvertTo-NiceXml($Entity = $(throw "Entity required"), [string] $Entit
                 $value = $value.ToUniversalTime().ToString('yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture)
             }
 
-            $xProperty = New-XElement $property.Name $value
-            $xEntity.Add($xProperty)
+            if ($value)
+            {
+                $xProperty = New-XElement $property.Name $value
+                $xEntity.Add($xProperty)
+            }
         }
     }
 

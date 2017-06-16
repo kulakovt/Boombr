@@ -10,7 +10,7 @@ $VerbosePreference = "Continue"
 . $PSScriptRoot\..\Model.ps1
 . $PSScriptRoot\..\Serialization.ps1 
 
-$auditDir = Join-Path $PSScriptRoot '..\..\..\Audit' -Resolve
+$auditDir = Join-Path $PSScriptRoot '..\..\..\Audit\db' -Resolve
 
 function Read-NiceXml()
 {
