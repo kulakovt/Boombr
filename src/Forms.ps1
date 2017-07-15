@@ -1,126 +1,12 @@
-﻿function Read-NiceXml()
+﻿. $PSScriptRoot\TextSerialization.ps1
+
+function Read-NiceXml()
 {
     process
     {
         $content = Get-Content -Path $_ -Encoding UTF8 -Raw
         $doc = [System.Xml.Linq.XDocument]::Parse($content)
         ConvertFrom-NiceXml ($doc.Root)
-    }
-}
-
-function Format-PretyName()
-{
-    process
-    {
-        $name = $_
-        $name -replace '(.+)Id$','$1' -replace '(.+)Ids$','$1s'
-    }
-}
-
-function Format-UnPretyName($Vocabulary)
-{
-    process
-    {
-        $name = $_
-        @("$name", "$($name.TrimEnd('s'))Ids", "${name}Id") |
-        ? { $Vocabulary -contains $_ } |
-        Select-Single -ElementNames 'unprety property names'
-    }
-}
-
-function Render-Property($Property, $Value)
-{
-    $nameView = $Property.Name | Format-PretyName
-
-    $valueView = $Value
-    switch ($Property.PropertyType)
-    {
-        ([DateTime]) { $valueView = '{0:yyyy.MM.dd}' -f $Value }
-        ([string[]]) { $valueView = $Value -join ', ' }
-    }
-
-    "${nameView}: $valueView"
-}
-
-function Render-Entity()
-{
-    process
-    {
-        $entity = $_
-        $entityType = $entity.GetType()
-        ''
-        "############ $($entityType.Name) ############"
-        ''
-
-        Get-EntityProperties -EntityType $entityType |
-        % {
-            $property = $_
-            $value = $entity."$($property.Name)"
-            Render-Property -Property $property -Value $value
-        }
-        ''
-    }
-}
-
-function Parse-InputFormLines()
-{
-    begin
-    {
-        $entity = $null
-        $props = @{}
-    }
-    process
-    {
-        $line = $_
-        if ([String]::IsNullOrWhiteSpace($line))
-        {
-            return
-        }
-
-        if ($line -like '#*')
-        {
-            # New Entity
-            if ($entity)
-            {
-                $entity
-            }
-            $entityType = $line -replace '[#\s]'
-            $entity = New-Object -TypeName $entityType
-            $props = Get-EntityProperties -EntityType $entityType |
-                ConvertTo-Hashtable -KeySelector { $_.Name } -ElementSelector { $_.PropertyType }
-        }
-        elseif ($line -like '*:*')
-        {
-            # New Property value
-            $propertyName, $propertyValue = $line -split ':',2 | % { $_.Trim() }
-
-            if (-not $propertyValue)
-            {
-                # Skip empty values
-                return
-            }
-
-            $propertyName = $propertyName | Format-UnPretyName -Vocabulary $props.Keys
-            $propertyType = $props[$propertyName]
-
-            switch ($propertyType)
-            {
-                ([DateTime])   { $propertyValue = [DateTime]::ParseExact($propertyValue, 'yyyy.MM.dd', [System.Globalization.CultureInfo]::InvariantCulture) }
-                ([string[]]) { $propertyValue = $propertyValue -split ', ' | % { $_.Trim() } }
-            }
-            $entity."$propertyName" = $propertyValue
-        }
-        else
-        {
-            throw "Invalid input form line: $_"
-        }
-    }
-    end
-    {
-        if ($entity)
-        {
-            $entity
-        }
     }
 }
 
@@ -167,7 +53,7 @@ function New-Meetup()
     if (-not (Test-Path $file))
     {
         @(
-            'meetups/SpbDotNet-8.xml' 
+            'meetups/SpbDotNet-8.xml'
             'friends/DataArt/index.xml'
             'venues/Spb-Telekom.xml'
             'talks/Structured-logging.xml'
@@ -176,18 +62,17 @@ function New-Meetup()
         ) |
         % { Join-Path $Config.AuditDir $_ } |
         Read-NiceXml |
-        Render-Entity |
-        Set-Content -Path $file -Encoding UTF8
+        Write-NiceText -FilePath $file
     }
 
     Start-Process -FilePath 'notepad.exe' -ArgumentList $file -Wait
 
     $timer = Start-TimeOperation -Name 'New Meetup'
 
-    Get-Content -Path $file -Encoding UTF8 |
-    Parse-InputFormLines |
-    # TODO: Add content validation
-    Save-Entity -CreateOnly
+    $file |
+        Read-NiceText |
+        # TODO: Add content validation
+        Save-Entity -CreateOnly
 
     $timer | Stop-TimeOperation
 }
