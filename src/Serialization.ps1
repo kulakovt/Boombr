@@ -1,4 +1,4 @@
-﻿. $PSScriptRoot\Model.ps1 
+﻿. $PSScriptRoot\Model.ps1
 
 [Reflection.Assembly]::LoadWithPartialName("System.Xml.Linq") | Out-Null
 
@@ -19,7 +19,7 @@ function New-XElement([string] $Name = $(throw "Name required"), $Value = $null)
     return New-Object -TypeName System.Xml.Linq.XElement -ArgumentList $xName,$Value
 }
 
-function ConvertTo-NiceXml($Entity = $(throw "Entity required"), [string] $EntityName)
+function ConvertTo-NiceXml($Entity = $(throw "Entity required"), [string] $EntityName = $null)
 {
     if (!$EntityName)
     {
@@ -126,7 +126,7 @@ function ConvertFrom-NiceXml([System.Xml.Linq.XElement] $XEntity = $(throw "XEnt
             {
                 $listValue = $xProperty.Elements() | % { ConvertFrom-NiceXml $_ }
             }
-            
+
             $entity."$propertyName" = $listValue
         }
         else
@@ -137,7 +137,7 @@ function ConvertFrom-NiceXml([System.Xml.Linq.XElement] $XEntity = $(throw "XEnt
                 $value = [DateTime]::ParseExact($value, 'yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture)
                 $value = [DateTime]::SpecifyKind($value, 'Utc')
             }
-            
+
             $entity."$propertyName" = $value
         }
     }
