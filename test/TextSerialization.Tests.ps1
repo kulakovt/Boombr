@@ -95,7 +95,7 @@ G: 1
         It 'Should starts with entity type' {
             $title = $text -split "`n" | Select-Object -First 1
 
-            $title | Should BeLikeExactly '#* TextTestEntity *'
+            $title | Should BeLike '#* TextTestEntity *'
         }
 
         It 'Should contains all property values' {
