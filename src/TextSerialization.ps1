@@ -152,7 +152,7 @@ function Format-UnNiceTextProperty(
             $value = [DateTime]::ParseExact($value, 'yyyy.MM.dd', [Globalization.CultureInfo]::InvariantCulture)
             $value = [DateTime]::SpecifyKind($value, 'Utc')
         }
-        ([string[]]) { $value = $value -split ', ' }
+        ([string[]]) { $value = ($value -split ',').Trim() }
     }
 
     @{
