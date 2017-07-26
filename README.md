@@ -10,13 +10,13 @@ Boombr — скрипт для помощи в подготовке статич
 
 1. Склонируйре репозиторий Boombr
 
-```posh
+```batch
 git clone https://github.com/AnatolyKulakov/Boombr.git
 ```
 
 2. Склонируйте репозиторий с Audit'ом, если будите с ним работать
 
-```posh
+```bash
 git clone https://github.com/DotNetRu/Audit.git
 ```
 
@@ -36,7 +36,9 @@ git clone https://github.com/AnatolyKulakov/SpbDotNet.wiki.git
 
 Для создания новой встречи запустите команду:
 
-`./Invoke-Boombr.ps1 new meetup`
+```posh
+./Invoke-Boombr.ps1 new meetup
+```
 
 Откроется форма с заполненным примером одной встречи, места, друзьями, докладчиками и докладами. Заполните поля актуальной информацией, удалите не нужные данные, сохраните изменения и закройте форму. После этого Boombr добавить в репозиторий Audit'а все введённые данные.
 
