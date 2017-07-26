@@ -4,10 +4,11 @@ os: WMF 5
 branches:
   only:
     - master
+    - nix-eol
 
-skip_commits:
-  files:
-    - README.md
+#skip_commits:
+#  files:
+#    - README.md
 
 init:
   - git config --global core.autocrlf false

@@ -16,13 +16,13 @@ git clone https://github.com/AnatolyKulakov/Boombr.git
 
 2. Склонируйте репозиторий с Audit'ом, если будите с ним работать
 
-```batch
+```bash
 git clone https://github.com/DotNetRu/Audit.git
 ```
 
 3. Склонируйте репозиторий с Wiki, если будите с ней работать
 
-```batch
+```posh
 git clone https://github.com/AnatolyKulakov/SpbDotNet.wiki.git
 ```
 
@@ -52,7 +52,7 @@ Boombr пока не умеет работать с картинками. Поэ
 Для перегенерации Wiki запустите команду:
 
 ```posh
-`./Invoke-Boombr.ps1 build wiki`
+./Invoke-Boombr.ps1 build wiki
 ```
 
 Boombr перестроит все страницы для всех сообществ из текущей версии Audit'а.
