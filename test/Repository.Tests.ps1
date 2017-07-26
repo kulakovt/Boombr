@@ -20,6 +20,10 @@ Describe 'Repository verification' {
                 $content = $file | Get-Content -Raw
                 if ($content -match '[^\r]\n')
                 {
+                    if ($content -match '(?<line>.*)[^\r]\n')
+                    {
+                        $Matches['line'] | Out-Host
+                    }
                     $file
                 }
             }
