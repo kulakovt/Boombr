@@ -1,4 +1,4 @@
-﻿clear
+﻿Clear-Host
 
 Set-StrictMode -version Latest
 $ErrorActionPreference = 'Stop'
@@ -8,7 +8,7 @@ $DebugPreference = "Continue"
 $VerbosePreference = "Continue"
 
 . $PSScriptRoot\..\Model.ps1
-. $PSScriptRoot\..\Serialization.ps1 
+. $PSScriptRoot\..\Serialization.ps1
 
 $auditDir = Join-Path $PSScriptRoot '..\..\..\Audit\db' -Resolve
 
@@ -22,13 +22,13 @@ function Read-NiceXml()
     }
 }
 
-function Read-Talks()
+function Read-Talk()
 {
     Get-ChildItem -Path (Join-Path $auditDir 'talks') -Filter '*.xml' |
     Read-NiceXml
 }
 
-function Read-Speakers()
+function Read-Speaker()
 {
     Get-ChildItem -Path (Join-Path $auditDir 'speakers') -Filter 'index.xml' -Recurse |
     Read-NiceXml
@@ -61,14 +61,14 @@ function Save-Entity()
     }
 }
 
-function Unlink-Speaker()
+function Invoke-SpeakerUnlink()
 {
     process
     {
         $speaker = [Speaker]$_
 
-        $speaker.Links | ? { $_ } |
-        % {
+        $speaker.Links | Where-Object { $_ } |
+        ForEach-Object {
             $link = [Link]$_
 
             switch ($link.Relation)
@@ -88,14 +88,14 @@ function Unlink-Speaker()
 }
 
 
-function Unlink-Talk()
+function Invoke-TalkUnlink()
 {
     process
     {
         $talk = [Talk]$_
 
-        $talk.Links | ? { $_ } |
-        % {
+        $talk.Links | Where-Object { $_ } |
+        ForEach-Object {
             $link = [Link]$_
 
             switch ($link.Relation)
@@ -116,6 +116,6 @@ function Unlink-Talk()
 
 ### Convert
 
-Read-Speakers | Unlink-Speaker | Save-Entity
-Read-Talks | Unlink-Talk | Save-Entity
+Read-Speaker | Invoke-SpeakerUnlink | Save-Entity
+Read-Talk | Invoke-TalkUnlink | Save-Entity
 

@@ -60,7 +60,7 @@ function New-Meetup()
             'talks/Design-of-RESTFul-API.xml'
             'speakers/Anatoly-Kulakov/index.xml'
         ) |
-        % { Join-Path $Config.AuditDir $_ } |
+        ForEach-Object { Join-Path $Config.AuditDir $_ } |
         Read-NiceXml |
         Write-NiceText -FilePath $file
     }

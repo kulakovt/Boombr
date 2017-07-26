@@ -40,38 +40,38 @@ function Read-NiceXml()
     }
 }
 
-function Read-Communities()
+function Read-Community()
 {
     Get-ChildItem -Path (Join-Path $Config.AuditDir 'communities') -Filter '*.xml' |
     Read-NiceXml
 }
 
-function Read-Meetups()
+function Read-Meetup()
 {
     Get-ChildItem -Path (Join-Path $Config.AuditDir 'meetups') -Filter '*.xml' |
     Read-NiceXml |
     Sort-Object -Property Date
 }
 
-function Read-Talks()
+function Read-Talk()
 {
     Get-ChildItem -Path (Join-Path $Config.AuditDir 'talks') -Filter '*.xml' |
     Read-NiceXml
 }
 
-function Read-Speakers()
+function Read-Speaker()
 {
     Get-ChildItem -Path (Join-Path $Config.AuditDir 'speakers') -Filter 'index.xml' -Recurse |
     Read-NiceXml
 }
 
-function Read-Friends()
+function Read-Friend()
 {
     Get-ChildItem -Path (Join-Path $Config.AuditDir 'friends') -Filter 'index.xml' -Recurse |
     Read-NiceXml
 }
 
-function Read-Venues()
+function Read-Venue()
 {
     Get-ChildItem -Path (Join-Path $Config.AuditDir 'venues') -Filter '*.xml' |
     Read-NiceXml
@@ -177,7 +177,7 @@ function Get-UrlHash()
         $site = $url.Host -replace '^www\.|\.com$|\.net$',''
 
         $buff = [System.Text.Encoding]::UTF8.GetBytes($url.PathAndQuery)
-        $hash = $hasher.ComputeHash($buff) | % { '{0:x2}' -f $_ }
+        $hash = $hasher.ComputeHash($buff) | ForEach-Object { '{0:x2}' -f $_ }
 
         "$site-$($hash -join '')"
     }
@@ -193,14 +193,14 @@ function Get-OpenGraph()
     {
         $url = [Uri]$_
         $content = Invoke-WebRequest -Uri $url
-        $meta = $content.ParsedHtml.getElementsByTagName('meta') | ? { ($_.outerHTML -ne $null) -and ($_.outerHTML.Contains("property=`"og:")) }
+        $meta = $content.ParsedHtml.getElementsByTagName('meta') | Where-Object { ($_.outerHTML) -and ($_.outerHTML.Contains("property=`"og:")) }
 
         function Get-PropertyContent([string] $propertyValue)
         {
             $value = $meta |
                 # This is not the correct search, but the fastest
-                ? { $_.outerHTML.Contains("property=`"og:$propertyValue`"") } |
-                % { $_.content } |
+                Where-Object { $_.outerHTML.Contains("property=`"og:$propertyValue`"") } |
+                ForEach-Object { $_.content } |
                 Select-Object -First 1
 
             # Remove empty set
@@ -232,7 +232,7 @@ function Resolve-OpenGraph()
         {
             $json = Get-Content -Path $cachePath -Encoding UTF8 -Raw | ConvertFrom-Json
             # Convert from PSObject to Dict
-            $json | Get-Member -MemberType NoteProperty | % { $og.Add($_.Name, [string]$json."$($_.Name)") }
+            $json | Get-Member -MemberType NoteProperty | ForEach-Object { $og.Add($_.Name, [string]$json."$($_.Name)") }
         }
         elseif ($Config.IsOffline)
         {
@@ -273,8 +273,8 @@ function Format-TalkLine()
     {
         $talk = $WikiRepository.Talks[$_]
         $speaker = $talk.SpeakerIds |
-        % { $WikiRepository.Speakers[$_] } |
-        % { "[[$($_.Name)|$($_.Id)]]" }
+        ForEach-Object { $WikiRepository.Speakers[$_] } |
+        ForEach-Object { "[[$($_.Name)|$($_.Id)]]" }
 
         "$($speaker -join ', ') [[«$($talk.Title)»|$($talk.Id)]]"
     }
@@ -301,7 +301,7 @@ function Format-SpeakerLine()
 function Format-ImageLink([Uri] $Url = $(throw "Url required"), [string] $Hint = $(throw "Hint required"))
 {
     $og = $url | Resolve-OpenGraph
-    if (($og.Title -eq $null) -or ($og.Image -eq $null))
+    if ((-not $og.Title) -or (-not $og.Image))
     {
         "$url"
     }
@@ -333,7 +333,7 @@ function Get-FriendRank()
         }
 
         $WikiRepository.Meetups.Values |
-        % {
+        ForEach-Object {
             if ($_.FriendIds -contains $friendId)
             {
                 1
@@ -375,19 +375,19 @@ function Format-CommunityPage()
     process
     {
         $community = [Community]$_
-        $meetups = $WikiRepository.Meetups.Values | ? { $_.CommunityId -eq $community.Id } | Sort-Object -Property Date -Descending
+        $meetups = $WikiRepository.Meetups.Values | Where-Object { $_.CommunityId -eq $community.Id } | Sort-Object -Property Date -Descending
 
         '## Встречи'
         ''
         $meetups |
-        % {
+        ForEach-Object {
             $meetup = [Meetup]$_
             $speakers = $meetup.TalkIds |
-                % { $WikiRepository.Talks[$_].SpeakerIds } |
-                % { $WikiRepository.Speakers[$_] } |
+                ForEach-Object { $WikiRepository.Talks[$_].SpeakerIds } |
+                ForEach-Object { $WikiRepository.Speakers[$_] } |
                 Format-SpeakerLine |
                 Select-Object -Unique |
-                % { "_$($_)_" }
+                ForEach-Object { "_$($_)_" }
 
             "- $($meetup | Format-MeetupLine): $($speakers -join ', ')"
         }
@@ -396,10 +396,10 @@ function Format-CommunityPage()
         '## Друзья'
         ''
         $fiends = $meetups |
-            % { $_.FriendIds } |
+            ForEach-Object { $_.FriendIds } |
             Select-Object -Unique |
             Sort-Object -Property @{ Expression = { $_ | Get-FriendRank } } -Descending |
-            % { $WikiRepository.Friends[$_] } |
+            ForEach-Object { $WikiRepository.Friends[$_] } |
             Format-FriendImage
 
         $fiends -join ' '
@@ -419,10 +419,10 @@ $($_.Name) состоялась $(Format-RuDate -Date $_.Date)
 ## Доклады
 
 "@
-        $_.TalkIds | Format-TalkLine | % { "- $_" }
+        $_.TalkIds | Format-TalkLine | ForEach-Object { "- $_" }
         $rank = if ($_.FriendIds -contains 'ITGM') { '' } elseif ($_.FriendIds -contains 'DotNext') { 'конференции ' } else { 'компании ' }
         # TODO: refer to Friend Name
-        $friends = $_.FriendIds | % { "[[$_]]" }
+        $friends = $_.FriendIds | ForEach-Object { "[[$_]]" }
         $venue = $WikiRepository.Venues[$_.VenueId]
         # TODO: remove venue Name from Address part
 @"
@@ -456,9 +456,9 @@ $($_.Description)
 
         $WikiRepository.Meetups.Values |
         Sort-Object -Property Date |
-        ? { $_.FriendIds -contains $id } |
+        Where-Object { $_.FriendIds -contains $id } |
         Format-MeetupLine |
-        % { "- $_" }
+        ForEach-Object { "- $_" }
     }
 }
 
@@ -468,16 +468,16 @@ function Format-TalkPage()
     {
         $talk = [Talk]$_
 
-        [array]$speakers = $talk.SpeakerIds | % { $WikiRepository.Speakers[$_] }
+        [array]$speakers = $talk.SpeakerIds | ForEach-Object { $WikiRepository.Speakers[$_] }
         $speakersVerb = if ($speakers.Length -eq 1) { 'представил' } else { 'представили' }
 
         $id = $talk.Id
         $meetup = $WikiRepository.Meetups.Values |
-        ? { $_.TalkIds -contains $id } |
-        % { "[[$($_.Name -replace 'Встреча','Встречи')|$($_.Id)]]" }
+        Where-Object { $_.TalkIds -contains $id } |
+        ForEach-Object { "[[$($_.Name -replace 'Встреча','Встречи')|$($_.Id)]]" }
 
 @"
-# $($speakers | % { $_.Name } | Format-ChainLine) «$($_.Title)»
+# $($speakers | ForEach-Object { $_.Name } | Format-ChainLine) «$($_.Title)»
 
 $($talk.Description)
 
@@ -491,8 +491,8 @@ $($talk.Description)
             '## См. также'
             ''
             $talk.SeeAlsoTalkIds |
-                % { $WikiRepository.Talks[$_] } |
-                % { "- [[$($_.Title)|$($_.Id)]]" }
+                ForEach-Object { $WikiRepository.Talks[$_] } |
+                ForEach-Object { "- [[$($_.Title)|$($_.Id)]]" }
             ''
         }
 
@@ -510,7 +510,7 @@ $($talk.Description)
             $links += @{ 'Видео' = $talk.VideoUrl }
         }
 
-        $links | % {
+        $links | ForEach-Object {
             $title = $_.Keys | Select-Single
             $url = $_.Values | Select-Single
             "## $title"
@@ -524,7 +524,7 @@ $($talk.Description)
 function Get-MeetupByTalk([string] $TalkId)
 {
     $WikiRepository.Meetups.Values |
-    ? { $_.TalkIds -contains $TalkId } |
+    Where-Object { $_.TalkIds -contains $TalkId } |
     Select-Single
 }
 
@@ -584,7 +584,7 @@ $($speaker.Description)
         {
             '## Контакты'
             ''
-            $links | % {
+            $links | ForEach-Object {
                 $title = $_.Keys | Select-Single
                 $url = $_.Values | Select-Single
                 "- $($title): $url"
@@ -595,7 +595,7 @@ $($speaker.Description)
         '## Доклады'
         ''
         $WikiRepository.Talks.Values |
-        ? { $_.SpeakerIds -contains $id } |
+        Where-Object { $_.SpeakerIds -contains $id } |
         Sort-Object -Property @{ Expression = {
             $talkId = $_.Id
             $meetup = Get-MeetupByTalk -TalkId $talkId
@@ -603,28 +603,28 @@ $($speaker.Description)
 
         } } |
         Format-TalkTitle |
-        % { "- $_" }
+        ForEach-Object { "- $_" }
     }
 }
 
-function Build-Wiki()
+function Invoke-BuildWiki()
 {
     Test-WikiEnvironment
 
     $timer = Start-TimeOperation -Name 'Build wiki'
 
     # Load all
-    Read-Communities | % { $WikiRepository.Communities.Add($_.Id, $_) }
+    Read-Community | ForEach-Object { $WikiRepository.Communities.Add($_.Id, $_) }
     Write-Information "Load $($WikiRepository.Communities.Count) communities"
-    Read-Meetups | % { $WikiRepository.Meetups.Add($_.Id, $_) }
+    Read-Meetup | ForEach-Object { $WikiRepository.Meetups.Add($_.Id, $_) }
     Write-Information "Load $($WikiRepository.Meetups.Count) meetups"
-    Read-Talks | % { $WikiRepository.Talks.Add($_.Id, $_) }
+    Read-Talk | ForEach-Object { $WikiRepository.Talks.Add($_.Id, $_) }
     Write-Information "Load $($WikiRepository.Talks.Count) talks"
-    Read-Speakers | % { $WikiRepository.Speakers.Add($_.Id, $_) }
+    Read-Speaker | ForEach-Object { $WikiRepository.Speakers.Add($_.Id, $_) }
     Write-Information "Load $($WikiRepository.Speakers.Count) speakers"
-    Read-Friends | % { $WikiRepository.Friends.Add($_.Id, $_) }
+    Read-Friend | ForEach-Object { $WikiRepository.Friends.Add($_.Id, $_) }
     Write-Information "Load $($WikiRepository.Friends.Count) friends"
-    Read-Venues | % { $WikiRepository.Venues.Add($_.Id, $_) }
+    Read-Venue | ForEach-Object { $WikiRepository.Venues.Add($_.Id, $_) }
     Write-Information "Load $($WikiRepository.Venues.Count) venues"
 
     # Export all

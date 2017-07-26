@@ -1,10 +1,10 @@
-﻿clear
+﻿Clear-Host
 
 Set-StrictMode -version Latest
 $ErrorActionPreference = 'Stop'
 
 . $PSScriptRoot\..\Model.ps1
-. $PSScriptRoot\..\Serialization.ps1 
+. $PSScriptRoot\..\Serialization.ps1
 
 $srcHome = "$PSScriptRoot\..\..\..\SpbDotNet.wiki"
 $outHome = "$PSScriptRoot\..\..\artifacts\db"
@@ -77,12 +77,12 @@ function MarkdownToDict()
     {
         if ($_.StartsWith("#"))
         {
-            if ($key -ne $null)
+            if ($key)
             {
                 $c = TrimArray $content
                 $dict.Add($key, $c)
             }
- 
+
             $key = $_.Trim('#',' ')
             $content = @()
         }
@@ -93,12 +93,12 @@ function MarkdownToDict()
     }
     end
     {
-        if ($key -ne $null)
+        if ($key)
         {
             $c = TrimArray $content
             $dict.Add($key, $c)
         }
- 
+
         return $dict
     }
 }
@@ -123,10 +123,10 @@ function Assert($condition)
     }
 }
 
-filter Parse-Link()
+filter ConvertTo-Link()
 {
     switch -wildcard ($_)
-    { 
+    {
         "- Twitter: *"
         {
             $rel = [LinkRelation]::Twitter
@@ -186,28 +186,28 @@ function ReadSpeaker($Path)
     $s.Name = $dict['Имя']
 
     # Company
-    $companyLine = $dict['Описание'] | ? { $_ -like 'Работает*' }
+    $companyLine = $dict['Описание'] | Where-Object { $_ -like 'Работает*' }
     $companyLine | Assert { $_ -ne $null }
     $companyLine -match '.*\[(?<Name>.+)\]\((?<Url>.+?)\)' | Assert { $_ -eq $true }
     $s.CompanyName = $Matches.Name
     $s.CompanyUrl = $Matches.Url
 
-    $s.Description = $dict['Описание'] | ? { ($_ -notlike '`[!`[Photo`]*') -and ($_ -notlike 'Работает*') } | Out-String
+    $s.Description = $dict['Описание'] | Where-Object { ($_ -notlike '`[!`[Photo`]*') -and ($_ -notlike 'Работает*') } | Out-String
     $s.Description = $s.Description.Trim()
-    $s.Links = $dict['Контакты'] | Only-NotNull | Parse-Link
+    $s.Links = $dict['Контакты'] | Select-NotNull | ConvertTo-Link
 
     return $s
 }
 
-filter Only-NotNull()
+filter Select-NotNull()
 {
-    if (($_ -ne $null) -and ($_ -ne ''))
+    if (($_) -and ($_ -ne ''))
     {
         return $_
     }
 }
 
-filter Only-Meetups()
+filter Select-MeetupFile()
 {
     if ($_.Name -like 'Meetup-*')
     {
@@ -215,7 +215,7 @@ filter Only-Meetups()
     }
 }
 
-filter Only-Speakers()
+filter Select-SpeakerFile()
 {
     $notSpeakers = @(
         'Brave-CoreCLR.md'
@@ -236,7 +236,7 @@ filter Only-Speakers()
 
     if (
        (($_.Name -split '-').Length -eq 2) -and
-       (($_ | Only-Meetups) -eq $null) -and
+       (-not ($_ | Select-MeetupFile)) -and
        (-not $notSpeakers.Contains($_.Name))
        )
     {
@@ -244,7 +244,7 @@ filter Only-Speakers()
     }
 }
 
-filter Only-Venue()
+filter Select-VenueFile()
 {
     $venues = @(
         'DotNext.md'
@@ -262,14 +262,14 @@ filter Only-Venue()
     }
 }
 
-filter Only-Talks()
+filter Select-TalkFile()
 {
     if (
         ($_.Name -ne 'Home.md') -and
         ($_.Name -ne 'SpbDotNet.md') -and
-        (($_ | Only-Meetups) -eq $null) -and
-        (($_ | Only-Venue) -eq $null) -and
-        (($_ | Only-Speakers) -eq $null))
+        (-not ($_ | Select-MeetupFile)) -and
+        (-not ($_ | Select-VenueFile)) -and
+        (-not ($_ | Select-SpeakerFile)))
     {
         return $_
     }
@@ -286,26 +286,26 @@ function ReadTalk($Path)
 
     $dict['Название'] -match '(?<Speakers>.+)\s+«(?<Title>.+)»' | Assert { $_ -eq $true }
     $talk.Title = $Matches.Title
-    $talk.SpeakerIds = $Matches.Speakers.Trim() -split ',\s*' | % { Lookup-SpeakerIdByName $_ }
-    
+    $talk.SpeakerIds = $Matches.Speakers.Trim() -split ',\s*' | ForEach-Object { Find-SpeakerIdByName $_ }
+
     $talk.Description = $dict['Описание'] |
-        ? { ($_ -ne '---') -and ($_ -notlike 'Доклад был представлен*')  -and ($_ -notlike 'Круглый стол был представлен*') } |
+        Where-Object { ($_ -ne '---') -and ($_ -notlike 'Доклад был представлен*')  -and ($_ -notlike 'Круглый стол был представлен*') } |
         Out-String
     $talk.Description = $talk.Description.Trim()
-    $dict['Описание'] | ? { ($_ -like 'Доклад был представлен*') -or ($_ -like 'Круглый стол был представлен*') } |
-                        % { $_ -match 'Meetup (?<Meetup>\d+)' } | Assert { $_ -eq $true }
+    $dict['Описание'] | Where-Object { ($_ -like 'Доклад был представлен*') -or ($_ -like 'Круглый стол был представлен*') } |
+                        ForEach-Object { $_ -match 'Meetup (?<Meetup>\d+)' } | Assert { $_ -eq $true }
     #$talk.MeetupId = "SpbDotNet-$($Matches.Meetup)"
 
     $talk.Links = @(
-        $dict['Демо'] | Only-NotNull | Parse-Link
+        $dict['Демо'] | Select-NotNull | ConvertTo-Link
         $dict['Слайды'] -replace 'https?://cdn.slidesharecdn.com/','' `
                         -replace 'Ждём :hourglass:','' `
                         -replace '.*http://dmitriyvlasov.github.io/Presentations/review-fsharp-4.html\)','' `
-                        | Only-NotNull | Parse-Link
+                        | Select-NotNull | ConvertTo-Link
         $dict['Видео'] -replace 'http://i.ytimg.com/','' `
                        -replace 'Ждём :hourglass:','' `
                        -replace ':movie_camera: Видео нет','' `
-                       | Only-NotNull | Parse-Link
+                       | Select-NotNull | ConvertTo-Link
     )
 
     $knownRefs = @('Lack-of-CPlusPlus-in-CSharp-1','Lack-of-CPlusPlus-in-CSharp-2','Lack-of-CPlusPlus-in-CSharp-3')
@@ -317,9 +317,9 @@ function ReadTalk($Path)
     return $talk
 }
 
-function Lookup-SpeakerIdByName([string] $SpeakerName)
+function Find-SpeakerIdByName([string] $SpeakerName)
 {
-    $id = ls (Join-Path $outHome 'speakers') -File 'index.xml' -Recurse | % {
+    $id = Get-ChildItem (Join-Path $outHome 'speakers') -File 'index.xml' -Recurse | ForEach-Object {
         [xml]$content = Get-Content -Path $_.FullName -Encoding UTF8
         if ($content.Speaker.Name -eq $SpeakerName)
         {
@@ -327,7 +327,7 @@ function Lookup-SpeakerIdByName([string] $SpeakerName)
         }
     }
 
-    if ($id -eq $null)
+    if (-not $id)
     {
         throw "Speaker not found: $SpeakerName"
     }
@@ -344,9 +344,9 @@ function ReadFriend($Path)
     $f = [Friend]::new()
     $f.Id = [IO.Path]::GetFileNameWithoutExtension($Path)
     $f.Name = $dict['Имя']
-    
+
     # Company
-    $descLine = $dict['Описание'] | ? { $_ -notlike '`[!`[Logo`]*' } | Out-String
+    $descLine = $dict['Описание'] | Where-Object { $_ -notlike '`[!`[Logo`]*' } | Out-String
     $descLine | Assert { $_ -ne $null }
     $descLine = $descLine.Trim()
     $descLine -match '^\[(?<Name>.+)\]\((?<Url>.+?)\)(?<Desc>.*)' | Assert { $_ -eq $true }
@@ -361,7 +361,7 @@ function GetVenueByFriendId([string] $FriendId)
 {
     $v = @{}
     switch ($FriendId)
-    { 
+    {
         'DotNext'
         {
             $v.Id = 'Spb-Radison'
@@ -421,12 +421,12 @@ function ReadVenue($Path)
     $v = [Venue]::new()
     $v.Id = [IO.Path]::GetFileNameWithoutExtension($Path)
     $v.Name = $dict['Имя']
-    
+
     $dict['Адрес'] -match '^\[(?<Address>.+)\]\((?<Url>.+)\)$' | Assert { $_ -eq $true }
 
     $v.Address = $Matches.Address
     $v.MapUrl = $Matches.Url
-    
+
     $f = GetVenueByFriendId -FriendId $v.Id
     $v.Id = $f.Id
     $v.Name = $f.Name
@@ -451,15 +451,15 @@ function ReadMeetup($Path)
     $dict['Описание'] -match '^Встреча №\d+ состоялась (?<Date>.+)$' | Assert { $_ -eq $true }
     $d = [DateTime]::ParseExact($Matches.Date, 'D', [Globalization.CultureInfo]::GetCultureInfo("ru"))
     $m.Date = [DateTime]::SpecifyKind($d, 'Utc')
-    
+
 
     $dict['Место'] -match '^Встреча прошла в гостях у( компании| конференции)? \[\[(?<Comp>.+)\]\].*$' | Assert { $_ -eq $true }
     $m.FriendIds = @($Matches.Comp)
 
     $m.VenueId = (GetVenueByFriendId -FriendId ($m.FriendIds[0])).Id
 
-    $m.TalkIds = $dict['Доклады'] | % {
-        $_ -split '\|' | Select-Object -Last 1 | % { $_.TrimEnd(']') -replace ' ','-' }
+    $m.TalkIds = $dict['Доклады'] | ForEach-Object {
+        $_ -split '\|' | Select-Object -Last 1 | ForEach-Object { $_.TrimEnd(']') -replace ' ','-' }
     }
 
     return $m
@@ -469,7 +469,7 @@ function ReadMeetup($Path)
 ######## Main #########
 
 "$outHome\speakers" | ReCreateDirectory
-ls $srcHome -File '*.md' | Only-Speakers | % {
+Get-ChildItem $srcHome -File '*.md' | Select-SpeakerFile | ForEach-Object {
 
     Write-Host $_.Name
     $speaker = ReadSpeaker -Path $_.FullName
@@ -486,7 +486,7 @@ ls $srcHome -File '*.md' | Only-Speakers | % {
 }
 
 "$outHome\talks" | ReCreateDirectory
-ls $srcHome -File '*.md' | Only-Talks | % {
+Get-ChildItem $srcHome -File '*.md' | Select-TalkFile | ForEach-Object {
 
     Write-Host $_.Name
     $talk = ReadTalk -Path $_.FullName
@@ -495,7 +495,7 @@ ls $srcHome -File '*.md' | Only-Talks | % {
 }
 
 "$outHome\friends" | ReCreateDirectory
-ls $srcHome -File '*.md' | Only-Venue | % {
+Get-ChildItem $srcHome -File '*.md' | Select-VenueFile | ForEach-Object {
 
     Write-Host $_.Name
     $friend = ReadFriend -Path $_.FullName
@@ -512,7 +512,7 @@ ls $srcHome -File '*.md' | Only-Venue | % {
 }
 
 "$outHome\venues" | ReCreateDirectory
-ls $srcHome -File '*.md' | Only-Venue | % {
+Get-ChildItem $srcHome -File '*.md' | Select-VenueFile | ForEach-Object {
 
     Write-Host $_.Name
     $venue = ReadVenue -Path $_.FullName
@@ -521,7 +521,7 @@ ls $srcHome -File '*.md' | Only-Venue | % {
 }
 
 "$outHome\meetups" | ReCreateDirectory
-ls $srcHome -File '*.md' | Only-Meetups | % {
+Get-ChildItem $srcHome -File '*.md' | Select-MeetupFile | ForEach-Object {
 
     Write-Host $_.Name
     $meetup = ReadMeetup -Path $_.FullName
@@ -530,7 +530,7 @@ ls $srcHome -File '*.md' | Only-Meetups | % {
 }
 
 "$outHome\communities" | ReCreateDirectory
-$community | % {
+$community | ForEach-Object {
 
     Write-Host $_.Name
     $file = Join-Path "$outHome\communities" ($_.Id + '.xml')

@@ -2,7 +2,7 @@
 
 [Reflection.Assembly]::LoadWithPartialName("System.Xml.Linq") | Out-Null
 
-function Get-EntityProperties([Type] $EntityType)
+function Get-EntityProperty([Type] $EntityType)
 {
     $props = $EntityType.GetProperties()
     if ([Entity].IsAssignableFrom($EntityType))
@@ -27,12 +27,12 @@ function ConvertTo-NiceXml($Entity = $(throw "Entity required"), [string] $Entit
     }
 
     $xEntity = New-XElement $EntityName
-    $props = Get-EntityProperties -EntityType ($Entity.GetType())
+    $props = Get-EntityProperty -EntityType ($Entity.GetType())
 
     foreach ($property in $props)
     {
         $value = $Entity."$($property.Name)"
-        if ($value -eq $null)
+        if (-not $value)
         {
             continue
         }
@@ -67,11 +67,11 @@ function ConvertTo-NiceXml($Entity = $(throw "Entity required"), [string] $Entit
                     }
                 }
 
-                $value | % { New-XElement $elementName $_ } | % { $xList.Add($_) }
+                $value | ForEach-Object { New-XElement $elementName $_ } | ForEach-Object { $xList.Add($_) }
             }
             else
             {
-                $value | % { ConvertTo-NiceXml -Entity $_ -EntityName $itemType.Name } | % { $xList.Add($_) }
+                $value | ForEach-Object { ConvertTo-NiceXml -Entity $_ -EntityName $itemType.Name } | ForEach-Object { $xList.Add($_) }
             }
 
             $xEntity.Add($xList)
@@ -103,7 +103,7 @@ function ConvertFrom-NiceXml([System.Xml.Linq.XElement] $XEntity = $(throw "XEnt
     {
         $propertyName = $property.Name
         $xProperty = $XEntity.Element($propertyName)
-        if ($xProperty -eq $null)
+        if (-not $xProperty)
         {
             continue
         }
@@ -120,11 +120,11 @@ function ConvertFrom-NiceXml([System.Xml.Linq.XElement] $XEntity = $(throw "XEnt
 
             if ($itemType.IsValueType -or ($itemType -eq [string]))
             {
-                $listValue = $xProperty.Elements() | % { $_.Value }
+                $listValue = $xProperty.Elements() | ForEach-Object { $_.Value }
             }
             else
             {
-                $listValue = $xProperty.Elements() | % { ConvertFrom-NiceXml $_ }
+                $listValue = $xProperty.Elements() | ForEach-Object { ConvertFrom-NiceXml $_ }
             }
 
             $entity."$propertyName" = $listValue

@@ -12,7 +12,7 @@ function ConvertTo-NiceText()
         "$('#' * 16) $($entityType.Name) $('#' * 16)"
         ''
 
-        Get-EntityProperties -EntityType $entityType |
+        Get-EntityProperty -EntityType $entityType |
         ForEach-Object {
             $property = $_
             $value = $entity."$($property.Name)"
@@ -87,7 +87,7 @@ function ConvertFrom-NiceTextEntity([string] $TypeText = $(throw "Type text requ
 
     $textValues =  $input | ConvertFrom-NiceTextToDict
 
-    $properties = Get-EntityProperties -EntityType $entityType |
+    $properties = Get-EntityProperty -EntityType $entityType |
         ConvertTo-Hashtable -KeySelector { $_.Name } -ElementSelector { $_.PropertyType }
 
     foreach ($propertyName in $textValues.Keys)
@@ -140,7 +140,7 @@ function Format-UnNiceTextProperty(
 {
     # Restore ID suffix
     $name = @("$NameCandidate", "${NameCandidate}Id", "$($NameCandidate.TrimEnd('s'))Ids") |
-        ? { $Vocabulary -contains $_ } |
+        Where-Object { $Vocabulary -contains $_ } |
         Select-Single -ElementNames "unnice property names"
 
     # Custom unformat for special types

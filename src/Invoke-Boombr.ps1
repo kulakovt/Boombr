@@ -34,14 +34,14 @@ function Test-BoombrEnvironment()
     }
 }
 
-function Run-BoombrCommand([string] $Command = $(throw 'Command required'))
+function Start-BoombrCommand([string] $Command = $(throw 'Command required'))
 {
     switch ($Command)
     {
         'build wiki'
         {
             . $PSScriptRoot\Wiki.ps1
-            Build-Wiki
+            Invoke-BuildWiki
         }
 
         'new meetup'
@@ -78,5 +78,4 @@ $command = "$($args[0]) $($args[1])"
 
 Test-BoombrEnvironment
 
-Run-BoombrCommand -Command $command
-
+Start-BoombrCommand -Command $command

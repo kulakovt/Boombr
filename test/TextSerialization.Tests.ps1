@@ -118,7 +118,7 @@ G: 1
 
         function Format-Property($entity, [string] $PropertyName)
         {
-            $property = Get-EntityProperties -EntityType ($enity.GetType()) |
+            $property = Get-EntityProperty -EntityType ($enity.GetType()) |
                 Where-Object { $_.Name -eq $PropertyName } |
                 Select-Single
 

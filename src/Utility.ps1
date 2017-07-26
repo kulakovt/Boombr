@@ -33,7 +33,7 @@ function Stop-TimeOperation()
     }
 }
 
-filter Only-NotNull()
+filter Select-NotNull()
 {
     if ($_)
     {

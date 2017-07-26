@@ -10,15 +10,21 @@ Boombr — скрипт для помощи в подготовке статич
 
 1. Склонируйре репозиторий Boombr
 
-`git clone https://github.com/AnatolyKulakov/Boombr.git`
+```batch
+git clone https://github.com/AnatolyKulakov/Boombr.git
+```
 
 2. Склонируйте репозиторий с Audit'ом, если будите с ним работать
 
-`git clone https://github.com/DotNetRu/Audit.git`
+```batch
+git clone https://github.com/DotNetRu/Audit.git
+```
 
 3. Склонируйте репозиторий с Wiki, если будите с ней работать
 
-`git clone https://github.com/AnatolyKulakov/SpbDotNet.wiki.git`
+```batch
+git clone https://github.com/AnatolyKulakov/SpbDotNet.wiki.git
+```
 
 Все репозитории должны лежать рядом, в одной общей папке.
 
@@ -30,7 +36,9 @@ Boombr — скрипт для помощи в подготовке статич
 
 Для создания новой встречи запустите команду:
 
-`./Invoke-Boombr.ps1 new meetup`
+```posh
+./Invoke-Boombr.ps1 new meetup
+```
 
 Откроется форма с заполненным примером одной встречи, места, друзьями, докладчиками и докладами. Заполните поля актуальной информацией, удалите не нужные данные, сохраните изменения и закройте форму. После этого Boombr добавить в репозиторий Audit'а все введённые данные.
 
@@ -43,6 +51,8 @@ Boombr пока не умеет работать с картинками. Поэ
 
 Для перегенерации Wiki запустите команду:
 
+```posh
 `./Invoke-Boombr.ps1 build wiki`
+```
 
 Boombr перестроит все страницы для всех сообществ из текущей версии Audit'а.
