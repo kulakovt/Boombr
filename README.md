@@ -1,4 +1,4 @@
-# Boombr
+﻿# Boombr
 
 [![Build status](https://ci.appveyor.com/api/projects/status/pynxm1tg9khxpqoc?svg=true)](https://ci.appveyor.com/project/AnatolyKulakov/boombr)
 
@@ -52,7 +52,7 @@ Boombr пока не умеет работать с картинками. Поэ
 Для перегенерации Wiki запустите команду:
 
 ```posh
-`./Invoke-Boombr.ps1 build wiki`
+./Invoke-Boombr.ps1 build wiki
 ```
 
 Boombr перестроит все страницы для всех сообществ из текущей версии Audit'а.
