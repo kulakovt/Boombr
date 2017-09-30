@@ -1,4 +1,4 @@
-$WikiConfig = @{
+﻿$WikiConfig = @{
     CacheDir = Resolve-FullPath $Config.ArtifactsDir 'cache'
     WikiDir = Resolve-FullPath $Config.RootDir '..\..\SpbDotNet.wiki'
 }
@@ -122,7 +122,7 @@ function Export-Xml()
     $xdoc = [System.Xml.Linq.XDocument]::new()
     $xDoc.Add($xRoot)
 
-    $xDoc.Save($Config.RootDir + "/common.xml")
+    $xDoc.Save($Config.ArtifactsDir + "/common.xml")
 
     $timer | Stop-TimeOperation
 }
