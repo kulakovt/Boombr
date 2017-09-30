@@ -50,6 +50,12 @@ function Start-BoombrCommand([string] $Command = $(throw 'Command required'))
             New-Meetup
         }
 
+        'export xml'
+        {
+            . $PSScriptRoot\XmlUtility.ps1
+            Export-Xml
+        }
+
         default { "Command not found: $Command" }
     }
 }
@@ -71,6 +77,7 @@ if ($args.Length -lt 2)
     Write-Information 'Supported commands:'
     Write-Information '- build wiki'
     Write-Information '- new meetup'
+    Write-Information '- export xml'
     return
 }
 
