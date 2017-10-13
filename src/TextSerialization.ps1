@@ -92,14 +92,12 @@ function ConvertFrom-NiceTextEntity([string] $TypeText = $(throw "Type text requ
 
     foreach ($propertyName in $textValues.Keys)
     {
-        $propertyType = $properties[$propertyName]
         $propertyValue = $textValues[$propertyName]
 
         $property = Format-UnNiceTextProperty `
             -NameCandidate $propertyName `
             -ValueCandidate $propertyValue `
-            -PropertyType $propertyType `
-            -Vocabulary $properties.Keys
+            -Properties $properties
 
         $entity."$($property.Name)" = $property.Value
     }
@@ -135,15 +133,16 @@ function Format-NiceTextProperty($Property = $(throw "Property required"), $Valu
 function Format-UnNiceTextProperty(
     $NameCandidate = $(throw "Name candidate required"),
     $ValueCandidate = $(throw "Value candidate required"),
-    $PropertyType = $(throw "Property type required"),
-    $Vocabulary = $(throw "Vocabulary required"))
+    $Properties = $(throw "Properties required"))
 {
     # Restore ID suffix
+    $vocabulary = $Properties.Keys
     $name = @("$NameCandidate", "${NameCandidate}Id", "$($NameCandidate.TrimEnd('s'))Ids") |
-        Where-Object { $Vocabulary -contains $_ } |
+        Where-Object { $vocabulary -contains $_ } |
         Select-Single -ElementNames "unnice property names"
 
     # Custom unformat for special types
+    $propertyType = $Properties[$name]
     $value = $ValueCandidate
     switch ($PropertyType)
     {

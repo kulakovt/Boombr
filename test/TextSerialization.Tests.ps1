@@ -16,6 +16,7 @@ class TextTestEntity
     [string] $ReferenceId
     [string] $PluralIds
     [string[]] $StringList
+    [string[]] $TalkIds
 }
 
 $nl = [System.Environment]::NewLine
@@ -179,6 +180,7 @@ Date: 2017.01.01
 Reference: 1
 Plurals: 2
 StringList: id1, id2 ,id3
+Talks:t-1,t-2,t-3
 "@
 
         $entity = $body -split $nl | ConvertFrom-NiceTextEntity -TypeText $title
@@ -209,8 +211,13 @@ StringList: id1, id2 ,id3
         It 'Should read string array' {
             $entity.StringList |
                 Compare-Object @('id1', 'id2', 'id3') |
-                #Should Be $null
-                Out-Host
+                Should Be $null
+        }
+
+        It 'Should find IDs suffix and read string array' {
+            $entity.TalkIds |
+                Compare-Object @('t-1', 't-2', 't-3') |
+                Should Be $null
         }
 
         It 'Should read multiline velue' {
