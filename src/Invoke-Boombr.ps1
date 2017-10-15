@@ -44,6 +44,12 @@ function Start-BoombrCommand([string] $Command = $(throw 'Command required'))
             Invoke-BuildWiki
         }
 
+        'build cache'
+        {
+            . $PSScriptRoot\Wiki.ps1
+            Invoke-ReCache
+        }
+
         'new meetup'
         {
             . $PSScriptRoot\Forms.ps1
@@ -70,6 +76,7 @@ if ($args.Length -lt 2)
     }
     Write-Information 'Supported commands:'
     Write-Information '- build wiki'
+    Write-Information '- build cache'
     Write-Information '- new meetup'
     return
 }

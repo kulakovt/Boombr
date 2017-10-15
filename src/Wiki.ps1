@@ -607,6 +607,39 @@ $($speaker.Description)
     }
 }
 
+function Invoke-ReCache()
+{
+    Test-WikiEnvironment
+
+    $timer = Start-TimeOperation -Name 'Build cache'
+
+    Read-Talk |
+    ForEach-Object {
+
+        $talk = $_
+
+        @($talk.CodeUrl, $talk.SlidesUrl, $talk.VideoUrl) |
+        Where-Object { $_ } |
+        ForEach-Object {
+
+            $link = [Uri]$_
+            $status = 'OK'
+            try
+            {
+                $link | Resolve-OpenGraph | Out-Null
+            }
+            catch
+            {
+                $status = 'Fail'
+            }
+            Write-Information "$($talk.Title): $($link.Host) [ $status ]"
+        }
+    }
+
+    $timer | Stop-TimeOperation
+
+}
+
 function Invoke-BuildWiki()
 {
     Test-WikiEnvironment
