@@ -42,14 +42,25 @@ class Venue : Entity
     [Uri] $MapUrl
 }
 
+class Session
+{
+    [string] $TalkId
+    [DateTime] $StartTime
+    [DateTime] $EndTime
+}
+
 class Meetup : Entity
 {
     [string] $Name
     [string] $CommunityId
-    [DateTime] $Date
     [string[]] $FriendIds
     [string] $VenueId
+    [Session[]] $Sessions
+
+    # Obsolete. Use Sessions property
     [string[]] $TalkIds
+    # Obsolete. Use Sessions property
+    [DateTime] $Date
 }
 
 class Community : Entity
