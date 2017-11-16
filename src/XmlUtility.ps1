@@ -1,33 +1,10 @@
-﻿$WikiConfig = @{
-    CacheDir = Resolve-FullPath $Config.ArtifactsDir 'cache'
-    WikiDir = Resolve-FullPath $Config.RootDir '..\..\SpbDotNet.wiki'
-}
-
-$WikiRepository = @{
-    Communities = @{}
-    Meetups = @{}
-    Talks = @{}
-    Speakers = @{}
-    Friends = @{}
-    Venues = @{}
-}
-
-function Test-WikiEnvironment()
-{
-    if (-not (Test-Path $WikiConfig.CacheDir))
-    {
-        New-Item -Path $WikiConfig.CacheDir -ItemType Directory | Out-Null
-        Write-Information "Create Cache directory «$($WikiConfig.CacheDir)»"
-    }
-    else
-    {
-        Write-Information "Use Cache directory «$($WikiConfig.CacheDir)»"
-    }
-
-    if (-not (Test-Path -Path $WikiConfig.WikiDir))
-    {
-        throw "Wiki directory is not found at «$($WikiConfig.WikiDir)»"
-    }
+﻿$Audit = @{
+    Communities = New-Object System.Collections.Generic.List[System.Object]
+    Meetups = New-Object System.Collections.Generic.List[System.Object]
+    Talks = New-Object System.Collections.Generic.List[System.Object]
+    Speakers = New-Object System.Collections.Generic.List[System.Object]
+    Friends = New-Object System.Collections.Generic.List[System.Object]
+    Venues = New-Object System.Collections.Generic.List[System.Object]
 }
 
 function Read-NiceXml()
@@ -43,86 +20,87 @@ function Read-NiceXml()
 function Read-Community()
 {
     Get-ChildItem -Path (Join-Path $Config.AuditDir 'communities') -Filter '*.xml' |
-    Read-NiceXml
+    Read-NiceXml |
+    ForEach-Object { $Audit.Communities.Add($_) }
 }
 
 function Read-Meetup()
 {
     Get-ChildItem -Path (Join-Path $Config.AuditDir 'meetups') -Filter '*.xml' |
     Read-NiceXml |
-    Sort-Object -Property Date
+    ForEach-Object { $Audit.Meetups.Add($_) }
 }
 
 function Read-Talk()
 {
     Get-ChildItem -Path (Join-Path $Config.AuditDir 'talks') -Filter '*.xml' |
-    Read-NiceXml
+    Read-NiceXml |
+    ForEach-Object { $Audit.Talks.Add($_) }
 }
 
 function Read-Speaker()
 {
     Get-ChildItem -Path (Join-Path $Config.AuditDir 'speakers') -Filter 'index.xml' -Recurse |
-    Read-NiceXml
+    Read-NiceXml |
+    ForEach-Object { $Audit.Speakers.Add($_) }
 }
 
 function Read-Friend()
 {
     Get-ChildItem -Path (Join-Path $Config.AuditDir 'friends') -Filter 'index.xml' -Recurse |
-    Read-NiceXml
+    Read-NiceXml |
+    ForEach-Object { $Audit.Friends.Add($_) }
 }
 
 function Read-Venue()
 {
     Get-ChildItem -Path (Join-Path $Config.AuditDir 'venues') -Filter '*.xml' |
-    Read-NiceXml
+    Read-NiceXml |
+    ForEach-Object { $Audit.Venues.Add($_) }
 }
 
-function Convert-ToXml($Entities = $(throw "Entity required"), [string] $EntitiesName = $null)
+function Write-Entity($Entities = $(throw "Entities required"), [string] $EntitiesName = $null)
 {
-    $xEntities = [System.Xml.Linq.XElement]::new([System.Xml.Linq.XName]$EntitiesName)
+    $xRoot = [System.Xml.Linq.XElement]::new([System.Xml.Linq.XName]$EntitiesName)
+
     foreach ($entity in $Entities) {
         $xEntity = ConvertTo-NiceXml -Entity $entity
-        $xEntities.Add($xEntity)
+        $xRoot.Add($xEntity)
     }
-
-    return $xEntities
-}
-
-function Export-Xml()
-{
-    Test-WikiEnvironment
-
-    $timer = Start-TimeOperation -Name 'Create XML'
-
-    # Load all
-    Read-Community | ForEach-Object { $WikiRepository.Communities.Add($_.Id, $_) }
-    Write-Information "Load $($WikiRepository.Communities.Count) communities"
-    Read-Meetup | ForEach-Object { $WikiRepository.Meetups.Add($_.Id, $_) }
-    Write-Information "Load $($WikiRepository.Meetups.Count) meetups"
-    Read-Talk | ForEach-Object { $WikiRepository.Talks.Add($_.Id, $_) }
-    Write-Information "Load $($WikiRepository.Talks.Count) talks"
-    Read-Speaker | ForEach-Object { $WikiRepository.Speakers.Add($_.Id, $_) }
-    Write-Information "Load $($WikiRepository.Speakers.Count) speakers"
-    Read-Friend | ForEach-Object { $WikiRepository.Friends.Add($_.Id, $_) }
-    Write-Information "Load $($WikiRepository.Friends.Count) friends"
-    Read-Venue | ForEach-Object { $WikiRepository.Venues.Add($_.Id, $_) }
-    Write-Information "Load $($WikiRepository.Venues.Count) venues"
-
-    # Export all
-
-    $xRoot = [System.Xml.Linq.XElement]::new([System.Xml.Linq.XName]"xml")
-
-    $xRoot.Add((Convert-ToXml -Entities $WikiRepository.Communities.Values -EntitiesName "Communities"))
-    $xRoot.Add((Convert-ToXml -Entities $WikiRepository.Meetups.Values -EntitiesName "Meetups"))
-    $xRoot.Add((Convert-ToXml -Entities $WikiRepository.Talks.Values -EntitiesName "Talks"))
-    $xRoot.Add((Convert-ToXml -Entities $WikiRepository.Speakers.Values -EntitiesName "Speakers"))
-    $xRoot.Add((Convert-ToXml -Entities $WikiRepository.Friends.Values -EntitiesName "Friends"))
-    $xRoot.Add((Convert-ToXml -Entities $WikiRepository.Venues.Values -EntitiesName "Venues"))
 
     $xdoc = [System.Xml.Linq.XDocument]::new()
     $xDoc.Add($xRoot)
 
-    $xDoc.Save($Config.ArtifactsDir + "/common.xml")
+    $xDoc.Save((Join-Path -Path $Config.ArtifactsDir -ChildPath ($EntitiesName + ".xml")))
+}
+
+function Export-Xml()
+{
+    $timer = Start-TimeOperation -Name 'Create XMLs'
+
+    # Load all
+
+    Read-Community
+    Write-Information "Load $($Audit.Communities.Count) communities"
+    Read-Meetup
+    Write-Information "Load $($Audit.Meetups.Count) meetups"
+    Read-Talk
+    Write-Information "Load $($Audit.Talks.Count) talks"
+    Read-Speaker
+    Write-Information "Load $($Audit.Speakers.Count) speakers"
+    Read-Friend
+    Write-Information "Load $($Audit.Friends.Count) friends"
+    Read-Venue
+    Write-Information "Load $($Audit.Venues.Count) venues"
+
+    # Export all
+
+    Write-Entity $Audit.Communities -EntitiesName "Communities"
+    Write-Entity $Audit.Meetups -EntitiesName "Meetups"
+    Write-Entity $Audit.Talks -EntitiesName "Talks"
+    Write-Entity $Audit.Speakers -EntitiesName "Speakers"
+    Write-Entity $Audit.Friends -EntitiesName "Friends"
+    Write-Entity $Audit.Venues -EntitiesName "Venues"
 
     $timer | Stop-TimeOperation
 }
