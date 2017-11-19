@@ -62,6 +62,12 @@ function Start-BoombrCommand([string] $Command = $(throw 'Command required'))
             Export-Xml
         }
 
+        'export images'
+        {
+            . $PSScriptRoot\ImageUtility.ps1
+            Export-Image
+        }
+
         default { "Command not found: $Command" }
     }
 }
@@ -85,6 +91,7 @@ if ($args.Length -lt 2)
     Write-Information '- build cache'
     Write-Information '- new meetup'
     Write-Information '- export xml'
+    Write-Information '- export images'
     return
 }
 
