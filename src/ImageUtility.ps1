@@ -1,25 +1,22 @@
 ﻿function Export-Entity([string] $entityPath, [string[]] $fileNames)
 {
-    $srcDir = [io.path]::combine($Config.AuditDir, $entityPath)
-    $dstDir = [io.path]::combine($Config.ArtifactsDir, $entityPath)
+    $srcDir = Join-Path $Config.AuditDir $entityPath
+    $dstDir = Join-Path $Config.ArtifactsDir $entityPath
 
     New-Item -Path $dstDir -ItemType directory -Force
 
     Get-ChildItem -path $srcDir | ForEach-Object {
-        $dbImageDir = [io.path]::combine($srcDir, $_.Name)
+        $dbImageDir = Join-Path $srcDir, $_.Name
 
         $fileNames | ForEach-Object {
             Export-File -srcDir $dbImageDir -fileName $_ -dstDir $dstDir
         }
     }
-
-    # Perform lossless compression
-    ..\third-party\Leanify.exe --quiet $dstDir
 }
 
 function Export-File ([string] $srcDir, [string] $fileName, [string] $dstDir) {
-    $srcFile = [io.path]::combine($srcDir, $fileName)
-    $dstFile = [io.path]::combine($dstDir, $fileName)
+    $srcFile = Join-Path $srcDir $fileName
+    $dstFile = Join-Path $dstDir $fileName
 
     Copy-Item -Path $srcFile -Destination $dstFile
 }
