@@ -33,7 +33,7 @@ Describe 'Xml serialization' {
 
     Context 'Format Sessions list' {
 
-        $start = (Get-Date -Year 2017 -Month 1 -Day 15 -Hour 19 -Minute 0).ToUniversalTime()
+        $start = [DateTime]'2017-01-15T16:00:00Z'
 
         $s1 = [Session]::new()
         $s1.TalkId = 'Talk-1'

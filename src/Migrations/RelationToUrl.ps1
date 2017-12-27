@@ -12,16 +12,6 @@ $VerbosePreference = "Continue"
 
 $auditDir = Join-Path $PSScriptRoot '..\..\..\Audit\db' -Resolve
 
-function Read-NiceXml()
-{
-    process
-    {
-        $content = $_ | Get-Content -Encoding UTF8 -Raw
-        $doc = [System.Xml.Linq.XDocument]::Parse($content)
-        ConvertFrom-NiceXml ($doc.Root)
-    }
-}
-
 function Read-Talk()
 {
     Get-ChildItem -Path (Join-Path $auditDir 'talks') -Filter '*.xml' |
@@ -32,33 +22,6 @@ function Read-Speaker()
 {
     Get-ChildItem -Path (Join-Path $auditDir 'speakers') -Filter 'index.xml' -Recurse |
     Read-NiceXml
-}
-
-function Save-Entity()
-{
-    process
-    {
-        $entity = $_
-        $id = $entity.Id
-        $fileName = $null
-
-        switch ($entity.GetType())
-        {
-            ([Talk])      { $fileName = "talks/$id.xml" }
-            ([Speaker])   { $fileName = "speakers/$id/index.xml" }
-            default       { throw "Entity not detected: $($_.FullName)" }
-        }
-
-        $file = Join-Path $auditDir $fileName
-        if (-not (Test-Path $file -PathType Leaf))
-        {
-            throw "Can't find existing file: $file"
-        }
-
-        Write-Information "Save $($entity.Id)"
-
-        (ConvertTo-NiceXml -Entity $entity).ToString() | Out-File -FilePath $file -Encoding UTF8
-    }
 }
 
 function Invoke-SpeakerUnlink()
@@ -116,6 +79,6 @@ function Invoke-TalkUnlink()
 
 ### Convert
 
-Read-Speaker | Invoke-SpeakerUnlink | Save-Entity
-Read-Talk | Invoke-TalkUnlink | Save-Entity
+Read-Speaker | Invoke-SpeakerUnlink | Save-Entity $auditDir -CreateOnly
+Read-Talk | Invoke-TalkUnlink | Save-Entity $auditDir -CreateOnly
 

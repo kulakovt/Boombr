@@ -12,52 +12,55 @@ $VerbosePreference = "Continue"
 
 $auditDir = Join-Path $PSScriptRoot '..\..\..\Audit\db' -Resolve
 
-function Read-NiceXml()
-{
-    process
-    {
-        $content = $_ | Get-Content -Encoding UTF8 -Raw
-        $doc = [System.Xml.Linq.XDocument]::Parse($content)
-        ConvertFrom-NiceXml ($doc.Root)
-    }
-}
-
 function Read-Meetup()
 {
     Get-ChildItem -Path (Join-Path $auditDir 'meetups') -Filter '*.xml' |
     Read-NiceXml
 }
 
-
-function Save-Entity()
-{
-    process
-    {
-        $entity = $_
-        $id = $entity.Id
-        $fileName = $null
-
-        switch ($entity.GetType())
-        {
-            ([Meetup])      { $fileName = "meetups/$id.xml" }
-            default       { throw "Entity not detected: $($_.FullName)" }
-        }
-
-        $file = Join-Path $auditDir $fileName
-        if (-not (Test-Path $file -PathType Leaf))
-        {
-            throw "Can't find existing file: $file"
-        }
-
-        Write-Information "Save $($entity.Id)"
-
-        (ConvertTo-NiceXml -Entity $entity).ToString() | Out-File -FilePath $file -Encoding UTF8
-    }
-}
-
-function Get-Sessions([Meetup] $Meetup)
+function Get-Session([Meetup] $Meetup)
 {
     $defaultStartTime = [TimeSpan]::FromHours(19) - [DateTimeOffset]::Now.Offset
+
+    if ($Meetup.Id -eq 'SarDotNet-1')
+    {
+        $start = $Meetup.Date.Date.Add([TimeSpan]::FromHours(14) - [TimeZoneInfo]::FindSystemTimeZoneById('Saratov Standard Time').BaseUtcOffset)
+
+        $s1 = [Session]::new()
+        $s1.TalkId = $Meetup.TalkIds[0]
+        $s1.StartTime = $start
+        $s1.EndTime = $s1.StartTime.AddHours(1)
+
+        $s2 = [Session]::new()
+        $s2.TalkId = $Meetup.TalkIds[1]
+        $s2.StartTime = $s1.EndTime
+        $s2.EndTime = $s2.StartTime.AddHours(1)
+
+        $s3 = [Session]::new()
+        $s3.TalkId = $Meetup.TalkIds[2]
+        $s3.StartTime = $s2.EndTime.AddMinutes(30)
+        $s3.EndTime = $s3.StartTime.AddHours(1)
+
+        return @($s1, $s2, $s3)
+    }
+
+    if ($Meetup.Id -eq 'KryDotNet-1')
+    {
+        $start = $Meetup.Date.Date.Add([TimeSpan]::FromHours(12) - [TimeZoneInfo]::FindSystemTimeZoneById('North Asia Standard Time').BaseUtcOffset)
+
+        $s1 = [Session]::new()
+        $s1.TalkId = $Meetup.TalkIds[0]
+        $s1.StartTime = $start
+        $s1.EndTime = $s1.StartTime.AddHours(1)
+
+        $s2 = [Session]::new()
+        $s2.TalkId = $Meetup.TalkIds[1]
+        $s2.StartTime = $s1.EndTime.AddMinutes(30)
+        $s2.EndTime = $s2.StartTime.AddHours(1)
+
+        return @($s1, $s2)
+    }
+
     if ($Meetup.TalkIds.Count -eq 2)
     {
         $s1 = [Session]::new()
@@ -166,26 +169,21 @@ function Get-Sessions([Meetup] $Meetup)
 
             return @($s1, $s2)
         }
-        'SarDotNet-1' {
+        {($_ -eq 'MskDotNet-10') -or ($_ -eq 'MskDotNet-7')-or ($_ -eq 'MskDotNet-8')} {
+            $sessions = @()
+            $start = $Meetup.Date.Date.Add($defaultStartTime)
+            $end = $start
+            foreach ($talkId in $Meetup.TalkIds)
+            {
+                $s = [Session]::new()
+                $s.TalkId = $talkId
+                $s.StartTime = $end
+                $s.EndTime = $s.StartTime.AddMinutes(40)
+                $sessions += $s
+                $end = $s.EndTime.AddMinutes(20)
+            }
 
-            $start = $Meetup.Date.Date.Add([TimeSpan]::FromHours(14) - [DateTimeOffset]::Now.Offset)
-
-            $s1 = [Session]::new()
-            $s1.TalkId = $Meetup.TalkIds[0]
-            $s1.StartTime = $start
-            $s1.EndTime = $s1.StartTime.AddHours(1)
-
-            $s2 = [Session]::new()
-            $s2.TalkId = $Meetup.TalkIds[1]
-            $s2.StartTime = $s1.EndTime
-            $s2.EndTime = $s2.StartTime.AddHours(1)
-
-            $s3 = [Session]::new()
-            $s3.TalkId = $Meetup.TalkIds[2]
-            $s3.StartTime = $s2.EndTime.AddMinutes(30)
-            $s3.EndTime = $s3.StartTime.AddHours(1)
-
-            return @($s1, $s2, $s3)
+            return $sessions
         }
     }
 
@@ -198,7 +196,7 @@ function Invoke-ReSession()
     {
         $meetup = [Meetup]$_
 
-        $meetup.Sessions = Get-Sessions -Meetup $meetup
+        $meetup.Sessions = Get-Session -Meetup $meetup
 
         $meetup.Id | Out-Host
         $meetup.Sessions |
@@ -212,5 +210,7 @@ function Invoke-ReSession()
 
 ### Convert
 
-Read-Meetup | Invoke-ReSession | Out-Null #| Save-Entity
-
+Read-Meetup |
+Invoke-ReSession |
+#Out-Null
+Save-Entity -AuditDir $auditDir

@@ -7,13 +7,13 @@ class Speaker : Entity
 {
     [string] $Name
     [string] $CompanyName
-    [Uri] $CompanyUrl
+    [string] $CompanyUrl
     [string] $Description
 
-    [Uri] $BlogUrl
-    [Uri] $ContactsUrl
-    [Uri] $TwitterUrl
-    [Uri] $HabrUrl
+    [string] $BlogUrl
+    [string] $ContactsUrl
+    [string] $TwitterUrl
+    [string] $HabrUrl
 }
 
 class Talk : Entity
@@ -23,15 +23,15 @@ class Talk : Entity
     [string] $Description
     [string[]] $SeeAlsoTalkIds
 
-    [Uri] $CodeUrl
-    [Uri] $SlidesUrl
-    [Uri] $VideoUrl
+    [string] $CodeUrl
+    [string] $SlidesUrl
+    [string] $VideoUrl
 }
 
 class Friend: Entity
 {
     [string] $Name
-    [Uri] $Url
+    [string] $Url
     [string] $Description
 }
 
@@ -39,7 +39,7 @@ class Venue : Entity
 {
     [string] $Name
     [string] $Address
-    [Uri] $MapUrl
+    [string] $MapUrl
 }
 
 class Session
@@ -53,14 +53,16 @@ class Meetup : Entity
 {
     [string] $Name
     [string] $CommunityId
+
+    # Obsolete. Use Sessions property
+    [DateTime] $Date
+
     [string[]] $FriendIds
     [string] $VenueId
     [Session[]] $Sessions
 
     # Obsolete. Use Sessions property
     [string[]] $TalkIds
-    # Obsolete. Use Sessions property
-    [DateTime] $Date
 }
 
 class Community : Entity

@@ -33,11 +33,21 @@ function Stop-TimeOperation()
     }
 }
 
-filter Select-NotNull()
+filter Select-NotNull([switch] $AndNotWhiteSpace)
 {
-    if ($_)
+    if ($AndNotWhiteSpace)
     {
-        $_
+        if (-not [String]::IsNullOrWhiteSpace($_))
+        {
+            $_
+        }
+    }
+    else
+    {
+        if ($_)
+        {
+            $_
+        }
     }
 }
 
@@ -81,4 +91,26 @@ function ConvertTo-Hashtable([ScriptBlock] $KeySelector = $(throw "Key selector 
     {
         $hash
     }
+}
+
+function Join-ToString($Delimeter = [Environment]::NewLine)
+{
+    begin
+    {
+        $items = @()
+    }
+    process
+    {
+        $items += $_
+    }
+    end
+    {
+        $items -join $Delimeter
+    }
+}
+
+filter Out-Tee()
+{
+    $_ | Out-Host
+    $_
 }

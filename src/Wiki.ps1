@@ -30,16 +30,6 @@ function Test-WikiEnvironment()
     }
 }
 
-function Read-NiceXml()
-{
-    process
-    {
-        $content = $_ | Get-Content -Encoding UTF8 -Raw
-        $doc = [System.Xml.Linq.XDocument]::Parse($content)
-        ConvertFrom-NiceXml ($doc.Root)
-    }
-}
-
 function Read-Community()
 {
     Get-ChildItem -Path (Join-Path $Config.AuditDir 'communities') -Filter '*.xml' |
@@ -542,10 +532,6 @@ function Format-TalkTitle()
 
 function Format-SpeakerPage()
 {
-    begin
-    {
-        $epoch = (Get-Date -Date '2015-01-01T00:00:00Z').Ticks
-    }
     process
     {
         $speaker = [Speaker]$_
@@ -599,8 +585,11 @@ $($speaker.Description)
         Sort-Object -Property @{ Expression = {
             $talkId = $_.Id
             $meetup = Get-MeetupByTalk -TalkId $talkId
-            ($meetup.Date.Ticks - $epoch) * 100 + $meetup.TalkIds.IndexOf($talkId)
 
+            $session = $meetup.Sessions | Where-Object { $_.TalkId -eq $talkId } | Select-Single
+            # $epoch = (Get-Date -Date '2015-01-01T00:00:00Z').Ticks
+            # ($meetup.Date.Ticks - $epoch) * 100 + $meetup.TalkIds.IndexOf($talkId)
+            $session.StartTime
         } } |
         Format-TalkTitle |
         ForEach-Object { "- $_" }
