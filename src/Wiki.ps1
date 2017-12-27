@@ -30,43 +30,6 @@ function Test-WikiEnvironment()
     }
 }
 
-function Read-Community()
-{
-    Get-ChildItem -Path (Join-Path $Config.AuditDir 'communities') -Filter '*.xml' |
-    Read-NiceXml
-}
-
-function Read-Meetup()
-{
-    Get-ChildItem -Path (Join-Path $Config.AuditDir 'meetups') -Filter '*.xml' |
-    Read-NiceXml |
-    Sort-Object -Property Date
-}
-
-function Read-Talk()
-{
-    Get-ChildItem -Path (Join-Path $Config.AuditDir 'talks') -Filter '*.xml' |
-    Read-NiceXml
-}
-
-function Read-Speaker()
-{
-    Get-ChildItem -Path (Join-Path $Config.AuditDir 'speakers') -Filter 'index.xml' -Recurse |
-    Read-NiceXml
-}
-
-function Read-Friend()
-{
-    Get-ChildItem -Path (Join-Path $Config.AuditDir 'friends') -Filter 'index.xml' -Recurse |
-    Read-NiceXml
-}
-
-function Read-Venue()
-{
-    Get-ChildItem -Path (Join-Path $Config.AuditDir 'venues') -Filter '*.xml' |
-    Read-NiceXml
-}
-
 function Export-Community()
 {
     process
@@ -272,10 +235,10 @@ function Format-TalkLine()
 
 function Format-MeetupLine()
 {
-    # [Meetup]
     process
     {
-        "[[$($_.Name) ($(Format-RuDate -Date $_.Date))|$($_.Id)]]"
+        $meetup = [Meetup]$_
+        "[[$($meetup.Name) ($(Format-RuDate -Date $meetup.Sessions[0].StartTime))|$($meetup.Id)]]"
     }
 }
 
@@ -319,6 +282,12 @@ function Get-FriendRank()
         if ($friendId -eq 'DotNext')
         {
             # yep, we like DotNext
+            return 10000
+        }
+
+        if ($friendId -eq 'JetBrains')
+        {
+            # yep, and JetBrains
             return 1000
         }
 
@@ -365,14 +334,16 @@ function Format-CommunityPage()
     process
     {
         $community = [Community]$_
-        $meetups = $WikiRepository.Meetups.Values | Where-Object { $_.CommunityId -eq $community.Id } | Sort-Object -Property Date -Descending
+        $meetups = $WikiRepository.Meetups.Values |
+            Where-Object { $_.CommunityId -eq $community.Id } |
+            Sort-Object -Property @{ Expression = { $_.Sessions[0].StartTime } } -Descending
 
         '## Встречи'
         ''
         $meetups |
         ForEach-Object {
             $meetup = [Meetup]$_
-            $speakers = $meetup.TalkIds |
+            $speakers = $meetup.Sessions.TalkId |
                 ForEach-Object { $WikiRepository.Talks[$_].SpeakerIds } |
                 ForEach-Object { $WikiRepository.Speakers[$_] } |
                 Format-SpeakerLine |
@@ -398,22 +369,23 @@ function Format-CommunityPage()
 
 function Format-MeetupPage()
 {
-    # [Meetup]
     process
     {
+        $meetup = [Meetup]$_
+        $meetupDate = $meetup.Sessions[0].StartTime
 @"
-# $($_.Name)
+# $($meetup.Name)
 
-$($_.Name) состоялась $(Format-RuDate -Date $_.Date)
+$($meetup.Name) состоялась $(Format-RuDate -Date $meetupDate)
 
 ## Доклады
 
 "@
-        $_.TalkIds | Format-TalkLine | ForEach-Object { "- $_" }
-        $rank = if ($_.FriendIds -contains 'ITGM') { '' } elseif ($_.FriendIds -contains 'DotNext') { 'конференции ' } else { 'компании ' }
+        $meetup.Sessions.TalkId | Format-TalkLine | ForEach-Object { "- $_" }
+        $rank = if ($meetup.FriendIds -contains 'ITGM') { '' } elseif ($_.FriendIds -contains 'DotNext') { 'конференции ' } else { 'компании ' }
         # TODO: refer to Friend Name
-        $friends = $_.FriendIds | ForEach-Object { "[[$_]]" }
-        $venue = $WikiRepository.Venues[$_.VenueId]
+        $friends = $meetup.FriendIds | ForEach-Object { "[[$_]]" }
+        $venue = $WikiRepository.Venues[$meetup.VenueId]
         # TODO: remove venue Name from Address part
 @"
 
@@ -445,7 +417,7 @@ $($_.Description)
 "@
 
         $WikiRepository.Meetups.Values |
-        Sort-Object -Property Date |
+        Sort-Object -Property @{ Expression = { $_.Sessions[0].StartTime }} |
         Where-Object { $_.FriendIds -contains $id } |
         Format-MeetupLine |
         ForEach-Object { "- $_" }
@@ -463,7 +435,7 @@ function Format-TalkPage()
 
         $id = $talk.Id
         $meetup = $WikiRepository.Meetups.Values |
-        Where-Object { $_.TalkIds -contains $id } |
+        Where-Object { $_.Sessions.TalkId -contains $id } |
         ForEach-Object { "[[$($_.Name -replace 'Встреча','Встречи')|$($_.Id)]]" }
 
 @"
@@ -514,7 +486,7 @@ $($talk.Description)
 function Get-MeetupByTalk([string] $TalkId)
 {
     $WikiRepository.Meetups.Values |
-    Where-Object { $_.TalkIds -contains $TalkId } |
+    Where-Object { $_.Sessions.TalkId -contains $TalkId } |
     Select-Single
 }
 
@@ -524,7 +496,8 @@ function Format-TalkTitle()
     {
         $talk = [Talk]$_
         $meetup = Get-MeetupByTalk -TalkId $talk.Id
-        $date = Format-RuDate -Date $meetup.Date
+        $session = $meetup.Sessions | Where-Object { $_.TalkId -eq $talk.Id } | Select-Single
+        $date = Format-RuDate -Date $session.StartTime
 
         "[[$($talk.Title)|$($talk.Id)]] ($date)"
     }
@@ -636,18 +609,23 @@ function Invoke-BuildWiki()
     $timer = Start-TimeOperation -Name 'Build wiki'
 
     # Load all
-    Read-Community | ForEach-Object { $WikiRepository.Communities.Add($_.Id, $_) }
+    $entities = Read-All -AuditDir $Config.AuditDir
+
+    $WikiRepository.Communities = $entities | Where-Object { $_ -is [Community] } | ConvertTo-Hashtable { $_.Id }
     Write-Information "Load $($WikiRepository.Communities.Count) communities"
-    Read-Meetup | ForEach-Object { $WikiRepository.Meetups.Add($_.Id, $_) }
+    $WikiRepository.Meetups = $entities | Where-Object { $_ -is [Meetup] } | ConvertTo-Hashtable { $_.Id }
     Write-Information "Load $($WikiRepository.Meetups.Count) meetups"
-    Read-Talk | ForEach-Object { $WikiRepository.Talks.Add($_.Id, $_) }
+    $WikiRepository.Talks  = $entities | Where-Object { $_ -is [Talk] } | ConvertTo-Hashtable { $_.Id }
     Write-Information "Load $($WikiRepository.Talks.Count) talks"
-    Read-Speaker | ForEach-Object { $WikiRepository.Speakers.Add($_.Id, $_) }
+    $WikiRepository.Speakers = $entities | Where-Object { $_ -is [Speaker] } | ConvertTo-Hashtable { $_.Id }
     Write-Information "Load $($WikiRepository.Speakers.Count) speakers"
-    Read-Friend | ForEach-Object { $WikiRepository.Friends.Add($_.Id, $_) }
+    $WikiRepository.Friends = $entities | Where-Object { $_ -is [Friend] } | ConvertTo-Hashtable { $_.Id }
     Write-Information "Load $($WikiRepository.Friends.Count) friends"
-    Read-Venue | ForEach-Object { $WikiRepository.Venues.Add($_.Id, $_) }
+    $WikiRepository.Venues = $entities | Where-Object { $_ -is [Venue] } | ConvertTo-Hashtable { $_.Id }
     Write-Information "Load $($WikiRepository.Venues.Count) venues"
+
+    # Remove after fix DotNetRu/Audit#20
+    $WikiRepository.Meetups['SpbDotNet-6'].Sessions = $WikiRepository.Meetups['SpbDotNet-6'].Sessions[0]
 
     # Export all
     $WikiRepository.Communities.Values | Export-Community
