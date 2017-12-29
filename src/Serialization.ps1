@@ -78,9 +78,14 @@ function ConvertTo-NiceXml($Entity = $(throw "Entity required"), [string] $Entit
         }
         else
         {
-            if ($property.PropertyType -eq [DateTime])
+            # TODO: Remove
+            if ($property.Name -eq 'Date')
             {
                 $value = $value.ToUniversalTime().ToString('yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture)
+            }
+            elseif ($property.PropertyType -eq [DateTime])
+            {
+                $value = $value.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:00Z', [Globalization.CultureInfo]::InvariantCulture)
             }
 
             if ($value)
@@ -134,8 +139,17 @@ function ConvertFrom-NiceXml([System.Xml.Linq.XElement] $XEntity = $(throw "XEnt
             $value = $xProperty.Value
             if ($property.PropertyType -eq [DateTime])
             {
-                $value = [DateTime]::ParseExact($value, 'yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture)
-                $value = [DateTime]::SpecifyKind($value, 'Utc')
+                try
+                {
+                    $value = [DateTime]::ParseExact($value, 'yyyy-MM-ddTHH:mm:00Z', [Globalization.CultureInfo]::InvariantCulture)
+                    $value = $value.ToUniversalTime()
+                }
+                catch
+                {
+                    # TODO: Remove
+                    $value = [DateTime]::ParseExact($value, 'yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture)
+                    $value = [DateTime]::SpecifyKind($value, 'Utc')
+                }
             }
 
             $entity."$propertyName" = $value
@@ -143,4 +157,80 @@ function ConvertFrom-NiceXml([System.Xml.Linq.XElement] $XEntity = $(throw "XEnt
     }
 
     return $entity
+}
+
+function Read-NiceXml()
+{
+    process
+    {
+        $content = $_ | Get-ChildItem | Get-Content -Encoding UTF8 -Raw
+        $doc = [System.Xml.Linq.XDocument]::Parse($content)
+        ConvertFrom-NiceXml ($doc.Root)
+    }
+}
+
+function Read-All($AuditDir = $(throw "AuditDir required"))
+{
+    @(
+        'communities'
+        'meetups'
+        'talks'
+        'venues'
+    ) |
+    ForEach-Object {
+        Get-ChildItem -Path (Join-Path $AuditDir $_) -Filter '*.xml'
+    } |
+    Read-NiceXml
+
+    @(
+        'speakers'
+        'friends'
+    ) |
+    ForEach-Object {
+        Get-ChildItem -Path (Join-Path $AuditDir $_) -Filter 'index.xml' -Recurse
+    } |
+    Read-NiceXml
+}
+
+function Save-Entity($AuditDir = $(throw "AuditDir required"), [switch] $CreateOnly)
+{
+    process
+    {
+        $entity = $_
+        $id = $entity.Id
+        $fileName = $null
+
+        switch ($entity.GetType())
+        {
+            ([Community]) { $fileName = "communities/$id.xml" }
+            ([Meetup])    { $fileName = "meetups/$id.xml" }
+            ([Venue])     { $fileName = "venues/$id.xml" }
+            ([Friend])    { $fileName = "friends/$id/index.xml" }
+            ([Talk])      { $fileName = "talks/$id.xml" }
+            ([Speaker])   { $fileName = "speakers/$id/index.xml" }
+            default       { throw "Entity not detected: $($_.FullName)" }
+        }
+
+        $file = Join-Path $AuditDir $fileName
+        if ((Test-Path $file -PathType Leaf) -and ($CreateOnly))
+        {
+            throw "Can't override existed file: $file"
+        }
+
+        $dir = Split-Path $file -Parent
+        if (-not (Test-Path $dir -PathType Container))
+        {
+            New-Item -Path $dir -ItemType Directory | Out-Null
+        }
+
+        Write-Information "Save $($entity.Id)"
+
+        (ConvertTo-NiceXml -Entity $entity).ToString() | Out-File -FilePath $file -Encoding UTF8
+    }
+}
+
+function Invoke-ReXml()
+{
+    Read-All $Config.AuditDir |
+    Save-Entity $Config.AuditDir
 }

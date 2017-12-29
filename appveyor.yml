@@ -17,6 +17,7 @@ install:
       Install-PackageProvider -Name NuGet -Force | Out-Null
       Install-Module -Name Pester -Scope CurrentUser -Force | Out-Null
       Install-Module -Name PSScriptAnalyzer -Scope CurrentUser -Force | Out-Null
+      Install-Module -Name powershell-yaml -Scope CurrentUser -Force | Out-Null
 
 build: off
 
