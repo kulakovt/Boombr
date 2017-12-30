@@ -26,12 +26,14 @@ function Test-BoombrEnvironment()
 {
     $mode = if ($Config.IsOffline) { 'Offline' } else { 'Online' }
     Write-Information "Start at «$($Config.RootDir)» ($mode mode)"
-    Write-Information "Use Artifact directory «$($Config.ArtifactsDir )»"
+    Write-Information "Use Artifact directory «$($Config.ArtifactsDir)»"
 
     if (-not (Test-Path -Path $Config.AuditDir))
     {
         throw "Audit directory is not found at «$($Config.AuditDir)»"
     }
+
+    Write-Information "Found Audit directory at «$($Config.AuditDir)»"
 }
 
 function Start-BoombrCommand([string] $Command = $(throw 'Command required'))

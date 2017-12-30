@@ -1,4 +1,6 @@
-﻿. $PSScriptRoot\Utility.ps1
+﻿#Requires -Modules powershell-yaml
+
+. $PSScriptRoot\Utility.ps1
 
 function ConvertTo-NiceYaml()
 {
