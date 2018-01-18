@@ -7,6 +7,8 @@
     Venues = New-Object System.Collections.Generic.List[System.Object]
 }
 
+$DotNetRuAppStorage = Resolve-FullPath $PSScriptRoot '..\..\App\DotNetRu.DataStore.Audit\Storage'
+
 function Read-NiceXml()
 {
     process
@@ -71,7 +73,8 @@ function Write-Entity($Entities = $(throw "Entities required"), [string] $Entiti
     $xdoc = [System.Xml.Linq.XDocument]::new()
     $xDoc.Add($xRoot)
 
-    $xDoc.Save((Join-Path -Path $Config.ArtifactsDir -ChildPath ($EntitiesName + ".xml")))
+    New-Item -ItemType Directory -Force -Path $DotNetRuAppStorage
+    $xDoc.Save((Join-Path -Path $DotNetRuAppStorage -ChildPath ($EntitiesName + ".xml")))
 }
 
 function Export-Xml()

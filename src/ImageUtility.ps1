@@ -1,22 +1,25 @@
-﻿function Export-Entity([string] $entityPath, [string[]] $fileNames)
+﻿$DotNetRuAppStorage = Resolve-FullPath $PSScriptRoot '..\..\App\DotNetRu.DataStore.Audit\Storage'
+
+function Export-Entity([string] $entityPath, [string[]] $fileNames)
 {
     $srcDir = Join-Path $Config.AuditDir $entityPath
-    $dstDir = Join-Path $Config.ArtifactsDir $entityPath
+    $dstDir = Join-Path $DotNetRuAppStorage $entityPath
 
     New-Item -Path $dstDir -ItemType directory -Force
 
     Get-ChildItem -path $srcDir | ForEach-Object {
-        $dbImageDir = Join-Path $srcDir, $_.Name
+        $dbImageDir = $_.FullName
+        $speakerName = $_.Name
 
         $fileNames | ForEach-Object {
-            Export-File -srcDir $dbImageDir -fileName $_ -dstDir $dstDir
+            Export-File -srcDir $dbImageDir -fileName $_ -speakerName $speakerName -dstDir $dstDir
         }
     }
 }
 
-function Export-File ([string] $srcDir, [string] $fileName, [string] $dstDir) {
+function Export-File ([string] $srcDir, [string] $fileName, [string] $speakerName, [string] $dstDir) {
     $srcFile = Join-Path $srcDir $fileName
-    $dstFile = Join-Path $dstDir $fileName
+    $dstFile = Join-Path $dstDir ($speakerName + "." + $fileName)
 
     Copy-Item -Path $srcFile -Destination $dstFile
 }
