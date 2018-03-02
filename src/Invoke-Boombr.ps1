@@ -6,6 +6,7 @@ $ErrorActionPreference = 'Stop'
 $InformationPreference = 'Continue'
 $VerbosePreference = 'SilentlyContinue'
 #$DebugPreference = SilentlyContinue
+$ProgressPreference = 'SilentlyContinue'
 
 . $PSScriptRoot\Model.ps1
 . $PSScriptRoot\Utility.ps1

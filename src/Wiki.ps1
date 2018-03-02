@@ -145,8 +145,21 @@ function Get-OpenGraph()
     process
     {
         $url = [Uri]$_
-        $content = Invoke-WebRequest -Uri $url
+
+        try
+        {
+            $content = Invoke-WebRequest -Uri $url
+        }
+        catch
+        {
+            return
+        }
+
         $meta = $content.ParsedHtml.getElementsByTagName('meta') | Where-Object { ($_.outerHTML) -and ($_.outerHTML.Contains("property=`"og:")) }
+        if (-not $meta)
+        {
+            return
+        }
 
         function Get-PropertyContent([string] $propertyValue)
         {
@@ -189,28 +202,30 @@ function Resolve-OpenGraph()
         }
         elseif ($Config.IsOffline)
         {
-            $og = @{
-                SiteName = $null
-                Type = $null
-                Url = [string]$url
-                Title = $null
-                Description = $null
-                Image = $null
-            }
+            # Keep $og empty
         }
         else
         {
-            $og = $url | Get-OpenGraph
-            $og | ConvertTo-Json | Set-Content -Path $cachePath -Encoding UTF8 -Force
+            $latestOG = $url | Get-OpenGraph
+            if ($latestOG)
+            {
+                $og = $latestOG
+                # Save cache
+                $og | ConvertTo-Json | Set-Content -Path $cachePath -Encoding UTF8 -Force
+            }
+            # else Keep $og empty
         }
 
         # HACK: Choose small image for YouTube
-        if ($og.SiteName -eq 'YouTube')
+        if ($og['SiteName'] -eq 'YouTube')
         {
             $og.Image = $og.Image -replace '/maxresdefault\.jpg','/sddefault.jpg' -replace '/hqdefault\.jpg','/sddefault.jpg'
         }
 
-        $og
+        if ($og -and ($og.Count -gt 0))
+        {
+            $og
+        }
     }
 }
 
@@ -254,7 +269,7 @@ function Format-SpeakerLine()
 function Format-ImageLink([Uri] $Url = $(throw "Url required"), [string] $Hint = $(throw "Hint required"))
 {
     $og = $url | Resolve-OpenGraph
-    if ((-not $og.Title) -or (-not $og.Image))
+    if ((-not $og) -or (-not $og.Title) -or (-not $og.Image))
     {
         "$url"
     }
@@ -585,16 +600,17 @@ function Invoke-ReCache()
         ForEach-Object {
 
             $link = [Uri]$_
-            $status = 'OK'
-            try
+
+            if ($link | Resolve-OpenGraph)
             {
-                $link | Resolve-OpenGraph | Out-Null
+                $status = 'OK'
             }
-            catch
+            else
             {
                 $status = 'Fail'
             }
-            Write-Information "$($talk.Title): $($link.Host) [ $status ]"
+
+            Write-Information "$($talk.Title): $($link.Host)    [ $status ]"
         }
     }
 
