@@ -39,6 +39,9 @@ function Test-BoombrEnvironment()
 
 function Start-BoombrCommand([string] $Command = $(throw 'Command required'))
 {
+    # GitHub requares TLS 1.2 (https://blog.github.com/2018-02-23-weak-cryptographic-standards-removed/)
+    [Net.ServicePointManager]::SecurityProtocol = 'Tls12,Tls11,Tls,Ssl3'
+
     switch ($Command)
     {
         'build wiki'
