@@ -38,7 +38,18 @@ Describe 'Xml serialization' {
 
             $xml = (ConvertTo-NiceXml -Entity $enity).ToString()
 
-            $xml.IndexOf('Id') | Should BeLessThan $xml.IndexOf('Name')
+            $xml.IndexOf('Id') | Should -BeLessThan $xml.IndexOf('Name')
+        }
+
+        It 'Should write URI with slash' {
+
+            $enity = [Speaker]::new()
+            $enity.Id = 'B'
+            $enity.CompanyUrl = 'http://ya.ru'
+
+            $xml = (ConvertTo-NiceXml -Entity $enity).ToString()
+
+            $xml | Should -BeLike '*<CompanyUrl>http://ya.ru/</CompanyUrl>*'
         }
     }
 

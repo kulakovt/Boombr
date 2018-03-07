@@ -88,6 +88,10 @@ function ConvertTo-NiceXml($Entity = $(throw "Entity required"), [string] $Entit
             {
                 $value = $value.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:00Z', [Globalization.CultureInfo]::InvariantCulture)
             }
+            elseif (($property.Name -like '*Url') -and $value)
+            {
+                $value = [Uri]$value
+            }
 
             if ($value)
             {
