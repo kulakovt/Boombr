@@ -5,6 +5,7 @@
 function Get-EntityProperty([Type] $EntityType)
 {
     $props = $EntityType.GetProperties()
+    # ID Hack:
     if ([Entity].IsAssignableFrom($EntityType))
     {
         $props = $props[-1..($props.Length - 2)]

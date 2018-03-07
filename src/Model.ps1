@@ -68,4 +68,6 @@ class Meetup : Entity
 class Community : Entity
 {
     [string] $Name
+    [string] $City
+    [string] $TimeZone
 }

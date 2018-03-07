@@ -53,6 +53,11 @@ function Start-BoombrCommand([string] $Command = $(throw 'Command required'))
             Invoke-ReCache
         }
 
+        'rebuild xml'
+        {
+            Invoke-ReXml
+        }
+
         'new meetup'
         {
             . $PSScriptRoot\Forms.ps1
@@ -92,6 +97,7 @@ if ($args.Length -lt 2)
     Write-Information 'Supported commands:'
     Write-Information '- build wiki'
     Write-Information '- build cache'
+    Write-Information '- rebuild xml'
     Write-Information '- new meetup'
     Write-Information '- export xml'
     Write-Information '- export images'

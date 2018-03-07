@@ -590,7 +590,8 @@ function Invoke-ReCache()
 
     $timer = Start-TimeOperation -Name 'Build cache'
 
-    Read-Talk |
+    Read-All -AuditDir $Config.AuditDir |
+    Where-Object { $_ -is [Talk] } |
     ForEach-Object {
 
         $talk = $_

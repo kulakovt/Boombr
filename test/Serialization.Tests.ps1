@@ -29,6 +29,17 @@ Describe 'Xml serialization' {
 
             $entity | Should Not Be $null
         }
+
+        It 'Should write Id first' {
+
+            $enity = [Community]::new()
+            $enity.Id = 'Posh'
+            $enity.Name = 'PowerShell Community'
+
+            $xml = (ConvertTo-NiceXml -Entity $enity).ToString()
+
+            $xml.IndexOf('Id') | Should BeLessThan $xml.IndexOf('Name')
+        }
     }
 
     Context 'Format Sessions list' {
