@@ -641,9 +641,6 @@ function Invoke-BuildWiki()
     $WikiRepository.Venues = $entities | Where-Object { $_ -is [Venue] } | ConvertTo-Hashtable { $_.Id }
     Write-Information "Load $($WikiRepository.Venues.Count) venues"
 
-    # Remove after fix DotNetRu/Audit#20
-    $WikiRepository.Meetups['SpbDotNet-6'].Sessions = $WikiRepository.Meetups['SpbDotNet-6'].Sessions[0]
-
     # Export all
     $WikiRepository.Communities.Values | Export-Community
     $WikiRepository.Meetups.Values | Export-Meetup
