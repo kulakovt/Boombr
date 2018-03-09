@@ -14,6 +14,7 @@ class Speaker : Entity
     [string] $ContactsUrl
     [string] $TwitterUrl
     [string] $HabrUrl
+    [string] $GitHubUrl
 }
 
 class Talk : Entity

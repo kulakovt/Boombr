@@ -553,6 +553,10 @@ $($speaker.Description)
         {
             $links += @{ 'Хабрахабр' = $speaker.HabrUrl }
         }
+        if ($speaker.GitHubUrl)
+        {
+            $links += @{ 'GitHub' = $speaker.GitHubUrl }
+        }
 
         if ($links)
         {
