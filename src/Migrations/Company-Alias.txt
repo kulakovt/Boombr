@@ -1,0 +1,55 @@
+epam; эпам; epam systems; epam systems, inc.; эпам системз; епам
+arcadia; arcadia jsc; arcadia inc; ао "аркадия"; ао аркадия; зао аркадия; arcadia software; arcadia inc.;jsc arcadia; jsc “arcadia inc”; jsc "arcadia inc"; аркадия
+dataart; data art; датаарт
+emc; емс; dell emc; dellemc
+intermedia; интермедиа
+mysale; mysale group plc; mysale plc; mysale group
+касперский; ао лаборатория касперского; ао "лаборатория касперского"; лаборатория касперского; лаборатории касперского
+ланит-терком; ланит;зао "ланит-терком"; lanit; lanit-tercom; спбгу/ланит-терком
+quest software; quest
+broadridge; paladyne systems rus; paladyne; броадридж
+positive technologies; positeve tech; positive
+murano; muranosoft; мурано ру; murano software
+digital design; диджитал дизайн; digitaldesign
+kraftvaerk; крафтваерк
+veeam; veeam software
+paragon; paragon-software; paragon software; paragon-software.com
+sidenis; sidenis llc
+дневник.ру; dnevnik.ru; дневник; dnenvik.ru
+firstline software; firstlinesoftware; first line software
+t-systems; т-системс; t-systems rus
+итмо; ниу итмо; университет итмо
+скаут; гк скаут; гк "скаут"
+fortis; фортис; ооо фортис; fortis.online
+катарсис; ооо нпк "катарсис"; нпк катарсис; ооо "нпк катарсис"
+крок; croc; крок регион; крок-регион;
+аскон; ascon
+слетать.ру; слетать; sletat.ru
+nordic; нордик ит
+газинформсервис; ооо "газинформсервис"; газинформсервич
+loginet; loginet rus; логинет рус; ооо "логинет рус"; ооо логинет рус; логинет; ооо «логинет рус»
+
+deutsche bank;дойче банк
+alfabank; альфабанк; alfa-laboratory; альфа банк; альфа-банк; alfa-bank
+сбербанк; сбербанк технологии; сбертех
+тинькофф; ооо тинькофф центр разработки; tinkoff.ru; тинкофф; тинькофф
+пскб; pscb; ао банк пскб
+
+протей; нтц протей; ооо "нтц протей"; нтц "протей"; ооо 'нтц протей'
+recon; recon group
+touch instinct; touchin
+baltic soft; baltic-soft; балтик софт
+aveas-media; aveas media
+altarix; altirix systems
+заслон; оа "заслон"; оа «заслон»
+gis; gis llc
+health samurai; heathsamurai; health samurai team
+nordic; нордик-ит; nordic it
+etna; etna software
+nrgsoft; nrg soft
+interlink; interlink llc
+i-free; ifree
+kongsberg; kongsberg maritime
+катарсис; ооо нпк катарсис; нпк "катарсис"
+
+freelance; freelancer
