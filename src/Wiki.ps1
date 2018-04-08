@@ -288,7 +288,7 @@ function Format-FriendImage()
     }
 }
 
-function Get-FriendRank()
+function Get-FriendRank($CommunityId = $(throw "CommunityId required"))
 {
     process
     {
@@ -302,11 +302,12 @@ function Get-FriendRank()
 
         if ($friendId -eq 'JetBrains')
         {
-            # yep, and JetBrains
+            # yep, and JetBrains too
             return 1000
         }
 
         $WikiRepository.Meetups.Values |
+        Where-Object { $_.CommunityId -eq $CommunityId } |
         ForEach-Object {
             if ($_.FriendIds -contains $friendId)
             {
@@ -374,7 +375,7 @@ function Format-CommunityPage()
         $fiends = $meetups |
             ForEach-Object { $_.FriendIds } |
             Select-Object -Unique |
-            Sort-Object -Property @{ Expression = { $_ | Get-FriendRank } } -Descending |
+            Sort-Object -Property @{ Expression = { $_ | Get-FriendRank -CommunityId $community.Id } } -Descending |
             ForEach-Object { $WikiRepository.Friends[$_] } |
             Format-FriendImage
 
