@@ -1,20 +1,32 @@
 ﻿. $PSScriptRoot\YamlSerialization.ps1
 
+function Get-LastMeetupSample()
+{
+    $entities = Read-All $Config.AuditDir
+
+    $entities |
+    Where-Object { $_ -is [Meetup] } |
+    Where-Object { $_.CommunityId -eq 'SpbDotNet' } |
+    Sort-Object -Property @{ Expression = { $_.Sessions[0].StartTime } } |
+    Select-Object -Last 1 |
+    ForEach-Object {
+        $meetup = $_
+        $meetup
+        $entities | Where-Object { $_.Id -eq $meetup.FriendIds[0] }
+        $entities | Where-Object { $_.Id -eq $meetup.VenueId }
+
+        $talk = $entities | Where-Object { $_.Id -eq $meetup.Sessions[0].TalkId }
+        $talk
+        $entities | Where-Object { $_.Id -eq $talk.SpeakerIds[0] }
+    }
+}
+
 function New-Meetup()
 {
     $file = Join-Path $Config.ArtifactsDir 'New Meetup.txt'
     if (-not (Test-Path $file))
     {
-        @(
-            'meetups/SpbDotNet-8.xml'
-            'friends/DataArt/index.xml'
-            'venues/Spb-Telekom.xml'
-            'talks/Structured-logging.xml'
-            'talks/Design-of-RESTFul-API.xml'
-            'speakers/Anatoly-Kulakov/index.xml'
-        ) |
-        ForEach-Object { Join-Path $Config.AuditDir $_ } |
-        Read-NiceXml |
+        Get-LastMeetupSample |
         Write-NiceYaml -FilePath $file
     }
 
