@@ -139,7 +139,7 @@ Write-Host "Found $($existingTalks.Count) existing slides"
 
 $entities = Read-All -AuditDir $auditDir
 
-$talkToDate = $entities | Where-Object { $_ -is [Meetup] } | % { $_.Sessions } | ConvertTo-Hashtable { $_.TalkId } { $_.StartTime }
+$talkToDate = $entities | Where-Object { $_ -is [Meetup] } | ForEach-Object { $_.Sessions } | ConvertTo-Hashtable { $_.TalkId } { $_.StartTime }
 $speakerToName = $entities | Where-Object { $_ -is [Speaker] } | ConvertTo-Hashtable { $_.Id } { $_.Name }
 
 $entities |
