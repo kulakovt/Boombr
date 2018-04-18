@@ -55,15 +55,9 @@ class Meetup : Entity
     [string] $Name
     [string] $CommunityId
 
-    # Obsolete. Use Sessions property
-    [DateTime] $Date
-
     [string[]] $FriendIds
     [string] $VenueId
     [Session[]] $Sessions
-
-    # Obsolete. Use Sessions property
-    [string[]] $TalkIds
 }
 
 class Community : Entity
