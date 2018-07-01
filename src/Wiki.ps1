@@ -148,14 +148,18 @@ function Get-OpenGraph()
 
         try
         {
-            $content = Invoke-WebRequest -Uri $url
+            # BUG: hangs in some cases, unless -UseBasicParsing is used
+            # https://github.com/PowerShell/PowerShell/issues/2812
+            $response = Invoke-WebRequest -Uri $url -UseBasicParsing
         }
         catch
         {
             return
         }
 
-        $meta = $content.ParsedHtml.getElementsByTagName('meta') | Where-Object { ($_.outerHTML) -and ($_.outerHTML.Contains("property=`"og:")) }
+        $html = New-Object -ComObject 'HTMLFile'
+        $html.IHTMLDocument2_write($response.Content)
+        $meta = $html.getElementsByTagName('meta') | Where-Object { ($_.outerHTML) -and ($_.outerHTML.Contains("property=`"og:")) }
         if (-not $meta)
         {
             return
