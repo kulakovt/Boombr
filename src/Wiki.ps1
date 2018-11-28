@@ -140,6 +140,35 @@ function Get-UrlHash()
     }
 }
 
+function Get-YouTubeOEmbed()
+{
+    process
+    {
+        $url = [Uri]$_
+        $oEmbedUrl = [Uri]"http://www.youtube.com/oembed?url=${url}&format=json"
+
+        try
+        {
+            $response = Invoke-WebRequest -Uri $oEmbedUrl -UseBasicParsing
+        }
+        catch
+        {
+            return
+        }
+
+        $meta = $response.Content | ConvertFrom-Json
+
+        @{
+            SiteName = $meta.provider_name
+            Type = $meta.type
+            Url = [string]$url
+            Title = $meta.title
+            Description = $null
+            Image = $meta.thumbnail_url
+        }
+    }
+}
+
 function Get-OpenGraph()
 {
     process
@@ -210,7 +239,15 @@ function Resolve-OpenGraph()
         }
         else
         {
-            $latestOG = $url | Get-OpenGraph
+            if ($url.Host -eq 'www.youtube.com')
+            {
+                $latestOG = $url | Get-YouTubeOEmbed
+            }
+            else
+            {
+                $latestOG = $url | Get-OpenGraph
+            }
+
             if ($latestOG)
             {
                 $og = $latestOG
