@@ -79,6 +79,12 @@ function Start-BoombrCommand([string] $Command = $(throw 'Command required'))
             Export-Image
         }
 
+        'new announcement'
+        {
+            . $PSScriptRoot\Announcement.ps1
+            Invoke-BuildAnnouncement
+        }
+
         default { "Command not found: $Command" }
     }
 }
@@ -104,6 +110,7 @@ if ($args.Length -lt 2)
     Write-Information '- new meetup'
     Write-Information '- export xml'
     Write-Information '- export images'
+    Write-Information '- new announcement'
     return
 }
 
