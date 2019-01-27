@@ -395,11 +395,11 @@ function Format-CommunityPage()
             Where-Object { $_.CommunityId -eq $community.Id } |
             Sort-Object -Property @{ Expression = { $_.Sessions[0].StartTime } } -Descending
 
-        $allSpeakers = $meetups.Sessions.TalkId |
+        [array] $allSpeakers = $meetups.Sessions.TalkId |
             ForEach-Object { $WikiRepository.Talks[$_].SpeakerIds } |
             Select-Object -Unique
-        $allFriends = $meetups.FriendIds | Select-Object -Unique
-        $allVenues = $meetups.VenueId | Select-Object -Unique
+        [array] $allFriends = $meetups.FriendIds | Select-Object -Unique
+        [array] $allVenues = $meetups.VenueId | Select-Object -Unique
 
         "Встреч: $($meetups.Count), Докладчиков: $($allSpeakers.Count), Докладов: $($meetups.Sessions.TalkId.Count), Друзей: $($allFriends.Count), Мест: $($allVenues.Count)"
         ''
