@@ -391,7 +391,7 @@ function Format-CommunityPage()
     process
     {
         $community = [Community]$_
-        $meetups = $WikiRepository.Meetups.Values |
+        [array] $meetups = $WikiRepository.Meetups.Values |
             Where-Object { $_.CommunityId -eq $community.Id } |
             Sort-Object -Property @{ Expression = { $_.Sessions[0].StartTime } } -Descending
 
