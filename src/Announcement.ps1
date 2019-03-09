@@ -13,6 +13,16 @@ function Format-Meetup()
     {
         $meetup = [Meetup]$_
 
+        $date = $meetup.Sessions[0].StartTime.ToLocalTime().ToString('dd.MM.yyyy')
+        "Дата: $date"
+        $venue = $AnnouncementRepository.Venues[$meetup.VenueId].Address
+        "Адресс: $venue"
+        ''
+        '#### Спонсоры'
+        $meetup.FriendIds |
+            ForEach-Object { $AnnouncementRepository.Friends[$_] } |
+            Format-Friend
+        ''
         "#### Программа $($meetup.Name -replace 'Встреча','встречи')"
         $meetup | Format-Program
         ''
@@ -53,7 +63,7 @@ function Format-Talk()
         foreach ($speakerId in $talk.SpeakerIds)
         {
             $speaker = $AnnouncementRepository.Speakers[$speakerId]
-            Join-Path $Config.ArtifactsDir "speakers/$($speaker.Id)/avatar.small.jpg"
+            Join-Path $Config.AuditDir "speakers/$($speaker.Id)/avatar.small.jpg"
             $speaker.Description
             ''
         }
@@ -73,6 +83,18 @@ function Format-TalkTitle([switch] $IncludeCompany)
             Join-ToString -Delimeter ', '
 
         "$speakers «$($talk.Title)»"
+    }
+}
+
+function Format-Friend()
+{
+    process
+    {
+        $friend = [Friend]$_
+
+        $friend.Name
+        $friend.Url
+        Join-Path $Config.AuditDir "friends/$($friend.Id)/logo.small.png"
     }
 }
 
