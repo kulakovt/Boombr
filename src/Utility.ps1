@@ -74,34 +74,31 @@ function Select-Single($ElementNames = 'elements')
     }
 }
 
-function ConvertTo-Hashtable([ScriptBlock] $KeySelector = $(throw "Key selector required"), [ScriptBlock] $ElementSelector = { $_ })
+filter Out-Tee()
 {
-    begin
-    {
-        $hash = @{}
-    }
-    process
-    {
-        $item = $_
-        $key = & $KeySelector $item
-        $element = & $ElementSelector $item
-        $hash[$key] = $element
-    }
-    end
-    {
-        $hash
-    }
+    $_ | Out-Host
+    $_
 }
 
-function Join-ToString($Delimeter = [Environment]::NewLine)
+function Join-ToString
 {
+    [CmdletBinding()]
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        $Item,
+
+        [string]
+        $Delimeter = ', '
+    )
+
     begin
     {
         $items = @()
     }
     process
     {
-        $items += $_
+        $items += $Item
     }
     end
     {
@@ -109,8 +106,37 @@ function Join-ToString($Delimeter = [Environment]::NewLine)
     }
 }
 
-filter Out-Tee()
+function ConvertTo-Hashtable
 {
-    $_ | Out-Host
-    $_
+    [CmdletBinding()]
+    [OutputType([Hashtable])]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        $Item,
+
+        [Parameter(Mandatory)]
+        [ScriptBlock]
+        $KeySelector,
+
+        [ScriptBlock]
+        $ElementSelector = { $_ }
+    )
+
+    begin
+    {
+        $items = @{}
+    }
+    process
+    {
+        $key = & $KeySelector $Item
+        if ($key)
+        {
+            $element = & $ElementSelector $Item
+            $items[$key] = $element
+        }
+    }
+    end
+    {
+        $items
+    }
 }
