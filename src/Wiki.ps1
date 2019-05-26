@@ -451,16 +451,22 @@ $($meetup.Name) состоялась $(Format-RuDate -Date $meetupDate)
 
 "@
         $meetup.Sessions.TalkId | Format-TalkLine | ForEach-Object { "- $_" }
-        $rank = if ($meetup.FriendIds -contains 'ITGM') { '' } elseif ($_.FriendIds -contains 'DotNext') { 'конференции ' } else { 'компании ' }
         # TODO: refer to Friend Name
-        $friends = $meetup.FriendIds | ForEach-Object { "[[$_]]" }
+        $friends = $meetup.FriendIds
+        $friendPart = ''
+        if ($friends)
+        {
+            $rank = if ($friends -contains 'ITGM') { '' } elseif ($friends -contains 'DotNext') { 'конференции ' } else { 'компании ' }
+            $friendNames = $friends | ForEach-Object { "[[$_]]" }
+            $friendPart = " в гостях у $rank$($friendNames -join ', ')"
+        }
         $venue = $WikiRepository.Venues[$meetup.VenueId]
         # TODO: remove venue Name from Address part
 @"
 
 ## Место
 
-Встреча прошла в гостях у $rank$($friends -join ', ') по адресу: [$($venue.Address)]($($venue.MapUrl)).
+Встреча прошла$friendPart по адресу: [$($venue.Address)]($($venue.MapUrl)).
 "@
     }
 }
