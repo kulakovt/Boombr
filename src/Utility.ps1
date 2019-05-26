@@ -114,11 +114,12 @@ function ConvertTo-Hashtable
         [Parameter(Mandatory, ValueFromPipeline)]
         $Item,
 
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory, Position=0)]
         [ScriptBlock]
         $KeySelector,
 
         [ScriptBlock]
+        [Parameter(Position=1)]
         $ElementSelector = { $_ }
     )
 
