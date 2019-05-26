@@ -400,6 +400,10 @@ function Format-CommunityPage()
             Select-Object -Unique
         [array] $allFriends = $meetups.FriendIds | Select-Object -Unique
         [array] $allVenues = $meetups.VenueId | Select-Object -Unique
+        if (-not $allFriends)
+        {
+            $allFriends = @()
+        }
 
         "Встреч: $($meetups.Count), Докладчиков: $($allSpeakers.Count), Докладов: $($meetups.Sessions.TalkId.Count), Друзей: $($allFriends.Count), Мест: $($allVenues.Count)"
         ''
