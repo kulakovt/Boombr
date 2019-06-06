@@ -3,9 +3,9 @@
   - 'Связаться с ${SpeakerName} #Программа'
   # Phase 2 (Rehearsals)
   - 'Провести тренировки для ${SpeakerName} #Программа'
-  - 'Получить данные для анонса от ${SpeakerName} #Программа'
+  - '[${MeetupKey}] Получить данные для анонса от ${SpeakerName} #Программа'
   # Phase 5 (After Meetup)
-  - 'Забрать сдайды у ${SpeakerName} и выложить на SpeakerDeck #Программа'
+  - '[${MeetupKey}] Забрать сдайды у ${SpeakerName} и выложить на SpeakerDeck #Программа'
 
 Meetup:
   # Phase 3 (Before Meetup)
@@ -31,4 +31,4 @@ Meetup:
   - '[${MeetupKey}] Разослать результаты опроса Площадке #Организация'
 
 Friend:
-  - 'Обеспечить сувениры от ${FriendName} #Спонсоры'
+  - '[${MeetupKey}] Обеспечить сувениры от ${FriendName} #Спонсоры'
