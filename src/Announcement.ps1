@@ -121,7 +121,7 @@ function Invoke-BuildAnnouncement()
     $path = Join-Path $Config.ArtifactsDir "Announce-$($meetup.Id).txt"
     $meetup |
         Format-Meetup |
-        Join-ToString |
+        Join-ToString -Delimeter "`n" |
         Set-Content -Path $path -Encoding UTF8
 
     # HACK: Convert EOL to Windows Style
