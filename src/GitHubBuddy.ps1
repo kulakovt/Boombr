@@ -39,7 +39,7 @@ function Convert-GitHubRepositoryToSite
         }
         else
         {
-            Write-Warning "Can't parese Community name for $($Repository.name): $($Repository.description)"
+            Write-Warning "Can't parese Community name for $($Repository.name): $($Repository.description). Skip."
             return
         }
 
@@ -161,7 +161,7 @@ function Initialize-CommunitySite
             Write-Information "  + Clone to local repository"
             Push-Location
             Set-Location $LocalRootPath
-            git clone "https://github.com/DotNetRu-Site/$($site.Name).git"
+            git clone "https://github.com/$OrganizationName/$($site.Name).git"
             Pop-Location
         }
 
