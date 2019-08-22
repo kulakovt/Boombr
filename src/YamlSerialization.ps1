@@ -6,7 +6,7 @@ function ConvertTo-NiceYaml()
 {
     process
     {
-        $_ | ConvertTo-NiceYamlArray | Join-ToString
+        $_ | ConvertTo-NiceYamlArray | Join-ToString -Delimeter "`n"
     }
 }
 
@@ -81,7 +81,7 @@ function Split-MultiYaml()
     {
         function PopDocument()
         {
-            $document | Join-ToString | Select-NotNull -AndNotWhiteSpace
+            $document | Join-ToString -Delimeter "`n" | Select-NotNull -AndNotWhiteSpace
         }
 
         $document = @()
