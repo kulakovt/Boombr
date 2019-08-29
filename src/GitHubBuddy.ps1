@@ -161,7 +161,7 @@ function Initialize-CommunitySite
             Write-Information "  + Clone to local repository"
             Push-Location
             Set-Location $LocalRootPath
-            git clone "https://github.com/$OrganizationName/$($site.Name).git"
+            git clone "https://github.com/${OrganizationName}/$($site.Name).git"
             Pop-Location
         }
 
