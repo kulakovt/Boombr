@@ -12,6 +12,9 @@ $LocalRootPath = Join-Path $PSScriptRoot '..\..\Seeds' -Resolve
 $AuditCommunityPath = Join-Path $PSScriptRoot '..\..\Audit\db\communities' -Resolve
 $OrganizationName = 'DotNetRu-Seeds'
 
+# https://stackoverflow.com/questions/54372601/running-git-clone-from-powershell-giving-errors-even-when-it-seems-to-work
+$env:GIT_REDIRECT_STDERR = '2>&1'
+
 class CommunitySite
 {
     [string] $Name
@@ -174,7 +177,9 @@ function Initialize-CommunitySite
         else
         {
             Write-Information "  + Create CNAME file"
-            "$($site.Name.ToLower()).dotnet.ru" | Set-Content -Path $cnamePath -Encoding UTF8 -NoNewline
+            $cnameContent = "$($site.Name.ToLower()).dotnet.ru"
+            # Write file without BOM
+            [IO.File]::WriteAllLines($cnamePath, $cnameContent)
         }
 
         ### TODO ##################################################################
