@@ -179,7 +179,7 @@ function Initialize-CommunitySite
             Write-Information "  + Create CNAME file"
             $cnameContent = "$($site.Name.ToLower()).dotnet.ru"
             # Write file without BOM
-            [IO.File]::WriteAllLines($cnamePath, $cnameContent)
+            [IO.File]::WriteAllText($cnamePath, $cnameContent)
         }
 
         ### TODO ##################################################################
