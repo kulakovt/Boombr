@@ -683,6 +683,40 @@ function Invoke-ReCache()
 
 }
 
+function Sort-Community
+{
+    [CmdletBinding()]
+    [OutputType([Community])]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [ValidateNotNullOrEmpty()]
+        [Community]
+        $Community
+    )
+
+    begin
+    {
+        $order = @{
+            Expression = { $_.Group.Sessions.StartTime | Sort-Object | Select-Object -First 1 }
+            Descending = $false
+        }
+        [array] $communityOrder = $WikiRepository.Meetups.Values |
+            Group-Object -Property CommunityId |
+            Sort-Object -Property $order |
+            Select-Object -ExpandProperty Name
+
+        $communities = @()
+    }
+    process
+    {
+        $communities += $Community
+    }
+    end
+    {
+        $communities | Sort-Object -Property { $communityOrder.IndexOf($_.Name) }
+    }
+}
+
 function Invoke-BuildWiki()
 {
     Test-WikiEnvironment
@@ -706,7 +740,7 @@ function Invoke-BuildWiki()
     Write-Information "Load $($WikiRepository.Venues.Count) venues"
 
     # Export all
-    $WikiRepository.Communities.Values | Export-Community
+    $WikiRepository.Communities.Values | Sort-Community | Export-Community
     $WikiRepository.Meetups.Values | Export-Meetup
     $WikiRepository.Friends.Values | Export-Friend -FriendDir (Join-Path $Config.AuditDir 'friends')
     $WikiRepository.Talks.Values | Export-Talk
