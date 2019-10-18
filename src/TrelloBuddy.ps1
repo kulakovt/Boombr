@@ -11,13 +11,22 @@ $TrelloBoardName = 'SpbDotNet Meetups'
 $TrelloNewCardListName = 'Надо'
 $ActionsPath = Join-Path $PSScriptRoot '.\Actions.yaml' -Resolve
 
-class MeetupTask
+
+class Task
 {
     [string] $Title
     [string[]] $Tags
 }
 
-function Select-SubstituteVariables
+class MeetupTask : Task
+{
+}
+
+class SpeakerTask : Task
+{
+}
+
+function Select-SubstituteVariable
 {
     [CmdletBinding()]
     [OutputType([string])]
@@ -55,7 +64,7 @@ function Select-SubstituteVariables
     }
 }
 
-function Select-Tags
+function Select-Tag
 {
     [CmdletBinding()]
     [OutputType([string[]])]
@@ -77,7 +86,7 @@ function Select-Tags
     }
 }
 
-function Get-ActionTemplates
+function Get-ActionTemplate
 {
     [CmdletBinding()]
     [OutputType([string[]])]
@@ -101,30 +110,30 @@ function Get-ActionTemplates
     }
 }
 
-function New-MeetupTask
+function Expand-Template
 {
     [CmdletBinding()]
     [OutputType([MeetupTask])]
     param (
-        [Parameter(Mandatory, ValueFromPipeline)]
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [Task]
+        $Task,
+
+        [Parameter(Mandatory)]
         [ValidateNotNullOrEmpty()]
         [string]
-        $Template,
+        $TitleTemplate,
 
         [Parameter(Mandatory)]
         [Hashtable]
-        $Context,
-
-        [Parameter(Mandatory)]
-        [Hashtable]
-        $Tags
+        $Context
     )
 
     process
     {
-        $Task = [MeetupTask]::New()
-        $Task.Title = $Template | Select-SubstituteVariables -Values $Context
-        $Task.Tags = $Template | Select-Tags
+        $Task.Title = $TitleTemplate | Select-SubstituteVariable -Values $Context
+        $Task.Tags = $TitleTemplate | Select-Tag
         $Task
     }
 }
@@ -149,14 +158,14 @@ function Write-Context
     }
 }
 
-function Resolve-CardTags
+function Resolve-Tag
 {
     [CmdletBinding()]
     [OutputType([string[]])]
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
         [ValidateNotNullOrEmpty()]
-        [MeetupTask]
+        [Task]
         $Task,
 
         [Parameter(Mandatory)]
@@ -176,13 +185,13 @@ function Resolve-CardTags
     }
 }
 
-function Save-MeetupTask
+function Save-Task
 {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
         [ValidateNotNullOrEmpty()]
-        [MeetupTask]
+        [Task]
         $Task,
 
         [Parameter(Mandatory)]
@@ -201,7 +210,7 @@ function Save-MeetupTask
     {
         Write-Information "Create card «$($Task.Title)»"
 
-        $trelloTags = $Task | Resolve-CardTags -TrelloTagsDict $TrelloTagsDict
+        $trelloTags = $Task | Resolve-Tag -TrelloTagsDict $TrelloTagsDict
 
         $list |
             New-TrelloCard -Name $Task.Title -LabelId $trelloTags |
@@ -215,19 +224,28 @@ function Save-MeetupTask
     }
 }
 
-function New-Meetup
+function New-Task
 {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory, ValueFromPipeline)]
+        [Parameter(Mandatory)]
         [ValidateNotNullOrEmpty()]
         [string]
-        $MeetupKey
+        $TypeName,
+
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string]
+        $Section,
+
+        [Parameter(Mandatory)]
+        [Hashtable]
+        $Context
     )
 
     process
     {
-        Write-Information ':::: Create Meetup'
+        Write-Information ":::: Create $TypeName"
 
         $board = Get-TrelloBoard -Name $TrelloBoardName
         if (-not $board) { throw "Trello board «$TrelloBoardName not found" }
@@ -240,14 +258,63 @@ function New-Meetup
 
         Write-Information "Use «$($board.name)» board"
 
-        $Context = @{
-            MeetupKey = $MeetupKey
-        }
-
         $Context | Write-Context
 
-        Get-ActionTemplates -Path $ActionsPath -Section 'Meetup' |
-            New-MeetupTask -Context $Context -Tags @{} |
-            Save-MeetupTask -TrelloList $list -TrelloTagsDict $tagDict
+        Get-ActionTemplate -Path $ActionsPath -Section $Section |
+        ForEach-Object {
+
+            $template = $_
+            $task = New-Object -TypeName $TypeName
+
+            Expand-Template -Task $task -TitleTemplate $template -Context $Context |
+            Save-Task -TrelloList $list -TrelloTagsDict $tagDict
+        }
     }
 }
+
+function New-Meetup
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [ValidateNotNullOrEmpty()]
+        [string]
+        $Key
+    )
+
+    process
+    {
+        $Context = @{
+            MeetupKey = $Key
+        }
+
+        New-Task -TypeName 'MeetupTask' -Section 'Meetup' -Context $Context
+    }
+}
+
+function New-Speaker
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [ValidateNotNullOrEmpty()]
+        [string]
+        $Name,
+
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string]
+        $MeetupKey
+    )
+
+    process
+    {
+        $Context = @{
+            MeetupKey = $MeetupKey
+            SpeakerName = $Name
+        }
+
+        New-Task -TypeName 'SpeakerTask' -Section 'Speaker' -Context $Context
+    }
+}
+
