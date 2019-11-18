@@ -36,12 +36,13 @@ Describe 'Repository verification' {
 
         function Get-AllSourceFile()
         {
-            Get-ChildItem -Path $root -Filter '*.ps1' -File -Recurse
+            Get-ChildItem -Path $root -Filter '*.ps1' -File -Recurse |
+            Where-Object { -not $_.FullName.Contains('Migrations') }
         }
 
         It 'Should pass script analysis' {
 
-            $diagnostic = Invoke-ScriptAnalyzer -Path $root -Recurse
+            $diagnostic = Get-AllSourceFile | Invoke-ScriptAnalyzer
             $diagnostic | Format-Table -AutoSize | Out-Host
             $diagnostic | Should BeNullOrEmpty
         }
