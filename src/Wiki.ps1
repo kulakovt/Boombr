@@ -683,7 +683,7 @@ function Invoke-ReCache()
 
 }
 
-function Sort-Community
+function Select-SortedCommunity
 {
     [CmdletBinding()]
     [OutputType([Community])]
@@ -740,7 +740,7 @@ function Invoke-BuildWiki()
     Write-Information "Load $($WikiRepository.Venues.Count) venues"
 
     # Export all
-    $WikiRepository.Communities.Values | Sort-Community | Export-Community
+    $WikiRepository.Communities.Values | Select-SortedCommunity | Export-Community
     $WikiRepository.Meetups.Values | Export-Meetup
     $WikiRepository.Friends.Values | Export-Friend -FriendDir (Join-Path $Config.AuditDir 'friends')
     $WikiRepository.Talks.Values | Export-Talk
