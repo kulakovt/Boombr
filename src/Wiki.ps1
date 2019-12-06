@@ -30,6 +30,15 @@ function Test-WikiEnvironment()
     }
 }
 
+function Export-Home([Community[]] $Communities)
+{
+    Write-Verbose "Export Home ($($Communities.Count))"
+
+    $path = Join-Path $WikiConfig.WikiDir "Home.md"
+    $content = Format-HomePage -Communities $Communities
+    $content | Set-Content -Path $path -Encoding UTF8
+}
+
 function Export-Community()
 {
     process
@@ -436,6 +445,27 @@ function Format-CommunityPage()
     }
 }
 
+function Format-HomePage([Community[]] $Communities)
+{
+    $sorted = $Communities | Select-SortedCommunity
+
+    '## Всероссийское .NET сообщество'
+    ''
+    'Все сведения о сообществах постепенно мигрируют на сайт [DotNet.Ru](http://DotNet.Ru/). Поэтому самую полную и актуальную информацию ищите там.'
+    'Здесь пока остались только энциклопедии.'
+
+    if ($sorted)
+    {
+        ''
+        '## Полные энциклопедии сообществ'
+        ''
+        $sorted |
+        ForEach-Object {
+            "- [[$($_.City)|$($_.Id)]]"
+        }
+    }
+}
+
 function Format-MeetupPage()
 {
     process
@@ -740,6 +770,7 @@ function Invoke-BuildWiki()
     Write-Information "Load $($WikiRepository.Venues.Count) venues"
 
     # Export all
+    Export-Home -Communities ($WikiRepository.Communities.Values)
     $WikiRepository.Communities.Values | Select-SortedCommunity | Export-Community
     $WikiRepository.Meetups.Values | Export-Meetup
     $WikiRepository.Friends.Values | Export-Friend -FriendDir (Join-Path $Config.AuditDir 'friends')
