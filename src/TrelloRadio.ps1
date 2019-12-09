@@ -63,12 +63,15 @@ function Format-ShowNoteHeader
 @"
 Подкаст RadioDotNet, выпуск №$EpisodeNumber
 
-https://soundcloud.com/radiodotnet/e$($EpisodeNumber.ToString("000"))
+https://anchor.fm/radiodotnet/episodes/RadioDotNet-$($EpisodeNumber.ToString("000")) <--------!!! Fix the link
+
+Сайт подкаста:
+http://Radio.DotNet.Ru
 
 RSS подписка на подкаст:
-http://feeds.soundcloud.com/users/soundcloud:users:635497434/sounds.rss
+https://anchor.fm/s/f0c0ef4/podcast/rss
 
-Полезные ссылки:
+Заметки к выпуску:
 
 "@
     }
@@ -130,4 +133,5 @@ function New-ShowNote
     }
 }
 
-'C:\Users\akulakov\Desktop\RadioDotNet\e002\Notes.txt' | New-ShowNote
+Get-TrelloConfiguration
+'C:\Users\akulakov\Desktop\RadioDotNet\e004\Notes.txt' | New-ShowNote
