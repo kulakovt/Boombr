@@ -74,6 +74,28 @@ function Select-Single($ElementNames = 'elements')
     }
 }
 
+function Select-Many
+{
+    [CmdletBinding()]
+    [OutputType([object[]])]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        $Collection
+    )
+
+    process
+    {
+        if ($Collection -is [System.Collections.IEnumerable])
+        {
+            $Collection.GetEnumerator()
+        }
+        else
+        {
+            $Collection
+        }
+    }
+}
+
 filter Out-Tee()
 {
     $_ | Out-Host
@@ -141,3 +163,26 @@ function ConvertTo-Hashtable
         $items
     }
 }
+
+function Format-UriQuery
+{
+    [CmdletBinding()]
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [ValidateNotNullOrEmpty()]
+        [Hashtable]
+        $Parts
+    )
+
+    process
+    {
+        $Parts |
+        Select-Many |
+        ForEach-Object {
+            "{0}={1}" -f $_.Key,[Uri]::EscapeDataString($_.Value)
+        } |
+        Join-ToString -Delimeter '&'
+    }
+}
+

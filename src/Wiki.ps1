@@ -1,6 +1,7 @@
 ﻿$WikiConfig = @{
     CacheDir = Resolve-FullPath $Config.ArtifactsDir 'cache'
     WikiDir = Resolve-FullPath $Config.RootDir '..\..\SpbDotNet.wiki'
+    DotNetRuChannelId = 'UCHFl23Ah_l4gEUTXYUStQdQ'
 }
 
 $WikiRepository = @{
@@ -678,6 +679,33 @@ $($speaker.Description)
     }
 }
 
+function Format-VideoRatingPage()
+{
+    '## Рейтинг «100 любимых» докладов по версии YouTube зрителей'
+    ''
+
+    $orderPlaylist = @{ Expression = {
+
+        if ($_.Title -match '(?<Year>\d{4})') { [int]$Matches['Year'] } else { $_.Title }
+
+    }; Descending = $true }
+
+    $WikiConfig.DotNetRuChannelId |
+    Get-YouTubePlaylist |
+    Sort-Object -Property $orderPlaylist |
+    # TODO: Split by Playlist
+    Get-YouTubePlaylistItem |
+    Group-ToStringBatch |
+    Get-YouTubeVideStatistic |
+    Sort-Object -Property LikeCount -Descending |
+    Select-Object -First 100
+    ForEach-Object {
+        $video = $_
+        # TODO: Resolve TalkId, format nice title, make link to wiki talk page
+        "1. [$($video.Title)](https://www.youtube.com/watch?v=$($video.Id)) (like = $($video.LikeCount), dislike = $($video.DislikeCount), view = $($video.ViewCount), comment =  $($video.CommentCount)"
+    }
+}
+
 function Invoke-ReCache()
 {
     Test-WikiEnvironment
@@ -776,6 +804,9 @@ function Invoke-BuildWiki()
     $WikiRepository.Friends.Values | Export-Friend -FriendDir (Join-Path $Config.AuditDir 'friends')
     $WikiRepository.Talks.Values | Export-Talk
     $WikiRepository.Speakers.Values | Export-Speaker -SpeakerDir (Join-Path $Config.AuditDir 'speakers')
+
+    # TODO:
+    # Format-VideoRatingPage
 
     $timer | Stop-TimeOperation
 }
