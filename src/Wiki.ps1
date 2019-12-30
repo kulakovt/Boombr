@@ -1,4 +1,6 @@
-﻿$WikiConfig = @{
+﻿. $PSScriptRoot\Wiki.YouTube.ps1
+
+$WikiConfig = @{
     CacheDir = Resolve-FullPath $Config.ArtifactsDir 'cache'
     WikiDir = Resolve-FullPath $Config.RootDir '..\..\SpbDotNet.wiki'
     DotNetRuChannelId = 'UCHFl23Ah_l4gEUTXYUStQdQ'
@@ -37,6 +39,15 @@ function Export-Home([Community[]] $Communities)
 
     $path = Join-Path $WikiConfig.WikiDir "Home.md"
     $content = Format-HomePage -Communities $Communities
+    $content | Set-Content -Path $path -Encoding UTF8
+}
+
+function Export-VideoRatingPage()
+{
+    Write-Verbose "Export Rating"
+
+    $path = Join-Path $WikiConfig.WikiDir "LikedVideos.md"
+    $content = Format-VideoRatingPage
     $content | Set-Content -Path $path -Encoding UTF8
 }
 
@@ -465,6 +476,11 @@ function Format-HomePage([Community[]] $Communities)
             "- [[$($_.City)|$($_.Id)]]"
         }
     }
+
+    ''
+    '## Рейтинги докладов'
+    ''
+    ' - [[Рейтинг любимых докладов по версии YouTube зрителей|LikedVideos]]'
 }
 
 function Format-MeetupPage()
@@ -681,7 +697,7 @@ $($speaker.Description)
 
 function Format-VideoRatingPage()
 {
-    '## Рейтинг «100 любимых» докладов по версии YouTube зрителей'
+    '# Рейтинг любимых докладов по версии YouTube зрителей'
     ''
 
     $orderPlaylist = @{ Expression = {
@@ -693,16 +709,23 @@ function Format-VideoRatingPage()
     $WikiConfig.DotNetRuChannelId |
     Get-YouTubePlaylist |
     Sort-Object -Property $orderPlaylist |
-    # TODO: Split by Playlist
-    Get-YouTubePlaylistItem |
-    Group-ToStringBatch |
-    Get-YouTubeVideStatistic |
-    Sort-Object -Property LikeCount -Descending |
-    Select-Object -First 100
     ForEach-Object {
-        $video = $_
-        # TODO: Resolve TalkId, format nice title, make link to wiki talk page
-        "1. [$($video.Title)](https://www.youtube.com/watch?v=$($video.Id)) (like = $($video.LikeCount), dislike = $($video.DislikeCount), view = $($video.ViewCount), comment =  $($video.CommentCount)"
+        $playlist = $_
+
+        "## $($playlist.Title)"
+        ''
+        $playlist |
+        Get-YouTubePlaylistItem |
+        Group-ToStringBatch |
+        Get-YouTubeVideoStatistic |
+        Sort-Object -Property LikeCount -Descending |
+        Select-Object -First 100 |
+        ForEach-Object {
+            $video = $_
+            # TODO: Resolve TalkId, format nice title, make link to wiki talk page
+            "1. [$($video.Title)](https://www.youtube.com/watch?v=$($video.Id)) (:+1: $($video.LikeCount)  :-1: $($video.DislikeCount)  :tv: $($video.ViewCount)  :pager: $($video.CommentCount))"
+        }
+        ''
     }
 }
 
@@ -805,8 +828,10 @@ function Invoke-BuildWiki()
     $WikiRepository.Talks.Values | Export-Talk
     $WikiRepository.Speakers.Values | Export-Speaker -SpeakerDir (Join-Path $Config.AuditDir 'speakers')
 
-    # TODO:
-    # Format-VideoRatingPage
+    if (-not $Config.IsOffline)
+    {
+        Export-VideoRatingPage
+    }
 
     $timer | Stop-TimeOperation
 }

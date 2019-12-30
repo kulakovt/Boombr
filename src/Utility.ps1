@@ -186,3 +186,37 @@ function Format-UriQuery
     }
 }
 
+function Get-Secret
+{
+    [CmdletBinding()]
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [ValidateNotNullOrEmpty()]
+        [string]
+        $Key
+    )
+
+    begin
+    {
+        $profileDir = Split-Path $profile
+        $secretFile = Join-Path $profileDir 'Secret.xml'
+
+        [xml] $storage = $null
+        if (Test-Path -Path $secretFile)
+        {
+            $storage = Get-Content -Path $secretFile
+        }
+        else
+        {
+            throw "Can't find file with secrets at: $secretFile"
+        }
+    }
+    process
+    {
+        Select-Xml -Xml $storage -XPath "//$Key" |
+        ForEach-Object { $_.node.InnerXML } |
+        Select-Single -ElementNames $Key
+    }
+}
+

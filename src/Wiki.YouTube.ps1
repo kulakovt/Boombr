@@ -31,6 +31,30 @@ function Group-ToStringBatch([int] $BatchSize = $VideoItemBatchSize, [string] $S
     }
 }
 
+function Invoke-YouTubeMethod
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [ValidateNotNullOrEmpty()]
+        [string]
+        $Resource,
+
+        [Hashtable]
+        $QueryParts = @{}
+    )
+
+    process
+    {
+        $QueryParts['key'] = 'YouTubeAccessToken' | Get-Secret
+        $query = $QueryParts | Format-UriQuery
+
+        $url = "${YouTubeApiEndpoint}/${Resource}?${query}"
+
+        Invoke-RestMethod $url
+    }
+}
+
 function Get-YouTubePlaylist
 {
     [CmdletBinding()]
@@ -48,12 +72,9 @@ function Get-YouTubePlaylist
             part = 'snippet'
             channelId = $ChannelId
             maxResults = $VideoItemBatchSize
-            key = $YouTubeApiKey
-        } |
-        Format-UriQuery
+        }
 
-        $url = "${YouTubeApiEndpoint}/playlists?${query}"
-        $responce = Invoke-RestMethod $url
+        $responce = 'playlists' | Invoke-YouTubeMethod -QueryParts $query
 
         $responce.items |
         ForEach-Object {
@@ -88,7 +109,6 @@ function Get-YouTubePlaylistItem
                 part = 'contentDetails'
                 playlistId = $Playlist.Id
                 maxResults = $VideoItemBatchSize
-                key = $YouTubeApiKey
             }
 
             if ($next)
@@ -96,8 +116,7 @@ function Get-YouTubePlaylistItem
                 $query['pageToken'] = $next
             }
 
-            $url = "${YouTubeApiEndpoint}/playlistItems?$($query | Format-UriQuery)"
-            $responce = Invoke-RestMethod $url
+            $responce = 'playlistItems' | Invoke-YouTubeMethod -QueryParts $query
 
             if ('nextPageToken' -in $responce.PSObject.Properties.Name)
             {
@@ -118,7 +137,7 @@ function Get-YouTubePlaylistItem
     }
 }
 
-function Get-YouTubeVideStatistic
+function Get-YouTubeVideoStatistic
 {
     [CmdletBinding()]
     [OutputType([PSCustomObject[]])]
@@ -128,31 +147,43 @@ function Get-YouTubeVideStatistic
         $VideoId
     )
 
+    begin
+    {
+        function ReadStatistic($value, [string] $Key)
+        {
+            if ($Key -in $value.statistics.PSObject.Properties.Name)
+            {
+                [int] $value.statistics.$Key
+            }
+            else
+            {
+                0
+            }
+        }
+    }
     process
     {
         $query = @{
             part = 'snippet,statistics'
             id = $VideoId
             maxResults = $VideoItemBatchSize
-            key = $YouTubeApiKey
-        } |
-        Format-UriQuery
+        }
 
-        $url = "${YouTubeApiEndpoint}/videos?${query}"
-        $responce = Invoke-RestMethod $url
+        $responce = 'videos' | Invoke-YouTubeMethod -QueryParts $query
 
         $responce.items |
         ForEach-Object {
             $video = $_
+
             [PSCustomObject] @{
                 PSTypeName = 'YouTubeVideo'
                 Id = $video.id
                 Title = $video.snippet.title
-                ViewCount = [int]$video.statistics.viewCount
-                LikeCount = [int]$video.statistics.likeCount
-                DislikeCount = [int]$video.statistics.dislikeCount
-                FavoriteCount = [int]$video.statistics.favoriteCount
-                CommentCount = [int]$video.statistics.commentCount
+                ViewCount = ReadStatistic $video 'viewCount'
+                LikeCount = ReadStatistic $video 'likeCount'
+                DislikeCount = ReadStatistic $video 'dislikeCount'
+                FavoriteCount = ReadStatistic $video 'favoriteCount'
+                CommentCount = ReadStatistic $video 'commentCount'
             }
         }
     }
