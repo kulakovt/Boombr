@@ -186,6 +186,32 @@ function Format-UriQuery
     }
 }
 
+function Join-Uri
+{
+    [CmdletBinding()]
+    [OutputType([Uri])]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [Uri]
+        $BaseUri,
+
+        [Parameter(Mandatory)]
+        [string]
+        $RelativeUri
+    )
+
+    $left = $BaseUri.ToString().TrimEnd('/')
+    $right = $RelativeUri.TrimStart('/')
+    $separator = '/'
+
+    if ($left.Contains('?') -or $right.StartsWith('?'))
+    {
+        $separator = ''
+    }
+
+    [Uri] "${left}${separator}${right}"
+}
+
 function Get-Secret
 {
     [CmdletBinding()]
