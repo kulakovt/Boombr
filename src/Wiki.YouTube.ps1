@@ -74,9 +74,9 @@ function Get-YouTubePlaylist
             maxResults = $VideoItemBatchSize
         }
 
-        $responce = 'playlists' | Invoke-YouTubeMethod -QueryParts $query
+        $response = 'playlists' | Invoke-YouTubeMethod -QueryParts $query
 
-        $responce.items |
+        $response.items |
         ForEach-Object {
             $palylist = $_
             [PSCustomObject] @{
@@ -116,18 +116,18 @@ function Get-YouTubePlaylistItem
                 $query['pageToken'] = $next
             }
 
-            $responce = 'playlistItems' | Invoke-YouTubeMethod -QueryParts $query
+            $response = 'playlistItems' | Invoke-YouTubeMethod -QueryParts $query
 
-            if ('nextPageToken' -in $responce.PSObject.Properties.Name)
+            if ('nextPageToken' -in $response.PSObject.Properties.Name)
             {
-                $next = $responce.nextPageToken
+                $next = $response.nextPageToken
             }
             else
             {
                 $next = $null
             }
 
-            $responce.items |
+            $response.items |
             ForEach-Object {
                 $palylistItem = $_
                 $palylistItem.contentDetails.videoId
@@ -169,9 +169,9 @@ function Get-YouTubeVideoStatistic
             maxResults = $VideoItemBatchSize
         }
 
-        $responce = 'videos' | Invoke-YouTubeMethod -QueryParts $query
+        $response = 'videos' | Invoke-YouTubeMethod -QueryParts $query
 
-        $responce.items |
+        $response.items |
         ForEach-Object {
             $video = $_
 
