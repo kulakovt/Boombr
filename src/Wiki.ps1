@@ -699,7 +699,8 @@ function Format-VideoRatingPage()
 {
     '# Рейтинг любимых докладов по версии YouTube зрителей'
     ''
-
+    "_Рейтинг актуален на $(Format-RuDate -Date (Get-Date))_"
+    ''
     $orderPlaylist = @{ Expression = {
 
         if ($_.Title -match '(?<Year>\d{4})') { [int]$Matches['Year'] } else { $_.Title }
