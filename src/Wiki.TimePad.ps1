@@ -2,6 +2,39 @@
 
 $TimePadApiEndpoint = 'https://api.timepad.ru/v1'
 
+function Invoke-TimePadMethod
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [ValidateNotNullOrEmpty()]
+        [string]
+        $Resource,
+
+        [Hashtable]
+        $QueryParts = @{}
+    )
+
+    process
+    {
+        $token = 'TimePadToken' | Get-Secret
+        $headers = @{
+            Authorization = "Bearer ${token}"
+        }
+
+        $resourceWithQuery = $Resource
+        $query = $QueryParts | Format-UriQuery
+        if ($query)
+        {
+            $resourceWithQuery += "?${query}"
+        }
+
+        $url = $TimePadApiEndpoint | Join-Uri -RelativeUri $resourceWithQuery
+
+        Invoke-RestMethod $url -Headers $headers -Proxy 'http://10.161.80.50:8081'
+    }
+}
+
 function Get-TimePadOrganizationId
 {
     [CmdletBinding()]
@@ -30,7 +63,7 @@ function Get-TimePadOrganizationId
     }
 }
 
-function Get-TimePadEvent
+function Get-TimePadOrganizationEvent
 {
     [CmdletBinding()]
     [OutputType([PSCustomObject[]])]
@@ -50,23 +83,94 @@ function Get-TimePadEvent
             access_statuses = 'public'
             # Events of the current year
             starts_at_min = [DateTime]::new([DateTime]::UtcNow.Year, 1, 1).ToString("s")
-        } |
-        Format-UriQuery
+        }
 
-        $eventUrl = $TimePadApiEndpoint | Join-Uri -RelativeUri "events"
-
-        $response = Invoke-RestMethod -Uri "${eventUrl}?${query}"
+        $response = 'events' | Invoke-TimePadMethod -QueryParts $query
 
         $response.values |
         ForEach-Object {
             $event = $_
 
             [PSCustomObject] @{
-                PSTypeName = 'TimePadEvent'
-                Id = $event.id
+                PSTypeName = 'TimePadOrganizationEvent'
+                Id = [int]$event.id
                 Name = $event.name
                 OrganizationId = $OrganizationId
                 StartsAt = [DateTime]::Parse($event.starts_at)
+            }
+        }
+    }
+}
+
+function Get-TimePadQuestionMap
+{
+    [CmdletBinding()]
+    [OutputType([Hashtable])]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [PSCustomObject]
+        $FormalQuestion
+    )
+
+    begin
+    {
+        $map = @{}
+    }
+    process
+    {
+        if ($FormalQuestion.type -eq 'text')
+        {
+            $name = switch -Exact ($FormalQuestion.name)
+            {
+                'E-mail'   { 'Email' }
+                'Имя'      { 'Name'}
+                'Фамилия'  { 'Surname' }
+                'Компания' { 'Company' }
+                'Должность' { 'Position' }
+                default { throw "Can't map question $($FormalQuestion.name)" }
+            }
+
+            $map[$name] = $FormalQuestion.field_id
+        }
+
+    }
+    end
+    {
+        $map
+    }
+}
+
+function Get-TimePadEvent
+{
+    [CmdletBinding()]
+    [OutputType([PSCustomObject[]])]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [ValidateNotNullOrEmpty()]
+        [int]
+        $EventId
+    )
+
+    process
+    {
+        $response = "events/${EventId}" | Invoke-TimePadMethod
+
+        $response |
+        ForEach-Object {
+            $event = $_
+
+            [PSCustomObject] @{
+                PSTypeName = 'TimePadEvent'
+                Id = [int]$event.id
+                Name = $event.name
+                OrganizationId = $event.organization.id
+                CreatedAt = [DateTime]::Parse($event.created_at)
+                StartsAt = [DateTime]::Parse($event.starts_at)
+                EndsAt = [DateTime]::Parse($event.ends_at)
+                Url = [Uri]$event.url
+                TicketsTotal = [int]$event.registration_data.tickets_total
+                TicketsLimit = [int]$event.tickets_limit
+                Questions = $event.questions | Get-TimePadQuestionMap
             }
         }
     }

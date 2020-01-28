@@ -170,7 +170,6 @@ function Format-UriQuery
     [OutputType([string])]
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
-        [ValidateNotNullOrEmpty()]
         [Hashtable]
         $Parts
     )
