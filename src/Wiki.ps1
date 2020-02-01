@@ -703,29 +703,57 @@ function Format-VideoRatingPage()
     ''
     $orderPlaylist = @{ Expression = {
 
-        if ($_.Title -match '(?<Year>\d{4})') { [int]$Matches['Year'] } else { $_.Title }
+        if ($_.Name -match '(?<Year>\d{4})') { [int]$Matches['Year'] } else { 255 }
 
     }; Descending = $true }
 
-    $WikiConfig.DotNetRuChannelId |
-    Get-YouTubePlaylist |
-    Sort-Object -Property $orderPlaylist |
-    ForEach-Object {
-        $playlist = $_
-
-        "## $($playlist.Title)"
-        ''
-        $playlist |
-        Get-YouTubePlaylistItem |
-        Group-ToStringBatch |
-        Get-YouTubeVideoStatistic |
-        Sort-Object -Property LikeCount -Descending |
-        Select-Object -First 100 |
-        ForEach-Object {
+    function Format-VideoLine()
+    {
+        process
+        {
             $video = $_
             # TODO: Resolve TalkId, format nice title, make link to wiki talk page
             "1. [$($video.Title)](https://www.youtube.com/watch?v=$($video.Id)) (:+1: $($video.LikeCount)  :-1: $($video.DislikeCount)  :tv: $($video.ViewCount)  :pager: $($video.CommentCount))"
         }
+    }
+
+    $videos = @{}
+    $WikiConfig.DotNetRuChannelId |
+    Get-YouTubePlaylist |
+    ForEach-Object {
+        $playlist = $_
+
+        $playlistVideos =
+            $playlist |
+            Get-YouTubePlaylistItem |
+            Group-ToStringBatch |
+            Get-YouTubeVideoStatistic
+
+        $videos[$playlist.Title] = $playlistVideos
+    }
+
+    '## За всё время'
+    ''
+    $videos.Values |
+    Select-Many |
+    Sort-Object -Property LikeCount -Descending |
+    Select-Object -First 10 |
+    Format-VideoLine
+    ''
+
+    $videos |
+    Select-Many |
+    Sort-Object -Property $orderPlaylist |
+    ForEach-Object {
+        $playlistTitle = $_.Name
+        $playlistVideos = $_.Value
+
+        "## $($playlistTitle)"
+        ''
+        $playlistVideos |
+        Sort-Object -Property LikeCount -Descending |
+        Select-Object -First 100 |
+        Format-VideoLine
         ''
     }
 }
