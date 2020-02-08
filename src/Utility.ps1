@@ -245,3 +245,28 @@ function Get-Secret
     }
 }
 
+function Format-Declension
+{
+    [CmdletBinding()]
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [ValidateNotNullOrEmpty()]
+        [int]
+        $Number,
+        [string]
+        $Nominativ = 'штука',
+        [string]
+        $Genetiv = 'штуки',
+        [string]
+        $Plural = 'штук'
+    )
+
+    process
+    {
+        $text = $Plural
+        if ($Number % 10 -eq 1) { $text = $Nominativ }
+        if (($Number % 10 -ge 2) -and ($Number % 10 -le 4)) { $text = $Genetiv }
+        "$Number $text"
+    }
+}

@@ -717,6 +717,17 @@ function Format-VideoRatingPage()
         }
     }
 
+    function Format-VideoSummary($Videos)
+    {
+        $duration = $Videos |
+            Select-Object -ExpandProperty 'Duration' |
+            ForEach-Object -Begin { $acc = [timespan]::Zero } -Process { $acc += $_ } -End { $acc }
+
+        $countText = $Videos.Length | Format-Declension -Nominativ 'запись' -Genetiv 'записи' -Plural 'записей'
+        $durationText = [int]$duration.TotalHours | Format-Declension -Nominativ 'час' -Genetiv 'часа' -Plural 'часов'
+        "_Всего ${countText}, общая продолжительсть ${durationText}_"
+    }
+
     $videos = @{}
     $WikiConfig.DotNetRuChannelId |
     Get-YouTubePlaylist |
@@ -727,12 +738,14 @@ function Format-VideoRatingPage()
             $playlist |
             Get-YouTubePlaylistItem |
             Group-ToStringBatch |
-            Get-YouTubeVideoStatistic
+            Get-YouTubeVideo
 
         $videos[$playlist.Title] = $playlistVideos
     }
 
     '## За всё время'
+    ''
+    Format-VideoSummary -Videos ($videos.Values | Select-Many)
     ''
     $videos.Values |
     Select-Many |
@@ -750,9 +763,10 @@ function Format-VideoRatingPage()
 
         "## $($playlistTitle)"
         ''
+        Format-VideoSummary -Videos $playlistVideos
+        ''
         $playlistVideos |
         Sort-Object -Property LikeCount -Descending |
-        Select-Object -First 100 |
         Format-VideoLine
         ''
     }

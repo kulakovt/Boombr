@@ -137,7 +137,7 @@ function Get-YouTubePlaylistItem
     }
 }
 
-function Get-YouTubeVideoStatistic
+function Get-YouTubeVideo
 {
     [CmdletBinding()]
     [OutputType([PSCustomObject[]])]
@@ -164,7 +164,7 @@ function Get-YouTubeVideoStatistic
     process
     {
         $query = @{
-            part = 'snippet,statistics'
+            part = 'snippet,statistics,contentDetails'
             id = $VideoId
             maxResults = $VideoItemBatchSize
         }
@@ -179,6 +179,7 @@ function Get-YouTubeVideoStatistic
                 PSTypeName = 'YouTubeVideo'
                 Id = $video.id
                 Title = $video.snippet.title
+                Duration = [Xml.XmlConvert]::ToTimeSpan($video.contentDetails.duration)
                 ViewCount = ReadStatistic $video 'viewCount'
                 LikeCount = ReadStatistic $video 'likeCount'
                 DislikeCount = ReadStatistic $video 'dislikeCount'
