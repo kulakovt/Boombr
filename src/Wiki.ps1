@@ -719,13 +719,23 @@ function Format-VideoRatingPage()
 
     function Format-VideoSummary($Videos)
     {
-        $duration = $Videos |
-            Select-Object -ExpandProperty 'Duration' |
-            ForEach-Object -Begin { $acc = [timespan]::Zero } -Process { $acc += $_ } -End { $acc }
+        $duration = [TimeSpan]::Zero
+        $viewCount = 0
+        $likeCount = 0
+        $Videos |
+        ForEach-Object {
+            $video = $_
+            $duration += $video.Duration
+            $viewCount += $video.ViewCount
+            $LikeCount += $video.LikeCount
+        }
 
         $countText = $Videos.Length | Format-Declension -Nominativ 'запись' -Genetiv 'записи' -Plural 'записей'
         $durationText = [int]$duration.TotalHours | Format-Declension -Nominativ 'час' -Genetiv 'часа' -Plural 'часов'
-        "_Всего ${countText}, общая продолжительсть ${durationText}_"
+        $viewText = $viewCount | Format-Declension -Nominativ 'просмотр' -Genetiv 'просмотра' -Plural 'просмотров'
+        $likeText = $likeCount | Format-Declension -Nominativ 'лайк' -Genetiv 'лайка' -Plural 'лайков'
+
+        "_Всего ${countText}, общая продолжительность ${durationText}_, $viewText, $likeText"
     }
 
     $videos = @{}

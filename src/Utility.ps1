@@ -267,6 +267,6 @@ function Format-Declension
         $text = $Plural
         if ($Number % 10 -eq 1) { $text = $Nominativ }
         if (($Number % 10 -ge 2) -and ($Number % 10 -le 4)) { $text = $Genetiv }
-        "$Number $text"
+        '{0:N0} {1}' -f $Number,$text
     }
 }
