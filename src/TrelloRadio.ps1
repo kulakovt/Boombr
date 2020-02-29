@@ -5,7 +5,9 @@ Set-StrictMode -version Latest
 $ErrorActionPreference = 'Stop'
 
 . $PSScriptRoot\Utility.ps1
+. $PSScriptRoot\YamlCuteSerialization.ps1
 
+$PodcastName = 'RadioDotNet'
 $TrelloBoardName = 'RadioDotNet'
 $TrelloNewCardListName = 'Обсудили-'
 
@@ -91,14 +93,101 @@ function Select-EpisodeNumber
     {
         if ($ListName -match '\w+-(?<number>\d+)')
         {
-            return $Matches['number']
+            return [int]$Matches['number']
         }
 
         throw "Can't extract episode number from «$ListName»"
     }
 }
 
-function New-ShowNote
+function Format-PodcastHeader
+{
+    [CmdletBinding()]
+    #[OutputType([ordered])]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [ValidateNotNullOrEmpty()]
+        [int] $EpisodeNumber
+    )
+
+    process
+    {
+        [ordered]@{
+            Number = $EpisodeNumber
+            Title = "${PodcastName} №${EpisodeNumber}"
+            PublishDate = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ', [Globalization.CultureInfo]::InvariantCulture)
+            Authors = @('Анатолий Кулаков', 'Игорь Лабутин')
+            Mastering = 'Максим Шошин'
+            # TODO: Update from RSS
+            # PublishDate
+            # Home: https://anchor.fm/radiodotnet/episodes/RadioDotNet-005-eatsfn
+            # Audio: https://anchor.fm/s/f0c0ef4/podcast/play/10465207/https%3A%2F%2Fd3ctxlq1ktw2nl.cloudfront.net%2Fproduction%2F2020-1-18%2F50774460-44100-2-9ba7f03739b75.mp3
+        }
+    }
+}
+
+function Format-PodcastTopic
+{
+    [CmdletBinding()]
+    #[OutputType([ordered])]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [ValidateNotNullOrEmpty()]
+        [object] $Card
+    )
+
+    begin
+    {
+        $topicCount = 0
+        $linkCount = 0
+    }
+    process
+    {
+        $subject = $Card.name.Trim()
+        Write-Information "- $subject"
+
+        [string[]] $links = $Card.desc -split "`n" |
+            ForEach-Object { $_.Trim() } |
+            Where-Object { $_ -match '^https?://' }
+
+        [ordered]@{
+            Subject = $subject
+            Links = $links
+        }
+
+        $topicCount++
+        $linkCount += $links.Count
+    }
+    end
+    {
+        Write-Information "Found: $topicCount topics, $linkCount links"
+    }
+}
+
+function ConvertTo-PodcastMarkDowm
+{
+    [CmdletBinding()]
+    [OutputType([string])]
+    param (
+        [Parameter(ValueFromPipeline)]
+        [string] $Yaml
+    )
+
+    begin
+    {
+        '---'
+    }
+    process
+    {
+        $Yaml
+    }
+    end
+    {
+        '---'
+    }
+}
+
+function New-PodcastNote
 {
     [CmdletBinding()]
     param (
@@ -109,7 +198,7 @@ function New-ShowNote
 
     process
     {
-        $timer = Start-TimeOperation -Name 'Resolve show notes'
+        $timer = Start-TimeOperation -Name 'Format podcast show notes'
 
         $board = Get-TrelloBoard -Name $TrelloBoardName
         if (-not $board) { throw "Trello board «$TrelloBoardName» not found" }
@@ -117,21 +206,29 @@ function New-ShowNote
         $list = $board | Get-TrelloList | Where-Object { $_.name.StartsWith($TrelloNewCardListName) }
         if (-not $list) { throw "Trello list «$TrelloNewCardListName» in board «$TrelloBoardName» not found" }
 
-        Write-Information "Scan «$($list.name)» list in «$($board.name)» board"
+        $episodeNumber = $list.name | Select-EpisodeNumber
+        $filePath = Join-Path -Path $Path ('e{0:D3}.md' -f $episodeNumber)
 
-        $list.name |
-            Select-EpisodeNumber |
-            Format-ShowNoteHeader |
-            Set-Content -Path $Path -Encoding UTF8
+        if (Test-Path -Path $filePath)
+        {
+            Write-Warning "Episode notes already exists at $filePath"
+            return
+        }
 
-        $board |
-            Get-TrelloCard -List $list |
-            Format-CardShowNote |
-            Add-Content -Path $Path -Encoding UTF8
+        Write-Information "Scan «$($list.name)» list in «$($board.name)» board for episode №$episodeNumber"
+
+        $podcast = $episodeNumber | Format-PodcastHeader
+        $podcast['Topics'] = $board |
+             Get-TrelloCard -List $list |
+             Format-PodcastTopic
+
+        ConvertTo-CuteYaml -Data $podcast |
+        ConvertTo-PodcastMarkDowm |
+        Set-Content -Path $filePath -Encoding UTF8
 
         $timer | Stop-TimeOperation
     }
 }
 
-Get-TrelloConfiguration
-'C:\Users\akulakov\Desktop\RadioDotNet\e004\Notes.txt' | New-ShowNote
+Get-TrelloConfiguration | Out-Null
+Join-Path $PSScriptRoot '..\..\Site\input\Radio' -Resolve | New-PodcastNote
