@@ -13,72 +13,6 @@ $TrelloNewCardListName = 'Обсудили-'
 
 $InformationPreference = 'Continue'
 
-function Format-CardShowNote
-{
-    [CmdletBinding()]
-    [OutputType([String])]
-    param (
-        [Parameter(Mandatory, ValueFromPipeline)]
-        [ValidateNotNullOrEmpty()]
-        [object] $Card
-    )
-
-    begin
-    {
-        $topicCount = 0
-        $linkCount = 0
-    }
-    process
-    {
-        Write-Information "- $($Card.name)"
-
-        $desc = $Card.desc -replace "`n","`r`n"
-@"
-$($Card.name)
-$desc
-
-"@
-
-        $topicCount++
-        $linkCount += ($desc -split 'https?://').Count - 1
-    }
-    end
-    {
-        Write-Information "Found: $topicCount topics, $linkCount links"
-    }
-}
-
-function Format-ShowNoteHeader
-{
-    [CmdletBinding()]
-    [OutputType([String])]
-    param (
-        [Parameter(Mandatory, ValueFromPipeline)]
-        [ValidateNotNullOrEmpty()]
-        [int] $EpisodeNumber
-    )
-
-    process
-    {
-        Write-Information "Format header for episode №«$EpisodeNumber"
-
-@"
-Подкаст RadioDotNet, выпуск №$EpisodeNumber
-
-https://anchor.fm/radiodotnet/episodes/RadioDotNet-$($EpisodeNumber.ToString("000")) <--------!!! Fix the link
-
-Сайт подкаста:
-http://Radio.DotNet.Ru
-
-RSS подписка на подкаст:
-https://anchor.fm/s/f0c0ef4/podcast/rss
-
-Заметки к выпуску:
-
-"@
-    }
-}
-
 function Select-EpisodeNumber
 {
     [CmdletBinding()]
@@ -187,6 +121,56 @@ function ConvertTo-PodcastMarkDowm
     }
 }
 
+function Format-PodcastAnnouncement
+{
+    [CmdletBinding()]
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        $Podcast
+    )
+
+    process
+    {
+        "Подкаст $PodcastName, выпуск №$($Podcast['Number'])"
+        ''
+        if ($Podcast.Contains('Home'))
+        {
+            $podcast['Home']
+        }
+        else
+        {
+            'https://anchor.fm/radiodotnet/episodes/RadioDotNet-000 <--------!!! Fix the link'
+        }
+        ''
+        if ($Podcast.Contains('Description'))
+        {
+            $Podcast['Description']
+            ''
+        }
+@"
+Сайт подкаста:
+http://Radio.DotNet.Ru
+
+RSS подписка на подкаст:
+https://anchor.fm/s/f0c0ef4/podcast/rss
+
+Заметки к выпуску:
+
+"@
+        $Podcast['Topics'] |
+        ForEach-Object {
+
+            $topic = $_
+            $topic['Subject']
+            $topic['Links'] |
+            ForEach-Object { "- $_" }
+            ''
+        }
+    }
+}
+
 function New-PodcastNote
 {
     [CmdletBinding()]
@@ -198,7 +182,7 @@ function New-PodcastNote
 
     process
     {
-        $timer = Start-TimeOperation -Name 'Format podcast show notes'
+        $timer = Start-TimeOperation -Name 'Create podcast show notes'
 
         $board = Get-TrelloBoard -Name $TrelloBoardName
         if (-not $board) { throw "Trello board «$TrelloBoardName» not found" }
@@ -225,6 +209,9 @@ function New-PodcastNote
         ConvertTo-CuteYaml -Data $podcast |
         ConvertTo-PodcastMarkDowm |
         Set-Content -Path $filePath -Encoding UTF8
+
+        Format-PodcastAnnouncement -Podcast $podcast |
+        Set-Content -Path ([IO.Path]::ChangeExtension($filePath, 'txt')) -Encoding UTF8
 
         $timer | Stop-TimeOperation
     }
