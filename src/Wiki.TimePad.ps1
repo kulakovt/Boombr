@@ -31,7 +31,7 @@ function Invoke-TimePadMethod
 
         $url = $TimePadApiEndpoint | Join-Uri -RelativeUri $resourceWithQuery
 
-        Invoke-RestMethod $url -Headers $headers -Proxy 'http://10.161.80.50:8081'
+        Invoke-RestMethod $url -Headers $headers
     }
 }
 
@@ -171,6 +171,69 @@ function Get-TimePadEvent
                 TicketsTotal = [int]$event.registration_data.tickets_total
                 TicketsLimit = [int]$event.tickets_limit
                 Questions = $event.questions | Get-TimePadQuestionMap
+            }
+        }
+    }
+}
+
+function Get-TimePadOrder
+{
+    [CmdletBinding()]
+    [OutputType([PSCustomObject[]])]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [ValidateNotNullOrEmpty()]
+        [int]
+        $EventId,
+
+        [PSTypeName('TimePadEvent')]
+        $Event = $null
+    )
+
+    begin
+    {
+        function ReadAnswer([PSCustomObject] $Answers, [Hashtable] $Map, [string] $Key)
+        {
+            $fieldName = $Map[$Key]
+
+            if ($fieldName -in $Answers.PSObject.Properties.Name)
+            {
+                $Answers.$fieldName
+            }
+            else
+            {
+                $Answers | Out-Host
+                $Map | Out-Host
+                throw "Can't map answer $Key"
+            }
+        }
+    }
+    process
+    {
+        if (-not $Event)
+        {
+            $Event = $EventId | Get-TimePadEvent
+        }
+
+        $query = @{
+            # TODO: Query all
+            limit = 3
+        }
+
+        $response = "events/${EventId}/orders" | Invoke-TimePadMethod -QueryParts $query
+
+        $response.values |
+        ForEach-Object {
+            $order = $_
+
+            [PSCustomObject] @{
+                PSTypeName = 'TimePadOrder'
+                Name = ReadAnswer -Answers $order.answers -Map $Event.Questions -Key 'Name'
+                Surname = ReadAnswer -Answers $order.answers -Map $Event.Questions -Key 'Surname'
+                Mail = $order.mail
+                CreatedAt = [DateTime]::Parse($order.created_at)
+                Company = ReadAnswer -Answers $order.answers -Map $Event.Questions -Key 'Company'
+                Position = ReadAnswer -Answers $order.answers -Map $Event.Questions -Key 'Position'
             }
         }
     }
