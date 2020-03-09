@@ -37,10 +37,15 @@ function ConvertTo-CuteYamlDictionary
     param (
         [Parameter(Mandatory)]
         [ValidateNotNull()]
-        $Data
+        $Data,
+
+        [Parameter(Mandatory)]
+        [ValidateNotNull()]
+        [scriptblock]
+        $KeyOrderer
     )
 
-    foreach ($key in $Data.Keys)
+    foreach ($key in $Data.Keys | Sort-Object -Property @{ Expression = $KeyOrderer; Descending = $false })
     {
         $value = $Data[$key]
         if (-not $value)
@@ -50,7 +55,7 @@ function ConvertTo-CuteYamlDictionary
 
         $valueType = $value.GetType()
         $isSimpleType = $valueType.IsValueType -or ($valueType -eq [string])
-        $lines = ConvertTo-CuteYaml -Data $value
+        $lines = ConvertTo-CuteYaml -Data $value -KeyOrderer $KeyOrderer
 
         if ($isSimpleType)
         {
@@ -71,13 +76,18 @@ function ConvertTo-CuteYamlList
     param (
         [Parameter(Mandatory)]
         [ValidateNotNull()]
-        $Data
+        $Data,
+
+        [Parameter(Mandatory)]
+        [ValidateNotNull()]
+        [scriptblock]
+        $KeyOrderer
     )
 
     $hasPrevComplex = $false
     foreach ($item in $Data)
     {
-        [array] $lines = ConvertTo-CuteYaml -Data $item
+        [array] $lines = ConvertTo-CuteYaml -Data $item -KeyOrderer $KeyOrderer
         $isComplex = $lines.Length -gt 1
 
         if (-not $hasPrevComplex -and $isComplex)
@@ -112,7 +122,11 @@ function ConvertTo-CuteYaml
     param (
         [Parameter(Mandatory)]
         [ValidateNotNull()]
-        $Data
+        $Data,
+
+        [Parameter()]
+        [scriptblock]
+        $KeyOrderer = { $_ }
     )
 
     if (-not $Data)
@@ -128,11 +142,11 @@ function ConvertTo-CuteYaml
     }
     elseif ($dataType.IsArray)
     {
-        ConvertTo-CuteYamlList -Data $Data
+        ConvertTo-CuteYamlList -Data $Data -KeyOrderer $KeyOrderer
     }
     elseif ([System.Collections.IDictionary].IsAssignableFrom($dataType))
     {
-        ConvertTo-CuteYamlDictionary -Data $Data
+        ConvertTo-CuteYamlDictionary -Data $Data -KeyOrderer $KeyOrderer
     }
     else
     {
