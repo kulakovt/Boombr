@@ -138,15 +138,22 @@ function ConvertTo-CuteYaml
 
     if ($dataType.IsValueType -or ($dataType -eq [string]))
     {
-        "$Data"
-    }
-    elseif ($dataType.IsArray)
-    {
-        ConvertTo-CuteYamlList -Data $Data -KeyOrderer $KeyOrderer
+        if ($dataType -eq [DateTime])
+        {
+            $Data.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ', [Globalization.CultureInfo]::InvariantCulture)
+        }
+        else
+        {
+            "$Data"
+        }
     }
     elseif ([System.Collections.IDictionary].IsAssignableFrom($dataType))
     {
         ConvertTo-CuteYamlDictionary -Data $Data -KeyOrderer $KeyOrderer
+    }
+    elseif ([System.Collections.IEnumerable].IsAssignableFrom($dataType))
+    {
+        ConvertTo-CuteYamlList -Data $Data -KeyOrderer $KeyOrderer
     }
     else
     {
