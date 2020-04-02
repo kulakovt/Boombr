@@ -270,3 +270,22 @@ function Format-Declension
         '{0:N0} {1}' -f $Number,$text
     }
 }
+
+function ConvertTo-LocalTime
+{
+    [CmdletBinding()]
+    [OutputType([DateTime])]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [ValidateNotNullOrEmpty()]
+        [DateTime]
+        $Date
+    )
+
+    process
+    {
+        $utcTime = $Date.ToUniversalTime()
+        $mskTimeZone = [TimeZoneInfo]::FindSystemTimeZoneById("Russian Standard Time")
+        [TimeZoneInfo]::ConvertTimeFromUtc($utcTime, $mskTimeZone)
+    }
+}
