@@ -7,9 +7,6 @@ $ErrorActionPreference = 'Stop'
 . $PSScriptRoot\Utility.ps1
 . $PSScriptRoot\YamlCuteSerialization.ps1
 
-$SiteUrl = 'http://Radio.DotNet.Ru'
-$RssUrl = 'https://anchor.fm/s/f0c0ef4/podcast/rss'
-$PodcastName = 'RadioDotNet'
 $TrelloBoardName = 'RadioDotNet'
 $TrelloNewCardListName = 'Обсудили-'
 
@@ -52,7 +49,7 @@ function Format-PodcastHeader
     {
         @{
             Number = $EpisodeNumber
-            Title = "${PodcastName} №${EpisodeNumber}"
+            Title = "$([PodcastAnnouncement]::PodcastName) №${EpisodeNumber}"
             Authors = @('Анатолий Кулаков', 'Игорь Лабутин')
             Mastering = 'Максим Шошин'
         }
@@ -76,7 +73,6 @@ function Format-PodcastTopic
     }
     process
     {
-        # TODO: Import Timestamps
         $subject = $Card.name.Trim()
         Write-Information "- $subject"
 
@@ -86,6 +82,8 @@ function Format-PodcastTopic
 
         @{
             Subject = $subject
+            # TODO: Import Timestamps
+            Timestamp = '00:00:00'
             Links = $links
         }
 
@@ -175,7 +173,197 @@ function ConvertTo-PodcastMarkDowm
     }
 }
 
-function Format-PodcastAnnouncement
+function ConvertFrom-PodcastMarkDowm
+{
+    [CmdletBinding()]
+    [OutputType([Hashtable])]
+    param (
+        [Parameter(ValueFromPipeline)]
+        [string]
+        $Line
+    )
+
+    begin
+    {
+        $yaml = ''
+        $frontMatter = $false
+        $frontMatterSplitter = '---'
+        $markdown = ''
+        $nl = [System.Environment]::NewLine
+    }
+    process
+    {
+        if ($frontMatter)
+        {
+            if ($Line -eq $frontMatterSplitter)
+            {
+                $frontMatter = $false
+            }
+            else
+            {
+                $yaml += $Line + $nl
+            }
+        }
+        else
+        {
+            if ($Line -eq $frontMatterSplitter)
+            {
+                $frontMatter = $true
+            }
+            else
+            {
+                $markdown += $Line + $nl
+            }
+        }
+    }
+    end
+    {
+        $podcast = $yaml | ConvertFrom-Yaml
+        $markdown = $markdown.Trim()
+        if ($markdown)
+        {
+            $podcast['Description'] = $markdown
+        }
+
+        $podcast
+    }
+}
+
+class PodcastAnnouncement
+{
+    static [string] $PodcastName = 'RadioDotNet'
+    static [string] $SiteUrl = 'http://Radio.DotNet.Ru'
+    static [string] $RssUrl = 'https://anchor.fm/s/f0c0ef4/podcast/rss'
+
+    [hashtable] $Podcast
+    [Text.StringBuilder] $Report
+
+    PodcastAnnouncement([hashtable] $Podcast)
+    {
+        $this.Report = New-Object -TypeName 'System.Text.StringBuilder'
+        $this.Podcast = $Podcast
+    }
+
+    [String] ToString()
+    {
+        return $this.Report.ToString()
+    }
+
+    Append()
+    {
+        $this.Append('')
+    }
+
+    Append([string] $line = '')
+    {
+        $this.Line($line) | Out-Null
+    }
+
+    [PodcastAnnouncement] Line()
+    {
+        return $this.Line('')
+    }
+
+    [PodcastAnnouncement] Line([string] $line)
+    {
+        $this.Report.AppendLine($line)
+        return $this
+    }
+
+    [PodcastAnnouncement] Slogan()
+    {
+        return $this.Line('Разговоры на тему .NET во всех его проявлениях, новости, статьи, библиотеки, конференции, личности и прочее интересное из мира IT.')
+    }
+
+    [PodcastAnnouncement] Description()
+    {
+        if ($this.Podcast.Contains('Description'))
+        {
+            Append($this.Podcast['Description']).Line()
+        }
+
+        return $this
+    }
+
+    [PodcastAnnouncement] Home()
+    {
+        if ($this.Podcast.Contains('Home'))
+        {
+            Append($this.Podcast['Home']).Line()
+        }
+
+        return $this
+    }
+
+    [PodcastAnnouncement] Audio()
+    {
+        return $this.Line("Аудиоверсия: $($this.Podcast['Audio'])")
+    }
+
+    [PodcastAnnouncement] Rss()
+    {
+        return $this.Line("RSS подписка на подкаст: $($this::RssUrl)")
+    }
+
+    [PodcastAnnouncement] VideoPlayList()
+    {
+        # TODO: Line video playlist link
+        return $this.Line("Все видео выпуски: <TODO>")
+    }
+
+    [PodcastAnnouncement] Site()
+    {
+        return $this.Line("Сайт подкаста: $($this::SiteUrl)")
+    }
+
+    [PodcastAnnouncement] Tags()
+    {
+        return $this.Line('#Podcast #DotNet')
+    }
+
+    [PodcastAnnouncement] Identity()
+    {
+        $localPubDate = $this.Podcast['PublishDate'] | ConvertTo-LocalTime
+        $textPubDate = $localPubDate.ToString('d MMMM yyyy года', [System.Globalization.CultureInfo]::GetCultureInfo('ru-RU'))
+        return $this.Line("Подкаст $($this::PodcastName), выпуск №$($this.Podcast['Number']) от $textPubDate")
+    }
+
+    [PodcastAnnouncement] Authors()
+    {
+        $this.Append('Ведущие:')
+        foreach ($author in $this.Podcast['Authors'])
+        {
+            # TODO: Add Twitters
+            $this.Append("• $author")
+        }
+        return $this
+    }
+
+    [PodcastAnnouncement] Mastering()
+    {
+        # TODO: Get Approval
+        return $this.
+            Line('Звукорежиссёр:').
+            Line("• $($this.Podcast['Mastering'])")
+    }
+
+    [PodcastAnnouncement] Topics()
+    {
+        $this.Line('Темы:').Append()
+        foreach ($topic in $this.Podcast['Topics'])
+        {
+            $this.Append("[$($topic.Timestamp)] — $($topic.Subject)")
+            foreach ($link in $topic.Links)
+            {
+                $this.Append("• $link")
+            }
+            $this.Append()
+        }
+        return $this
+    }
+}
+
+function Format-YouTubeAnnouncement
 {
     [CmdletBinding()]
     [OutputType([string])]
@@ -188,47 +376,23 @@ function Format-PodcastAnnouncement
 
     process
     {
-        "Подкаст $PodcastName, выпуск №$($Podcast['Number'])"
-        ''
-        if ($Podcast.Contains('Home'))
-        {
-            $podcast['Home']
-            ''
-        }
-        if ($Podcast.Contains('Description'))
-        {
-            $Podcast['Description']
-            ''
-        }
-@"
-Сайт подкаста:
-$SiteUrl
-
-RSS подписка на подкаст:
-$RssUrl
-
-Заметки к выпуску:
-
-"@
-        $Podcast['Topics'] |
-        ForEach-Object {
-
-            $topic = $_
-
-            $timestamp = $topic['Timestamp']
-            if ($timestamp)
-            {
-                '[{0}] {1}' -f $timestamp,$topic['Subject']
-            }
-            else
-            {
-                $topic['Subject']
-            }
-
-            $topic['Links'] |
-            ForEach-Object { "- $_" }
-            ''
-        }
+        [PodcastAnnouncement]::new($Podcast).
+            Identity().
+            Line().
+            Slogan().
+            Line().
+            Audio().
+            Line().
+            Topics().
+            Authors().
+            Line().
+            Mastering().
+            Line().
+            Site().
+            VideoPlayList().
+            Line().
+            Tags().
+            ToString()
     }
 }
 
@@ -325,8 +489,17 @@ function New-PodcastNote
         $timer | Stop-TimeOperation
     }
 }
-
+$PodcastHome = Join-Path $PSScriptRoot '..\..\Site\input\Radio' -Resolve
+<#
 Get-TrelloConfiguration | Out-Null
 $PodcastHome = Join-Path $PSScriptRoot '..\..\Site\input\Radio' -Resolve
 $PodcastHome | New-PodcastNoteBase
 $PodcastHome | New-PodcastNote
+#>
+$p = ls (Join-Path $PodcastHome '002.md' -Resolve) |
+    Get-Content -Encoding UTF8 |
+    ConvertFrom-PodcastMarkDowm
+
+Format-YouTubeAnnouncement -Podcast $p |
+Set-Content -Path (Join-Path $PodcastHome 'yt.txt' -Resolve) -Encoding UTF8
+
