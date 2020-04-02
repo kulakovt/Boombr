@@ -8,11 +8,11 @@ $ErrorActionPreference = 'Stop'
 . $PSScriptRoot\YamlCuteSerialization.ps1
 
 $TrelloBoardName = 'RadioDotNet'
-$TrelloNewCardListName = 'Обсудили-'
+$TrelloNewCardListName = 'Обсуждаем-'
 
 $InformationPreference = 'Continue'
 
-$EpisodeSorter = { @('Number', 'Title', 'PublishDate', 'Authors', 'Mastering', 'Home', 'Audio', 'Topics', 'Subject', 'Links').IndexOf($_) }
+$EpisodeSorter = { @('Number', 'Title', 'PublishDate', 'Authors', 'Mastering', 'Home', 'Audio', 'Topics', 'Subject', 'Timestamp', 'Links').IndexOf($_) }
 
 function Select-EpisodeNumber
 {
@@ -165,6 +165,7 @@ function ConvertTo-PodcastMarkDowm
     }
     process
     {
+        # TODO: Move Description to the end
         $Yaml
     }
     end
@@ -246,7 +247,7 @@ class PodcastAnnouncement
 
     [String] ToString()
     {
-        return $this.Report.ToString()
+        return $this.Report.ToString().Trim()
     }
 
     Append()
@@ -270,6 +271,18 @@ class PodcastAnnouncement
         return $this
     }
 
+    [PodcastAnnouncement] Identity()
+    {
+        $textPubDate = ''
+        if ($this.Podcast.Contains('PublishDate'))
+        {
+            $localPubDate = $this.Podcast['PublishDate'] | ConvertTo-LocalTime
+            $textPubDate = $localPubDate.ToString(' от d MMMM yyyy года', [System.Globalization.CultureInfo]::GetCultureInfo('ru-RU'))
+        }
+
+        return $this.Line("Подкаст $($this::PodcastName) выпуск №$($this.Podcast['Number'])$textPubDate")
+    }
+
     [PodcastAnnouncement] Slogan()
     {
         return $this.Line('Разговоры на тему .NET во всех его проявлениях, новости, статьи, библиотеки, конференции, личности и прочее интересное из мира IT.')
@@ -287,12 +300,7 @@ class PodcastAnnouncement
 
     [PodcastAnnouncement] Home()
     {
-        if ($this.Podcast.Contains('Home'))
-        {
-            Append($this.Podcast['Home']).Line()
-        }
-
-        return $this
+        return $this.Line($this.Podcast['Home']).Line()
     }
 
     [PodcastAnnouncement] Audio()
@@ -314,18 +322,6 @@ class PodcastAnnouncement
     [PodcastAnnouncement] Site()
     {
         return $this.Line("Сайт подкаста: $($this::SiteUrl)")
-    }
-
-    [PodcastAnnouncement] Tags()
-    {
-        return $this.Line('#Podcast #DotNet')
-    }
-
-    [PodcastAnnouncement] Identity()
-    {
-        $localPubDate = $this.Podcast['PublishDate'] | ConvertTo-LocalTime
-        $textPubDate = $localPubDate.ToString('d MMMM yyyy года', [System.Globalization.CultureInfo]::GetCultureInfo('ru-RU'))
-        return $this.Line("Подкаст $($this::PodcastName), выпуск №$($this.Podcast['Number']) от $textPubDate")
     }
 
     [PodcastAnnouncement] Authors()
@@ -360,6 +356,35 @@ class PodcastAnnouncement
             $this.Append()
         }
         return $this
+    }
+
+    [PodcastAnnouncement] Tags()
+    {
+        return $this.Line('#Podcast #DotNet')
+    }
+}
+
+function Format-AnchorAnnouncement
+{
+    [CmdletBinding()]
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [hashtable]
+        $Podcast
+    )
+
+    process
+    {
+        [PodcastAnnouncement]::new($Podcast).
+            Identity().
+            Line().
+            Description().
+            Site().
+            Line().
+            Topics().
+            ToString()
     }
 }
 
@@ -396,7 +421,46 @@ function Format-YouTubeAnnouncement
     }
 }
 
-function New-PodcastNoteBase
+function New-PodcastFromTrello
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [ValidateNotNullOrEmpty()]
+        [string] $Path
+    )
+
+    process
+    {
+        $timer = Start-TimeOperation -Name 'Create podcast from Trello'
+
+        $board = Get-TrelloBoard -Name $TrelloBoardName
+        if (-not $board) { throw "Trello board «$TrelloBoardName» not found" }
+
+        $list = $board | Get-TrelloList | Where-Object { $_.name.StartsWith($TrelloNewCardListName) }
+        if (-not $list) { throw "Trello list «$TrelloNewCardListName» in board «$TrelloBoardName» not found" }
+
+        $episodeNumber = $list.name | Select-EpisodeNumber
+        $filePath = Join-Path -Path $Path ('e{0:D3}.md' -f $episodeNumber)
+
+        Write-Information "Scan «$($list.name)» list in «$($board.name)» board for episode №$episodeNumber"
+
+        $podcast = $episodeNumber | Format-PodcastHeader
+        $podcast['Topics'] = $board |
+             Get-TrelloCard -List $list |
+             Format-PodcastTopic
+
+        ConvertTo-CuteYaml -Data $podcast -KeyOrderer $EpisodeSorter |
+        ConvertTo-PodcastMarkDowm |
+        Set-Content -Path $filePath -Encoding UTF8
+
+        $timer | Stop-TimeOperation
+
+        Write-Information "Please, fill in Description and Timestamps before the next step in $(Split-Path -Leaf $filePath)"
+    }
+}
+
+function New-PodcastFromDescription
 {
     [CmdletBinding()]
     param (
@@ -428,8 +492,8 @@ function New-PodcastNoteBase
         ConvertTo-CuteYaml -Data $podcast -KeyOrderer $EpisodeSorter |
         Set-Content -Path $filePath -Encoding UTF8
 
-        Format-PodcastAnnouncement -Podcast $podcast |
-        Set-Content -Path ([IO.Path]::ChangeExtension($filePath, 'txt')) -Encoding UTF8
+        Format-AnchorAnnouncement -Podcast $podcast |
+        Set-Content -Path (Join-Path $PodcastHome 'anchor.txt') -Encoding UTF8
 
         $timer | Stop-TimeOperation
     }
@@ -489,17 +553,20 @@ function New-PodcastNote
         $timer | Stop-TimeOperation
     }
 }
+
 $PodcastHome = Join-Path $PSScriptRoot '..\..\Site\input\Radio' -Resolve
-<#
+
 Get-TrelloConfiguration | Out-Null
-$PodcastHome = Join-Path $PSScriptRoot '..\..\Site\input\Radio' -Resolve
-$PodcastHome | New-PodcastNoteBase
+$PodcastHome | New-PodcastFromTrello
+<#
 $PodcastHome | New-PodcastNote
 #>
+
+<#
 $p = ls (Join-Path $PodcastHome '002.md' -Resolve) |
     Get-Content -Encoding UTF8 |
     ConvertFrom-PodcastMarkDowm
 
 Format-YouTubeAnnouncement -Podcast $p |
-Set-Content -Path (Join-Path $PodcastHome 'yt.txt' -Resolve) -Encoding UTF8
-
+Set-Content -Path (Join-Path $PodcastHome 'youtube.txt' -Resolve) -Encoding UTF8
+#>
