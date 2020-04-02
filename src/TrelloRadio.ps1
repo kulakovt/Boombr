@@ -292,7 +292,7 @@ class PodcastAnnouncement
     {
         if ($this.Podcast.Contains('Description'))
         {
-            Append($this.Podcast['Description']).Line()
+            $this.Line($this.Podcast['Description']).Append()
         }
 
         return $this
@@ -377,6 +377,7 @@ function Format-AnchorAnnouncement
 
     process
     {
+        # TODO: Format as Anchor HTML
         [PodcastAnnouncement]::new($Podcast).
             Identity().
             Line().
@@ -456,11 +457,11 @@ function New-PodcastFromTrello
 
         $timer | Stop-TimeOperation
 
-        Write-Information "Please, fill in Description and Timestamps before the next step in $(Split-Path -Leaf $filePath)"
+        Write-Information "Please, fill in Description and Timestamps before the next step in «$(Split-Path -Leaf $filePath)»"
     }
 }
 
-function New-PodcastFromDescription
+function New-PodcastAnnouncementForAnchor
 {
     [CmdletBinding()]
     param (
@@ -471,31 +472,15 @@ function New-PodcastFromDescription
 
     process
     {
-        $timer = Start-TimeOperation -Name 'Create podcast show notes base'
+        if (-not (Test-Path -Path $Path -PathType Leaf)) { throw "Index file «$Path» not found" }
 
-        $board = Get-TrelloBoard -Name $TrelloBoardName
-        if (-not $board) { throw "Trello board «$TrelloBoardName» not found" }
+        Write-Information "Format Anchor announcement from «$(Split-Path -Leaf $Path)»"
 
-        $list = $board | Get-TrelloList | Where-Object { $_.name.StartsWith($TrelloNewCardListName) }
-        if (-not $list) { throw "Trello list «$TrelloNewCardListName» in board «$TrelloBoardName» not found" }
-
-        $episodeNumber = $list.name | Select-EpisodeNumber
-        $filePath = Join-Path -Path $Path ('e{0:D3}.yaml' -f $episodeNumber)
-
-        Write-Information "Scan «$($list.name)» list in «$($board.name)» board for episode №$episodeNumber"
-
-        $podcast = $episodeNumber | Format-PodcastHeader
-        $podcast['Topics'] = $board |
-             Get-TrelloCard -List $list |
-             Format-PodcastTopic
-
-        ConvertTo-CuteYaml -Data $podcast -KeyOrderer $EpisodeSorter |
-        Set-Content -Path $filePath -Encoding UTF8
+        $podcast = Get-Content -Path $Path -Encoding UTF8 |
+            ConvertFrom-PodcastMarkDowm
 
         Format-AnchorAnnouncement -Podcast $podcast |
-        Set-Content -Path (Join-Path $PodcastHome 'anchor.txt') -Encoding UTF8
-
-        $timer | Stop-TimeOperation
+        Set-Content -Path "${Path}.anchor.txt" -Encoding UTF8
     }
 }
 
@@ -555,9 +540,13 @@ function New-PodcastNote
 }
 
 $PodcastHome = Join-Path $PSScriptRoot '..\..\Site\input\Radio' -Resolve
+$PodcastIndex = Join-Path $PodcastHome '007.md'
+# Step 1
+# Get-TrelloConfiguration | Out-Null
+# $PodcastHome | New-PodcastFromTrello
 
-Get-TrelloConfiguration | Out-Null
-$PodcastHome | New-PodcastFromTrello
+# Step 2
+New-PodcastAnnouncementForAnchor -Path $PodcastIndex
 <#
 $PodcastHome | New-PodcastNote
 #>
