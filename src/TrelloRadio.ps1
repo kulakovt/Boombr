@@ -133,7 +133,7 @@ function Format-PodcastRssHeader
 
     process
     {
-        $rssItem = Invoke-RestMethod -Method Get -Uri $RssUrl |
+        $rssItem = Invoke-RestMethod -Method Get -Uri ([PodcastAnnouncement]::RssUrl) |
             ConvertTo-RssPodcastItem |
             Where-Object { $_['Number'] -eq $Podcast['Number'] }
 
@@ -155,22 +155,24 @@ function ConvertTo-PodcastMarkDowm
     [CmdletBinding()]
     [OutputType([string])]
     param (
-        [Parameter(ValueFromPipeline)]
-        [string] $Yaml
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [hashtable]
+        $Podcast
     )
 
-    begin
-    {
-        '---'
-    }
     process
     {
-        # TODO: Move Description to the end
-        $Yaml
-    }
-    end
-    {
+        $description = ''
+        if ($Podcast.Contains('Description'))
+        {
+            $description = $Podcast['Description']
+            $podcast.Remove('Description')
+        }
         '---'
+        ConvertTo-CuteYaml -Data $Podcast -KeyOrderer $EpisodeSorter
+        '---'
+        $description.Trim()
     }
 }
 
@@ -422,6 +424,44 @@ function Format-YouTubeAnnouncement
     }
 }
 
+function Set-PodcastToFile
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [ValidateNotNullOrEmpty()]
+        [string] $Path,
+
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [hashtable]
+        $Podcast
+    )
+
+    process
+    {
+        ConvertTo-PodcastMarkDowm -Podcast $podcast |
+        Set-Content -Path $Path -Encoding UTF8
+    }
+}
+
+function Get-PodcastFromFile
+{
+    [CmdletBinding()]
+    [OutputType([hashtable])]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [ValidateNotNullOrEmpty()]
+        [string] $Path
+    )
+
+    process
+    {
+        Get-Content -Path $Path -Encoding UTF8 |
+        ConvertFrom-PodcastMarkDowm
+    }
+}
+
 function New-PodcastFromTrello
 {
     [CmdletBinding()]
@@ -442,7 +482,7 @@ function New-PodcastFromTrello
         if (-not $list) { throw "Trello list «$TrelloNewCardListName» in board «$TrelloBoardName» not found" }
 
         $episodeNumber = $list.name | Select-EpisodeNumber
-        $filePath = Join-Path -Path $Path ('e{0:D3}.md' -f $episodeNumber)
+        $filePath = Join-Path -Path $Path ('{0:D3}.md' -f $episodeNumber)
 
         Write-Information "Scan «$($list.name)» list in «$($board.name)» board for episode №$episodeNumber"
 
@@ -451,9 +491,7 @@ function New-PodcastFromTrello
              Get-TrelloCard -List $list |
              Format-PodcastTopic
 
-        ConvertTo-CuteYaml -Data $podcast -KeyOrderer $EpisodeSorter |
-        ConvertTo-PodcastMarkDowm |
-        Set-Content -Path $filePath -Encoding UTF8
+        $filePath | Set-PodcastToFile -Podcast $podcast
 
         $timer | Stop-TimeOperation
 
@@ -476,15 +514,14 @@ function New-PodcastAnnouncementForAnchor
 
         Write-Information "Format Anchor announcement from «$(Split-Path -Leaf $Path)»"
 
-        $podcast = Get-Content -Path $Path -Encoding UTF8 |
-            ConvertFrom-PodcastMarkDowm
+        $podcast = Get-PodcastFromFile -Path $Path
 
         Format-AnchorAnnouncement -Podcast $podcast |
-        Set-Content -Path "${Path}.anchor.txt" -Encoding UTF8
+        Set-Content -Path ([IO.Path]::ChangeExtension($Path, 'anchor.txt')) -Encoding UTF8
     }
 }
 
-function New-PodcastNote
+function New-PodcastFromAchor
 {
     [CmdletBinding()]
     param (
@@ -495,31 +532,14 @@ function New-PodcastNote
 
     process
     {
-        $timer = Start-TimeOperation -Name 'Create podcast show notes'
+        if (-not (Test-Path -Path $Path -PathType Leaf)) { throw "Index file «$Path» not found" }
 
-        $baseFile = Get-Item -Path "${Path}/*" -Filter 'e*.yaml'
-        if (-not ($baseFile -is [IO.FileInfo]))
-        {
-            Write-Warning "Base file not found at $Path"
-            return
-        }
-
-        $podcast = $baseFile |
-            Get-Content -Encoding UTF8 -Raw |
-            ConvertFrom-Yaml
+        $podcast = Get-PodcastFromFile -Path $Path
 
         $episodeNumber = $podcast.Number
         Write-Information "Enrich episode №$episodeNumber"
-        $filePath = Join-Path -Path $Path ('e{0:D3}.md' -f $episodeNumber)
 
-        if (Test-Path -Path $filePath)
-        {
-            # TODO: Preserve markdown description
-            Write-Warning "Episode notes already exist at $filePath"
-            return
-        }
-
-        $podcast = Format-PodcastRssHeader -Podcast $Podcast
+        $podcast = Format-PodcastRssHeader -Podcast $podcast
 
         if (-not $podcast)
         {
@@ -527,15 +547,9 @@ function New-PodcastNote
             return
         }
 
-        ConvertTo-CuteYaml -Data $podcast -KeyOrderer $EpisodeSorter |
-        ConvertTo-PodcastMarkDowm |
-        Set-Content -Path $filePath -Encoding UTF8
+        Copy-Item -Path $Path -Destination ([IO.Path]::ChangeExtension($Path, 'bak')) -Force | Out-Null
 
-        Format-PodcastAnnouncement -Podcast $podcast |
-        Set-Content -Path ([IO.Path]::ChangeExtension($filePath, 'txt')) -Encoding UTF8
-        Write-Information "Write file $([System.IO.Path]::GetFileName($filePath))"
-
-        $timer | Stop-TimeOperation
+        $Path | Set-PodcastToFile -Podcast $podcast
     }
 }
 
@@ -546,7 +560,11 @@ $PodcastIndex = Join-Path $PodcastHome '007.md'
 # $PodcastHome | New-PodcastFromTrello
 
 # Step 2
-New-PodcastAnnouncementForAnchor -Path $PodcastIndex
+# New-PodcastAnnouncementForAnchor -Path $PodcastIndex
+
+# Step 3
+New-PodcastFromAchor -Path $PodcastIndex
+
 <#
 $PodcastHome | New-PodcastNote
 #>
