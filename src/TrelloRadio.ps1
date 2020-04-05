@@ -302,7 +302,7 @@ class PodcastAnnouncement
 
     [PodcastAnnouncement] Home()
     {
-        return $this.Line($this.Podcast['Home']).Line()
+        return $this.Line($this.Podcast['Home'])
     }
 
     [PodcastAnnouncement] Audio()
@@ -391,6 +391,35 @@ function Format-AnchorAnnouncement
     }
 }
 
+function Format-VKAnnouncement
+{
+    [CmdletBinding()]
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [hashtable]
+        $Podcast
+    )
+
+    process
+    {
+        [PodcastAnnouncement]::new($Podcast).
+            Identity().
+            Line().
+            Home().
+            Line().
+            Description().
+            Site().
+            Rss().
+            Line().
+            Topics().
+            Line().
+            Tags().
+            ToString()
+    }
+}
+
 function Format-YouTubeAnnouncement
 {
     [CmdletBinding()]
@@ -409,6 +438,7 @@ function Format-YouTubeAnnouncement
             Line().
             Slogan().
             Line().
+            Description().
             Audio().
             Line().
             Topics().
@@ -547,14 +577,41 @@ function New-PodcastFromAchor
             return
         }
 
+        # TODO: Backup with time suffix or add to Git
         Copy-Item -Path $Path -Destination ([IO.Path]::ChangeExtension($Path, 'bak')) -Force | Out-Null
 
         $Path | Set-PodcastToFile -Podcast $podcast
     }
 }
 
+function New-PodcastAnnouncements
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [ValidateNotNullOrEmpty()]
+        [string] $Path
+    )
+
+    process
+    {
+        if (-not (Test-Path -Path $Path -PathType Leaf)) { throw "Index file «$Path» not found" }
+
+        Write-Information "Format announcement from «$(Split-Path -Leaf $Path)»"
+
+        $podcast = Get-PodcastFromFile -Path $Path
+
+        Format-YouTubeAnnouncement -Podcast $podcast |
+        Set-Content -Path ([IO.Path]::ChangeExtension($Path, 'youtube.txt')) -Encoding UTF8
+
+        Format-VKAnnouncement -Podcast $podcast |
+        Set-Content -Path ([IO.Path]::ChangeExtension($Path, 'vk.txt')) -Encoding UTF8
+    }
+}
+
 $PodcastHome = Join-Path $PSScriptRoot '..\..\Site\input\Radio' -Resolve
 $PodcastIndex = Join-Path $PodcastHome '007.md'
+
 # Step 1
 # Get-TrelloConfiguration | Out-Null
 # $PodcastHome | New-PodcastFromTrello
@@ -563,17 +620,7 @@ $PodcastIndex = Join-Path $PodcastHome '007.md'
 # New-PodcastAnnouncementForAnchor -Path $PodcastIndex
 
 # Step 3
-New-PodcastFromAchor -Path $PodcastIndex
+# New-PodcastFromAchor -Path $PodcastIndex
 
-<#
-$PodcastHome | New-PodcastNote
-#>
-
-<#
-$p = ls (Join-Path $PodcastHome '002.md' -Resolve) |
-    Get-Content -Encoding UTF8 |
-    ConvertFrom-PodcastMarkDowm
-
-Format-YouTubeAnnouncement -Podcast $p |
-Set-Content -Path (Join-Path $PodcastHome 'youtube.txt' -Resolve) -Encoding UTF8
-#>
+# Step 4
+# New-PodcastAnnouncements -Path $PodcastIndex
