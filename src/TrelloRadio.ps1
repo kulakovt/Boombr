@@ -273,16 +273,27 @@ class PodcastAnnouncement
         return $this
     }
 
+    [string] FormatDate([string] $template)
+    {
+        $localPubDate = $this.Podcast['PublishDate'] | ConvertTo-LocalTime
+        return $localPubDate.ToString($template, [System.Globalization.CultureInfo]::GetCultureInfo('ru-RU'))
+    }
+
     [PodcastAnnouncement] Identity()
     {
         $textPubDate = ''
         if ($this.Podcast.Contains('PublishDate'))
         {
-            $localPubDate = $this.Podcast['PublishDate'] | ConvertTo-LocalTime
-            $textPubDate = $localPubDate.ToString(' от d MMMM yyyy года', [System.Globalization.CultureInfo]::GetCultureInfo('ru-RU'))
+            $textPubDate = $this.FormatDate(' от d MMMM yyyy года')
         }
 
         return $this.Line("Подкаст $($this::PodcastName) выпуск №$($this.Podcast['Number'])$textPubDate")
+    }
+
+    [PodcastAnnouncement] ShortDate()
+    {
+        $textPubDate = $this.FormatDate('d MMM yyyy')
+        return $this.Line($textPubDate)
     }
 
     [PodcastAnnouncement] Slogan()
@@ -347,15 +358,23 @@ class PodcastAnnouncement
 
     [PodcastAnnouncement] Topics()
     {
+        return $this.Topics($true)
+    }
+
+    [PodcastAnnouncement] Topics([bool] $IncludeLinks)
+    {
         $this.Line('Темы:').Append()
         foreach ($topic in $this.Podcast['Topics'])
         {
             $this.Append("[$($topic.Timestamp)] — $($topic.Subject)")
-            foreach ($link in $topic.Links)
+            if ($IncludeLinks)
             {
-                $this.Append("• $link")
+                foreach ($link in $topic.Links)
+                {
+                    $this.Append("• $link")
+                }
+                $this.Append()
             }
-            $this.Append()
         }
         return $this
     }
@@ -450,6 +469,29 @@ function Format-YouTubeAnnouncement
             VideoPlayList().
             Line().
             Tags().
+            ToString()
+    }
+}
+
+function Format-PoscastCover
+{
+    [CmdletBinding()]
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [hashtable]
+        $Podcast
+    )
+
+    process
+    {
+        [PodcastAnnouncement]::new($Podcast).
+            Identity().
+            Line().
+            ShortDate().
+            Line().
+            Topics($false).
             ToString()
     }
 }
@@ -577,8 +619,8 @@ function New-PodcastFromAchor
             return
         }
 
-        # TODO: Backup with time suffix or add to Git
-        Copy-Item -Path $Path -Destination ([IO.Path]::ChangeExtension($Path, 'bak')) -Force | Out-Null
+        $uniqSuffix = Get-Date -Format 'mmssfffffff'
+        Copy-Item -Path $Path -Destination ([IO.Path]::ChangeExtension($Path, "${uniqSuffix}.bak")) -Force | Out-Null
 
         $Path | Set-PodcastToFile -Podcast $podcast
     }
@@ -597,9 +639,13 @@ function New-PodcastAnnouncements
     {
         if (-not (Test-Path -Path $Path -PathType Leaf)) { throw "Index file «$Path» not found" }
 
-        Write-Information "Format announcement from «$(Split-Path -Leaf $Path)»"
+        Write-Information "Format announcements from «$(Split-Path -Leaf $Path)»"
 
         $podcast = Get-PodcastFromFile -Path $Path
+
+        # TODO: Format SVG cover
+        Format-PoscastCover -Podcast $podcast |
+        Set-Content -Path ([IO.Path]::ChangeExtension($Path, 'cover.txt')) -Encoding UTF8
 
         Format-YouTubeAnnouncement -Podcast $podcast |
         Set-Content -Path ([IO.Path]::ChangeExtension($Path, 'youtube.txt')) -Encoding UTF8
