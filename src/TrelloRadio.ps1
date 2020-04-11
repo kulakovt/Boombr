@@ -6,10 +6,12 @@ $ErrorActionPreference = 'Stop'
 
 . $PSScriptRoot\Utility.ps1
 . $PSScriptRoot\YamlCuteSerialization.ps1
+. $PSScriptRoot\Model.ps1
+. $PSScriptRoot\Serialization.ps1
 
 $TrelloBoardName = 'RadioDotNet'
 $TrelloNewCardListName = 'Обсуждаем-'
-
+$AuditDir = Join-Path $PSScriptRoot '..\..\Audit\db' -Resolve
 $InformationPreference = 'Continue'
 
 $EpisodeSorter = { @('Number', 'Title', 'PublishDate', 'Authors', 'Mastering', 'Home', 'Audio', 'Topics', 'Subject', 'Timestamp', 'Links').IndexOf($_) }
@@ -82,7 +84,6 @@ function Format-PodcastTopic
 
         @{
             Subject = $subject
-            # TODO: Import Timestamps
             Timestamp = '00:00:00'
             Links = $links
         }
@@ -232,6 +233,25 @@ function ConvertFrom-PodcastMarkDowm
     }
 }
 
+function Read-PersonLink
+{
+    [CmdletBinding()]
+    [OutputType([Hashtable])]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [ValidateNotNullOrEmpty()]
+        [string]
+        $AuditPath
+    )
+
+    process
+    {
+        Read-Speakers -AuditDir $AuditPath |
+            Where-Object { $_.TwitterUrl } |
+            ConvertTo-Hashtable { $_.Name } { $_.TwitterUrl }
+    }
+}
+
 class PodcastAnnouncement
 {
     static [string] $PodcastName = 'RadioDotNet'
@@ -239,12 +259,14 @@ class PodcastAnnouncement
     static [string] $RssUrl = 'https://anchor.fm/s/f0c0ef4/podcast/rss'
 
     [hashtable] $Podcast
+    [hashtable] $Links
     [Text.StringBuilder] $Report
 
-    PodcastAnnouncement([hashtable] $Podcast)
+    PodcastAnnouncement([hashtable] $Podcast, [hashtable] $Links)
     {
-        $this.Report = New-Object -TypeName 'System.Text.StringBuilder'
         $this.Podcast = $Podcast
+        $this.Links = $Links
+        $this.Report = New-Object -TypeName 'System.Text.StringBuilder'
     }
 
     [String] ToString()
@@ -342,18 +364,27 @@ class PodcastAnnouncement
         $this.Append('Ведущие:')
         foreach ($author in $this.Podcast['Authors'])
         {
-            # TODO: Add Twitters
-            $this.Append("• $author")
+            $link = $this.Links[$author]
+            $link = if ($link) { " ($link)" } else  { '' }
+            $this.Append("• ${author}${link}")
         }
         return $this
     }
 
     [PodcastAnnouncement] Mastering()
     {
-        # TODO: Get Approval
-        return $this.
-            Line('Звукорежиссёр:').
-            Line("• $($this.Podcast['Mastering'])")
+        $mastering = $this.Podcast['Mastering']
+        if ($mastering)
+        {
+            $link = $this.Links[$mastering]
+            $link = if ($link) { " ($link)" } else  { '' }
+
+            $this.
+                Line('Звукорежиссёр:').
+                Append("• ${mastering}${link}")
+
+        }
+        return $this
     }
 
     [PodcastAnnouncement] Topics()
@@ -393,13 +424,17 @@ function Format-AnchorAnnouncement
         [Parameter(Mandatory)]
         [ValidateNotNullOrEmpty()]
         [hashtable]
-        $Podcast
+        $Podcast,
+
+        [Parameter(Mandatory)]
+        [hashtable]
+        $Links
     )
 
     process
     {
         # TODO: Format as Anchor HTML
-        [PodcastAnnouncement]::new($Podcast).
+        [PodcastAnnouncement]::new($Podcast, $Links).
             Identity().
             Line().
             Description().
@@ -418,12 +453,16 @@ function Format-VKAnnouncement
         [Parameter(Mandatory)]
         [ValidateNotNullOrEmpty()]
         [hashtable]
-        $Podcast
+        $Podcast,
+
+        [Parameter(Mandatory)]
+        [hashtable]
+        $Links
     )
 
     process
     {
-        [PodcastAnnouncement]::new($Podcast).
+        [PodcastAnnouncement]::new($Podcast, $Links).
             Identity().
             Line().
             Home().
@@ -447,12 +486,16 @@ function Format-YouTubeAnnouncement
         [Parameter(Mandatory)]
         [ValidateNotNullOrEmpty()]
         [hashtable]
-        $Podcast
+        $Podcast,
+
+        [Parameter(Mandatory)]
+        [hashtable]
+        $Links
     )
 
     process
     {
-        [PodcastAnnouncement]::new($Podcast).
+        [PodcastAnnouncement]::new($Podcast, $Links).
             Identity().
             Line().
             Slogan().
@@ -473,7 +516,7 @@ function Format-YouTubeAnnouncement
     }
 }
 
-function Format-PoscastCover
+function Format-PodcastCover
 {
     [CmdletBinding()]
     [OutputType([string])]
@@ -481,12 +524,16 @@ function Format-PoscastCover
         [Parameter(Mandatory)]
         [ValidateNotNullOrEmpty()]
         [hashtable]
-        $Podcast
+        $Podcast,
+
+        [Parameter(Mandatory)]
+        [hashtable]
+        $Links
     )
 
     process
     {
-        [PodcastAnnouncement]::new($Podcast).
+        [PodcastAnnouncement]::new($Podcast, $Links).
             Identity().
             Line().
             ShortDate().
@@ -588,7 +635,7 @@ function New-PodcastAnnouncementForAnchor
 
         $podcast = Get-PodcastFromFile -Path $Path
 
-        Format-AnchorAnnouncement -Podcast $podcast |
+        Format-AnchorAnnouncement -Podcast $podcast -Links @{} |
         Set-Content -Path ([IO.Path]::ChangeExtension($Path, 'anchor.txt')) -Encoding UTF8
     }
 }
@@ -642,15 +689,16 @@ function New-PodcastAnnouncements
         Write-Information "Format announcements from «$(Split-Path -Leaf $Path)»"
 
         $podcast = Get-PodcastFromFile -Path $Path
+        $links = Read-PersonLink -AuditPath $AuditDir
 
         # TODO: Format SVG cover
-        Format-PoscastCover -Podcast $podcast |
+        Format-PodcastCover -Podcast $podcast -Links $links |
         Set-Content -Path ([IO.Path]::ChangeExtension($Path, 'cover.txt')) -Encoding UTF8
 
-        Format-YouTubeAnnouncement -Podcast $podcast |
+        Format-YouTubeAnnouncement -Podcast $podcast -Links $links |
         Set-Content -Path ([IO.Path]::ChangeExtension($Path, 'youtube.txt')) -Encoding UTF8
 
-        Format-VKAnnouncement -Podcast $podcast |
+        Format-VKAnnouncement -Podcast $podcast -Links $links |
         Set-Content -Path ([IO.Path]::ChangeExtension($Path, 'vk.txt')) -Encoding UTF8
     }
 }

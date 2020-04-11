@@ -183,6 +183,12 @@ function Read-All($AuditDir = $(throw "AuditDir required"))
     Read-NiceXml
 }
 
+function Read-Speakers($AuditDir = $(throw "AuditDir required"))
+{
+    Get-ChildItem -Path (Join-Path $AuditDir 'speakers') -Filter 'index.xml' -Recurse |
+    Read-NiceXml
+}
+
 function Save-Entity($AuditDir = $(throw "AuditDir required"), [switch] $CreateOnly)
 {
     process
