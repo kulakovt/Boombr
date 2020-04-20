@@ -246,7 +246,7 @@ function Read-PersonLink
 
     process
     {
-        Read-Speakers -AuditDir $AuditPath |
+        Read-Speaker -AuditDir $AuditPath |
             Where-Object { $_.TwitterUrl } |
             ConvertTo-Hashtable { $_.Name } { $_.TwitterUrl }
     }
@@ -673,7 +673,7 @@ function New-PodcastFromAchor
     }
 }
 
-function New-PodcastAnnouncements
+function New-PodcastAnnouncement
 {
     [CmdletBinding()]
     param (
@@ -703,8 +703,8 @@ function New-PodcastAnnouncements
     }
 }
 
-$PodcastHome = Join-Path $PSScriptRoot '..\..\Site\input\Radio' -Resolve
-$PodcastIndex = Join-Path $PodcastHome '007.md'
+# $PodcastHome = Join-Path $PSScriptRoot '..\..\Site\input\Radio' -Resolve
+# $PodcastIndex = Join-Path $PodcastHome '000.md'
 
 # Step 1
 # Get-TrelloConfiguration | Out-Null
@@ -717,4 +717,4 @@ $PodcastIndex = Join-Path $PodcastHome '007.md'
 # New-PodcastFromAchor -Path $PodcastIndex
 
 # Step 4
-# New-PodcastAnnouncements -Path $PodcastIndex
+# New-PodcastAnnouncement -Path $PodcastIndex

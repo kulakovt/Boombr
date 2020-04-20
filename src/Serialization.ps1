@@ -183,7 +183,7 @@ function Read-All($AuditDir = $(throw "AuditDir required"))
     Read-NiceXml
 }
 
-function Read-Speakers($AuditDir = $(throw "AuditDir required"))
+function Read-Speaker($AuditDir = $(throw "AuditDir required"))
 {
     Get-ChildItem -Path (Join-Path $AuditDir 'speakers') -Filter 'index.xml' -Recurse |
     Read-NiceXml
