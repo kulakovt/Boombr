@@ -257,6 +257,7 @@ class PodcastAnnouncement
     static [string] $PodcastName = 'RadioDotNet'
     static [string] $SiteUrl = 'http://Radio.DotNet.Ru'
     static [string] $RssUrl = 'https://anchor.fm/s/f0c0ef4/podcast/rss'
+    static [string] $VideoUrl = 'https://www.youtube.com/playlist?list=PLbxr_aGL4q3SpQ9GRn2jv-NEpvN23CUC5'
 
     [hashtable] $Podcast
     [hashtable] $Links
@@ -350,8 +351,7 @@ class PodcastAnnouncement
 
     [PodcastAnnouncement] VideoPlayList()
     {
-        # TODO: Line video playlist link
-        return $this.Line("Все видео выпуски: <TODO>")
+        return $this.Line("Все видео выпуски: $($this::VideoUrl)")
     }
 
     [PodcastAnnouncement] Site()
@@ -601,7 +601,11 @@ function New-PodcastFromTrello
         if (-not $list) { throw "Trello list «$TrelloNewCardListName» in board «$TrelloBoardName» not found" }
 
         $episodeNumber = $list.name | Select-EpisodeNumber
-        $filePath = Join-Path -Path $Path ('{0:D3}.md' -f $episodeNumber)
+
+        $dirName = Join-Path -Path $Path ('{0:D3}' -f $episodeNumber)
+        New-Item -Path $dirName -ItemType Directory | Out-Null
+
+        $filePath = Join-Path -Path $dirName 'index.md'
 
         Write-Information "Scan «$($list.name)» list in «$($board.name)» board for episode №$episodeNumber"
 
@@ -631,7 +635,7 @@ function New-PodcastAnnouncementForAnchor
     {
         if (-not (Test-Path -Path $Path -PathType Leaf)) { throw "Index file «$Path» not found" }
 
-        Write-Information "Format Anchor announcement from «$(Split-Path -Leaf $Path)»"
+        Write-Information "Format Anchor announcement from «$Path»"
 
         $podcast = Get-PodcastFromFile -Path $Path
 
@@ -686,7 +690,7 @@ function New-PodcastAnnouncement
     {
         if (-not (Test-Path -Path $Path -PathType Leaf)) { throw "Index file «$Path» not found" }
 
-        Write-Information "Format announcements from «$(Split-Path -Leaf $Path)»"
+        Write-Information "Format announcements from «$($Path)»"
 
         $podcast = Get-PodcastFromFile -Path $Path
         $links = Read-PersonLink -AuditPath $AuditDir
@@ -704,7 +708,7 @@ function New-PodcastAnnouncement
 }
 
 # $PodcastHome = Join-Path $PSScriptRoot '..\..\Site\input\Radio' -Resolve
-# $PodcastIndex = Join-Path $PodcastHome '000.md'
+# $PodcastIndex = Join-Path $PodcastHome '000' | Join-Path -ChildPath 'index.md'
 
 # Step 1
 # Get-TrelloConfiguration | Out-Null
