@@ -189,3 +189,130 @@ function Get-YouTubeVideo
         }
     }
 }
+
+function Get-YouTubeComment
+{
+    [CmdletBinding()]
+    [OutputType([PSCustomObject[]])]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [ValidateNotNullOrEmpty()]
+        $VideoId
+    )
+
+    process
+    {
+        $next = $null
+
+        do
+        {
+            $query = @{
+                part = 'snippet,replies'
+                videoId = $VideoId
+                order = 'time'
+                textFormat = 'plainText'
+                maxResults = 100
+            }
+
+            if ($next)
+            {
+                $query['pageToken'] = $next
+            }
+
+            $response = 'commentThreads' | Invoke-YouTubeMethod -QueryParts $query
+
+            if ('nextPageToken' -in $response.PSObject.Properties.Name)
+            {
+                $next = $response.nextPageToken
+            }
+            else
+            {
+                $next = $null
+            }
+
+            $response.items |
+            ForEach-Object {
+                $comment = $_.snippet.topLevelComment
+
+                [PSCustomObject] @{
+                    PSTypeName = 'YouTubeComment'
+                    Id = $comment.id
+                    ParentId = $null
+                    Author = $comment.snippet.authorDisplayName
+                    AuthorChannel = $comment.snippet.authorChannelUrl
+                    Text = $comment.snippet.textOriginal
+                }
+
+                $comment.id | Get-YouTubeReply
+            }
+
+        } while ($next)
+    }
+}
+
+function Get-YouTubeReply
+{
+    [CmdletBinding()]
+    [OutputType([PSCustomObject[]])]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [ValidateNotNullOrEmpty()]
+        $CommentId
+    )
+
+    process
+    {
+        $next = $null
+
+        do
+        {
+            $query = @{
+                part = 'snippet'
+                parentId = $CommentId
+                textFormat = 'plainText'
+                maxResults = 100
+            }
+
+            if ($next)
+            {
+                $query['pageToken'] = $next
+            }
+
+            $response = 'comments' | Invoke-YouTubeMethod -QueryParts $query
+
+            if ('nextPageToken' -in $response.PSObject.Properties.Name)
+            {
+                $next = $response.nextPageToken
+            }
+            else
+            {
+                $next = $null
+            }
+
+            $response.items |
+            ForEach-Object {
+                $comment = $_
+
+                [PSCustomObject] @{
+                    PSTypeName = 'YouTubeComment'
+                    Id = $comment.id
+                    ParentId = $comment.snippet.parentId
+                    Author = $comment.snippet.authorDisplayName
+                    AuthorChannel = $comment.snippet.authorChannelUrl
+                    Text = $comment.snippet.textOriginal
+                }
+            }
+
+        } while ($next)
+    }
+}
+
+# 'UCHFl23Ah_l4gEUTXYUStQdQ' |
+# Get-YouTubePlaylist |
+# Where-Object { $_.Title -eq 'RadioDotNet' } |
+# Get-YouTubePlaylistItem |
+# Group-ToStringBatch |
+# Get-YouTubeVideo |
+# Select-Object -ExpandProperty Id |
+# Get-YouTubeComment |
+# Format-Table
