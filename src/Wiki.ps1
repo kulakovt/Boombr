@@ -507,13 +507,19 @@ $($meetup.Name) состоялась $(Format-RuDate -Date $meetupDate)
             $friendNames = $friends | ForEach-Object { "[[$_]]" }
             $friendPart = " в гостях у $rank$($friendNames -join ', ')"
         }
-        $venue = $WikiRepository.Venues[$meetup.VenueId]
-        # TODO: remove venue Name from Address part
+
+        $venuePart = 'во всемирной сети «Интернет»'
+        if ($meetup.VenueId)
+        {
+            $venue = $WikiRepository.Venues[$meetup.VenueId]
+            # TODO: remove venue Name from Address part
+            $venuePart = "по адресу: [$($venue.Address)]($($venue.MapUrl))"
+        }
 @"
 
 ## Место
 
-Встреча прошла$friendPart по адресу: [$($venue.Address)]($($venue.MapUrl)).
+Встреча прошла$friendPart $venuePart.
 "@
     }
 }

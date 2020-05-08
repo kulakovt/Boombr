@@ -15,8 +15,15 @@ function Format-Meetup()
 
         $date = $meetup.Sessions[0].StartTime.ToLocalTime().ToString('dd.MM.yyyy')
         "Дата: $date"
-        $venue = $AnnouncementRepository.Venues[$meetup.VenueId].Address
-        "Адресс: $venue"
+        if ($meetup.VenueId)
+        {
+            $venue = $AnnouncementRepository.Venues[$meetup.VenueId].Address
+            "Адресс: $venue"
+        }
+        else
+        {
+            'Встреча будет проходить во всемирной сети «Интернет»'
+        }
         ''
         '#### Спонсоры'
         $meetup.FriendIds |
