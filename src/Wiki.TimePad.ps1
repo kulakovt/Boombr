@@ -89,14 +89,14 @@ function Get-TimePadOrganizationEvent
 
         $response.values |
         ForEach-Object {
-            $event = $_
+            $orgEvent = $_
 
             [PSCustomObject] @{
                 PSTypeName = 'TimePadOrganizationEvent'
-                Id = [int]$event.id
-                Name = $event.name
+                Id = [int]$orgEvent.id
+                Name = $orgEvent.name
                 OrganizationId = $OrganizationId
-                StartsAt = [DateTime]::Parse($event.starts_at)
+                StartsAt = [DateTime]::Parse($orgEvent.starts_at)
             }
         }
     }
@@ -157,20 +157,20 @@ function Get-TimePadEvent
 
         $response |
         ForEach-Object {
-            $event = $_
+            $padEvent = $_
 
             [PSCustomObject] @{
                 PSTypeName = 'TimePadEvent'
-                Id = [int]$event.id
-                Name = $event.name
-                OrganizationId = $event.organization.id
-                CreatedAt = [DateTime]::Parse($event.created_at)
-                StartsAt = [DateTime]::Parse($event.starts_at)
-                EndsAt = [DateTime]::Parse($event.ends_at)
-                Url = [Uri]$event.url
-                TicketsTotal = [int]$event.registration_data.tickets_total
-                TicketsLimit = [int]$event.tickets_limit
-                Questions = $event.questions | Get-TimePadQuestionMap
+                Id = [int]$padEvent.id
+                Name = $padEvent.name
+                OrganizationId = $padEvent.organization.id
+                CreatedAt = [DateTime]::Parse($padEvent.created_at)
+                StartsAt = [DateTime]::Parse($padEvent.starts_at)
+                EndsAt = [DateTime]::Parse($padEvent.ends_at)
+                Url = [Uri]$padEvent.url
+                TicketsTotal = [int]$padEvent.registration_data.tickets_total
+                TicketsLimit = [int]$padEvent.tickets_limit
+                Questions = $padEvent.questions | Get-TimePadQuestionMap
             }
         }
     }
@@ -187,7 +187,7 @@ function Get-TimePadOrder
         $EventId,
 
         [PSTypeName('TimePadEvent')]
-        $Event = $null
+        $TimePadEvent = $null
     )
 
     begin
@@ -210,9 +210,9 @@ function Get-TimePadOrder
     }
     process
     {
-        if (-not $Event)
+        if (-not $TimePadEvent)
         {
-            $Event = $EventId | Get-TimePadEvent
+            $TimePadEvent = $EventId | Get-TimePadEvent
         }
 
         $query = @{
@@ -228,12 +228,12 @@ function Get-TimePadOrder
 
             [PSCustomObject] @{
                 PSTypeName = 'TimePadOrder'
-                Name = ReadAnswer -Answers $order.answers -Map $Event.Questions -Key 'Name'
-                Surname = ReadAnswer -Answers $order.answers -Map $Event.Questions -Key 'Surname'
+                Name = ReadAnswer -Answers $order.answers -Map $TimePadEvent.Questions -Key 'Name'
+                Surname = ReadAnswer -Answers $order.answers -Map $TimePadEvent.Questions -Key 'Surname'
                 Mail = $order.mail
                 CreatedAt = [DateTime]::Parse($order.created_at)
-                Company = ReadAnswer -Answers $order.answers -Map $Event.Questions -Key 'Company'
-                Position = ReadAnswer -Answers $order.answers -Map $Event.Questions -Key 'Position'
+                Company = ReadAnswer -Answers $order.answers -Map $TimePadEvent.Questions -Key 'Company'
+                Position = ReadAnswer -Answers $order.answers -Map $TimePadEvent.Questions -Key 'Position'
             }
         }
     }
