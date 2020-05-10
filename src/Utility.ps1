@@ -199,16 +199,19 @@ function Join-Uri
         $RelativeUri
     )
 
-    $left = $BaseUri.ToString().TrimEnd('/')
-    $right = $RelativeUri.TrimStart('/')
-    $separator = '/'
-
-    if ($left.Contains('?') -or $right.StartsWith('?'))
+    process
     {
-        $separator = ''
-    }
+        $left = $BaseUri.ToString().TrimEnd('/')
+        $right = $RelativeUri.TrimStart('/')
+        $separator = '/'
 
-    [Uri] "${left}${separator}${right}"
+        if ($left.Contains('?') -or $right.StartsWith('?'))
+        {
+            $separator = ''
+        }
+
+        [Uri] "${left}${separator}${right}"
+    }
 }
 
 function Get-Secret

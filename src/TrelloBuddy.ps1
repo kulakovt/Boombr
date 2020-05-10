@@ -175,6 +175,11 @@ function Resolve-Tag
 
     process
     {
+        if ($TrelloTagsDict)
+        {
+            # Ignore analyzer bug
+        }
+
         $Task.Tags |
             ForEach-Object {
                 $tagId = $TrelloTagsDict[$_]
