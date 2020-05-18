@@ -747,6 +747,7 @@ function Format-VideoRatingPage()
     $videos = @{}
     $WikiConfig.DotNetRuChannelId |
     Get-YouTubePlaylist |
+    Where-Object { $_.Title -match '^DotNetRu \d{4}$' } |
     ForEach-Object {
         $playlist = $_
 
