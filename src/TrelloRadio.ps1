@@ -16,6 +16,317 @@ $InformationPreference = 'Continue'
 
 $EpisodeSorter = { @('Number', 'Title', 'PublishDate', 'Authors', 'Mastering', 'Home', 'Audio', 'Topics', 'Subject', 'Timestamp', 'Links').IndexOf($_) }
 
+
+class FormatString
+{
+    [bool] $AsHtml
+    [Text.StringBuilder] $Writer
+
+    FormatString([bool] $AsHtml)
+    {
+        $this.AsHtml = $AsHtml
+        $this.Writer = New-Object -TypeName 'System.Text.StringBuilder'
+    }
+
+    [String] ToString()
+    {
+        return $this.Writer.ToString().Trim()
+    }
+
+    [string] Encode([string] $text)
+    {
+        if ($this.AsHtml)
+        {
+            return [System.Net.WebUtility]::HtmlEncode($text)
+        }
+        else
+        {
+            return $text
+        }
+    }
+
+    [string] Wrap([string] $openTag, [string] $text, [string] $closeTag)
+    {
+        if ($this.AsHtml)
+        {
+            return $openTag + $text + $closeTag
+        }
+        else
+        {
+            return $text
+        }
+    }
+
+    [string] Strong([string] $text)
+    {
+        return $this.Wrap('<strong>', $text, '</strong>')
+    }
+
+    [string] Link([string] $url)
+    {
+        return $this.Link($url, $null)
+    }
+
+    [string] Link([string] $url, [string] $text)
+    {
+        $h = if ($this.AsHtml) { 'h' } else { '_' }
+        $u = if ($url) { 'u' } else { '_' }
+        $t = if ($text) { 't' } else { '_' }
+        $mask = "$h$u$t"
+
+        switch ($mask)
+        {
+            '__t' { return $text }
+            '_u_' { return $url }
+            '_ut' { return "$text ($url)" }
+            'h_t' { return $text }
+            'hu_' { return '<a href="{0}">{0}</a>' -f $url }
+            'hut' { return '<a href="{0}">{1}</a>' -f $url,$text }
+            # '___'
+            # 'h__'
+        }
+
+        throw 'Nothing'
+    }
+
+    BeginList()
+    {
+        if ($this.AsHtml)
+        {
+            $this.Writer.AppendLine('<ul>')
+        }
+    }
+
+    EndList()
+    {
+        if ($this.AsHtml)
+        {
+            $this.Writer.AppendLine('</ul>')
+        }
+        else
+        {
+            $this.Writer.AppendLine()
+        }
+    }
+
+    ListItem([string] $text)
+    {
+        if ($this.AsHtml)
+        {
+            $format = "  <li>$text</li>"
+        }
+        else
+        {
+            $format = "• $text"
+        }
+
+        $this.Writer.AppendLine($format)
+    }
+
+    Paragraph([string] $text)
+    {
+        if ($this.AsHtml)
+        {
+            $format = "<p>$text</p>"
+            $this.Writer.AppendLine($format)
+        }
+        else
+        {
+            $this.Writer.AppendLine($text)
+            $this.Writer.AppendLine()
+        }
+    }
+}
+
+
+class PodcastAnnouncement
+{
+    static [string] $PodcastName = 'RadioDotNet'
+    static [string] $SiteUrl = 'http://Radio.DotNet.Ru'
+    static [string] $RssUrl = 'https://anchor.fm/s/f0c0ef4/podcast/rss'
+    static [string] $VideoUrl = 'https://www.youtube.com/playlist?list=PLbxr_aGL4q3SpQ9GRn2jv-NEpvN23CUC5'
+
+    [hashtable] $Podcast
+    [hashtable] $Links
+    [FormatString] $Report
+
+    PodcastAnnouncement([hashtable] $Podcast)
+    {
+        $this.Init($Podcast, @{}, $false)
+    }
+    PodcastAnnouncement([hashtable] $Podcast, [hashtable] $Links)
+    {
+        $this.Init($Podcast, $Links, $false)
+    }
+    PodcastAnnouncement([hashtable] $Podcast, [hashtable] $Links, [bool] $AsHtml)
+    {
+        $this.Init($Podcast, $Links, $AsHtml)
+    }
+
+    hidden Init([hashtable] $Podcast, [hashtable] $Links, [bool] $AsHtml)
+    {
+        $this.Podcast = $Podcast
+        $this.Links = $Links
+        $this.Report = [FormatString]::new($AsHtml)
+    }
+
+    [String] ToString()
+    {
+        return $this.Report.ToString()
+    }
+
+    [string] FormatDate([string] $template)
+    {
+        $localPubDate = $this.Podcast['PublishDate'] | ConvertTo-LocalTime
+        return $localPubDate.ToString($template, [System.Globalization.CultureInfo]::GetCultureInfo('ru-RU'))
+    }
+
+    [PodcastAnnouncement] Identity()
+    {
+        $textPubDate = ''
+        if ($this.Podcast.Contains('PublishDate'))
+        {
+            $textPubDate = $this.FormatDate(' от d MMMM yyyy года')
+        }
+
+        $text = "Подкаст $($this::PodcastName) выпуск №$($this.Podcast['Number'])$textPubDate"
+        $format = $this.Report.Strong($this.Report.Encode($text))
+        $this.Report.Paragraph($format)
+        return $this
+    }
+
+    [PodcastAnnouncement] ShortDate()
+    {
+        $textPubDate = $this.FormatDate('d MMM yyyy')
+        $this.Report.Paragraph($this.Report.Encode($textPubDate))
+        return $this
+    }
+
+    [PodcastAnnouncement] Slogan()
+    {
+        $format = $this.Report.Encode('Разговоры на тему .NET во всех его проявлениях, новости, статьи, библиотеки, конференции, личности и прочее интересное из мира IT.')
+        $this.Report.Paragraph($format)
+        return $this
+    }
+
+    [PodcastAnnouncement] Description()
+    {
+        if ($this.Podcast.Contains('Description'))
+        {
+            # TODO: MarkDown to HTML (Para, Links)
+            $format = $this.Report.Encode($this.Podcast['Description'])
+            $this.Report.Paragraph($format)
+        }
+
+        return $this
+    }
+
+    [PodcastAnnouncement] Home()
+    {
+        $link = $this.Report.Link($this.Podcast['Home'])
+        $this.Report.Paragraph($link)
+        return $this
+    }
+
+    [PodcastAnnouncement] Audio()
+    {
+        $link = $this.Report.Link($this.Podcast['Audio'])
+        $this.Report.Paragraph("Аудиоверсия: $link")
+        return $this
+    }
+
+    [PodcastAnnouncement] Rss()
+    {
+        $link = $this.Report.Link($this::RssUrl)
+        $this.Report.Paragraph("RSS подписка на подкаст: $link")
+        return $this
+    }
+
+    [PodcastAnnouncement] VideoPlayList()
+    {
+        $link = $this.Report.Link($this::VideoUrl)
+        $this.Report.Paragraph("Все видео выпуски: $link")
+        return $this
+    }
+
+    [PodcastAnnouncement] Site()
+    {
+        $link = $this.Report.Link($this::SiteUrl)
+        $this.Report.Paragraph("Сайт подкаста: $link")
+        return $this
+    }
+
+    [PodcastAnnouncement] Authors()
+    {
+        $this.Report.Paragraph('Голоса выпуска:')
+        $this.Report.BeginList()
+
+        foreach ($author in $this.Podcast['Authors'])
+        {
+            $link = $this.Links[$author]
+            $text = $this.Report.Encode($author)
+            $format = $this.Report.Link($link, $text)
+            $this.Report.ListItem($format)
+        }
+
+        $this.Report.EndList()
+        return $this
+    }
+
+    [PodcastAnnouncement] Mastering()
+    {
+        $mastering = $this.Podcast['Mastering']
+        if ($mastering)
+        {
+            $link = $this.Links[$mastering]
+            $text = $this.Report.Encode($mastering)
+            $format = $this.Report.Link($link, $text)
+            $this.Report.Paragraph('Звукорежиссёр:')
+            $this.Report.BeginList()
+            $this.Report.ListItem($format)
+            $this.Report.EndList()
+        }
+        return $this
+    }
+
+    [PodcastAnnouncement] Topics()
+    {
+        return $this.Topics($true)
+    }
+
+    [PodcastAnnouncement] Topics([bool] $IncludeLinks)
+    {
+        $formatTitle = $this.Report.Strong('Темы:')
+        $this.Report.Paragraph($formatTitle)
+
+        foreach ($topic in $this.Podcast['Topics'])
+        {
+            $formatTopic = $this.Report.Encode("[$($topic.Timestamp)] — $($topic.Subject)")
+            $this.Report.Paragraph($formatTopic)
+            if ($IncludeLinks)
+            {
+                $this.Report.BeginList()
+                foreach ($link in $topic.Links)
+                {
+                    $formatLink = $this.Report.Link($link)
+                    $this.Report.ListItem($formatLink)
+                }
+                $this.Report.EndList()
+            }
+        }
+
+        return $this
+    }
+
+    [PodcastAnnouncement] Tags()
+    {
+        $text = $this.Report.Encode('#Podcast #DotNet')
+        $this.Report.Paragraph($text)
+        return $this
+    }
+}
+
+
 function Select-EpisodeNumber
 {
     [CmdletBinding()]
@@ -252,170 +563,6 @@ function Read-PersonLink
     }
 }
 
-class PodcastAnnouncement
-{
-    static [string] $PodcastName = 'RadioDotNet'
-    static [string] $SiteUrl = 'http://Radio.DotNet.Ru'
-    static [string] $RssUrl = 'https://anchor.fm/s/f0c0ef4/podcast/rss'
-    static [string] $VideoUrl = 'https://www.youtube.com/playlist?list=PLbxr_aGL4q3SpQ9GRn2jv-NEpvN23CUC5'
-
-    [hashtable] $Podcast
-    [hashtable] $Links
-    [Text.StringBuilder] $Report
-
-    PodcastAnnouncement([hashtable] $Podcast, [hashtable] $Links)
-    {
-        $this.Podcast = $Podcast
-        $this.Links = $Links
-        $this.Report = New-Object -TypeName 'System.Text.StringBuilder'
-    }
-
-    [String] ToString()
-    {
-        return $this.Report.ToString().Trim()
-    }
-
-    Append()
-    {
-        $this.Append('')
-    }
-
-    Append([string] $line = '')
-    {
-        $this.Line($line) | Out-Null
-    }
-
-    [PodcastAnnouncement] Line()
-    {
-        return $this.Line('')
-    }
-
-    [PodcastAnnouncement] Line([string] $line)
-    {
-        $this.Report.AppendLine($line)
-        return $this
-    }
-
-    [string] FormatDate([string] $template)
-    {
-        $localPubDate = $this.Podcast['PublishDate'] | ConvertTo-LocalTime
-        return $localPubDate.ToString($template, [System.Globalization.CultureInfo]::GetCultureInfo('ru-RU'))
-    }
-
-    [PodcastAnnouncement] Identity()
-    {
-        $textPubDate = ''
-        if ($this.Podcast.Contains('PublishDate'))
-        {
-            $textPubDate = $this.FormatDate(' от d MMMM yyyy года')
-        }
-
-        return $this.Line("Подкаст $($this::PodcastName) выпуск №$($this.Podcast['Number'])$textPubDate")
-    }
-
-    [PodcastAnnouncement] ShortDate()
-    {
-        $textPubDate = $this.FormatDate('d MMM yyyy')
-        return $this.Line($textPubDate)
-    }
-
-    [PodcastAnnouncement] Slogan()
-    {
-        return $this.Line('Разговоры на тему .NET во всех его проявлениях, новости, статьи, библиотеки, конференции, личности и прочее интересное из мира IT.')
-    }
-
-    [PodcastAnnouncement] Description()
-    {
-        if ($this.Podcast.Contains('Description'))
-        {
-            $this.Line($this.Podcast['Description']).Append()
-        }
-
-        return $this
-    }
-
-    [PodcastAnnouncement] Home()
-    {
-        return $this.Line($this.Podcast['Home'])
-    }
-
-    [PodcastAnnouncement] Audio()
-    {
-        return $this.Line("Аудиоверсия: $($this.Podcast['Audio'])")
-    }
-
-    [PodcastAnnouncement] Rss()
-    {
-        return $this.Line("RSS подписка на подкаст: $($this::RssUrl)")
-    }
-
-    [PodcastAnnouncement] VideoPlayList()
-    {
-        return $this.Line("Все видео выпуски: $($this::VideoUrl)")
-    }
-
-    [PodcastAnnouncement] Site()
-    {
-        return $this.Line("Сайт подкаста: $($this::SiteUrl)")
-    }
-
-    [PodcastAnnouncement] Authors()
-    {
-        $this.Append('Ведущие:')
-        foreach ($author in $this.Podcast['Authors'])
-        {
-            $link = $this.Links[$author]
-            $link = if ($link) { " ($link)" } else  { '' }
-            $this.Append("• ${author}${link}")
-        }
-        return $this
-    }
-
-    [PodcastAnnouncement] Mastering()
-    {
-        $mastering = $this.Podcast['Mastering']
-        if ($mastering)
-        {
-            $link = $this.Links[$mastering]
-            $link = if ($link) { " ($link)" } else  { '' }
-
-            $this.
-                Line('Звукорежиссёр:').
-                Append("• ${mastering}${link}")
-
-        }
-        return $this
-    }
-
-    [PodcastAnnouncement] Topics()
-    {
-        return $this.Topics($true)
-    }
-
-    [PodcastAnnouncement] Topics([bool] $IncludeLinks)
-    {
-        $this.Line('Темы:').Append()
-        foreach ($topic in $this.Podcast['Topics'])
-        {
-            $this.Append("[$($topic.Timestamp)] — $($topic.Subject)")
-            if ($IncludeLinks)
-            {
-                foreach ($link in $topic.Links)
-                {
-                    $this.Append("• $link")
-                }
-                $this.Append()
-            }
-        }
-        return $this
-    }
-
-    [PodcastAnnouncement] Tags()
-    {
-        return $this.Line('#Podcast #DotNet')
-    }
-}
-
 function Format-AnchorAnnouncement
 {
     [CmdletBinding()]
@@ -433,13 +580,10 @@ function Format-AnchorAnnouncement
 
     process
     {
-        # TODO: Format as Anchor HTML
-        [PodcastAnnouncement]::new($Podcast, $Links).
+        [PodcastAnnouncement]::new($Podcast, $Links, $true).
             Identity().
-            Line().
             Description().
             Site().
-            Line().
             Topics().
             ToString()
     }
@@ -464,15 +608,11 @@ function Format-VKAnnouncement
     {
         [PodcastAnnouncement]::new($Podcast, $Links).
             Identity().
-            Line().
             Home().
-            Line().
             Description().
             Site().
             Rss().
-            Line().
             Topics().
-            Line().
             Tags().
             ToString()
     }
@@ -497,20 +637,14 @@ function Format-YouTubeAnnouncement
     {
         [PodcastAnnouncement]::new($Podcast, $Links).
             Identity().
-            Line().
             Slogan().
-            Line().
             Description().
             Audio().
-            Line().
             Topics().
             Authors().
-            Line().
             Mastering().
-            Line().
             Site().
             VideoPlayList().
-            Line().
             Tags().
             ToString()
     }
@@ -535,9 +669,7 @@ function Format-PodcastCover
     {
         [PodcastAnnouncement]::new($Podcast, $Links).
             Identity().
-            Line().
             ShortDate().
-            Line().
             Topics($false).
             ToString()
     }
