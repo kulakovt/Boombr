@@ -14,7 +14,7 @@ $TrelloNewCardListName = 'Обсуждаем-'
 $AuditDir = Join-Path $PSScriptRoot '..\..\Audit\db' -Resolve
 $InformationPreference = 'Continue'
 
-$EpisodeSorter = { @('Number', 'Title', 'PublishDate', 'Authors', 'Mastering', 'Home', 'Audio', 'Topics', 'Subject', 'Timestamp', 'Links').IndexOf($_) }
+$EpisodeSorter = { @('Number', 'Title', 'PublishDate', 'Authors', 'Mastering', 'Music', 'Home', 'Audio', 'Topics', 'Subject', 'Timestamp', 'Links').IndexOf($_) }
 
 
 class FormatString
@@ -289,6 +289,25 @@ class PodcastAnnouncement
         return $this
     }
 
+    [PodcastAnnouncement] Music()
+    {
+        $music = $this.Podcast['Music']
+        if ($music)
+        {
+            foreach ($name in $music.Keys)
+            {
+                $link = $music[$name]
+                $text = $this.Report.Encode($name)
+                $format = $this.Report.Link($link, $text)
+                $this.Report.Paragraph('Фоновая музыка:')
+                $this.Report.BeginList()
+                $this.Report.ListItem($format)
+                $this.Report.EndList()
+            }
+        }
+        return $this
+    }
+
     [PodcastAnnouncement] Topics()
     {
         return $this.Topics($true)
@@ -365,6 +384,7 @@ function Format-PodcastHeader
             Title = "$([PodcastAnnouncement]::PodcastName) №${EpisodeNumber}"
             Authors = @('Анатолий Кулаков', 'Игорь Лабутин')
             Mastering = 'Максим Шошин'
+            Music = @{ 'Максим Аршинов' = 'https://hightech.group/ru/about' }
         }
     }
 }
@@ -585,6 +605,7 @@ function Format-AnchorAnnouncement
             Description().
             Site().
             Topics().
+            Music().
             ToString()
     }
 }
@@ -613,6 +634,9 @@ function Format-VKAnnouncement
             Site().
             Rss().
             Topics().
+            Authors().
+            Mastering().
+            Music().
             Tags().
             ToString()
     }
@@ -643,6 +667,7 @@ function Format-YouTubeAnnouncement
             Topics().
             Authors().
             Mastering().
+            Music().
             Site().
             VideoPlayList().
             Tags().
@@ -772,7 +797,7 @@ function New-PodcastAnnouncementForAnchor
         $podcast = Get-PodcastFromFile -Path $Path
 
         Format-AnchorAnnouncement -Podcast $podcast -Links @{} |
-        Set-Content -Path ([IO.Path]::ChangeExtension($Path, 'anchor.txt')) -Encoding UTF8
+        Set-Content -Path ([IO.Path]::ChangeExtension($Path, 'anchor.html')) -Encoding UTF8
     }
 }
 
