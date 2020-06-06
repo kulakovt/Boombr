@@ -91,9 +91,26 @@ class FormatString
 
     BeginList()
     {
+        $this.BeginList($null)
+    }
+
+    BeginList([string] $title)
+    {
         if ($this.AsHtml)
         {
+            if ($title)
+            {
+                $this.Paragraph($title)
+            }
+
             $this.Writer.AppendLine('<ul>')
+        }
+        else
+        {
+            if ($title)
+            {
+                $this.Writer.AppendLine($title)
+            }
         }
     }
 
@@ -258,8 +275,7 @@ class PodcastAnnouncement
 
     [PodcastAnnouncement] Authors()
     {
-        $this.Report.Paragraph('Голоса выпуска:')
-        $this.Report.BeginList()
+        $this.Report.BeginList('Голоса выпуска:')
 
         foreach ($author in $this.Podcast['Authors'])
         {
@@ -281,8 +297,7 @@ class PodcastAnnouncement
             $link = $this.Links[$mastering]
             $text = $this.Report.Encode($mastering)
             $format = $this.Report.Link($link, $text)
-            $this.Report.Paragraph('Звукорежиссёр:')
-            $this.Report.BeginList()
+            $this.Report.BeginList('Звукорежиссёр:')
             $this.Report.ListItem($format)
             $this.Report.EndList()
         }
@@ -299,8 +314,7 @@ class PodcastAnnouncement
                 $link = $music[$name]
                 $text = $this.Report.Encode($name)
                 $format = $this.Report.Link($link, $text)
-                $this.Report.Paragraph('Фоновая музыка:')
-                $this.Report.BeginList()
+                $this.Report.BeginList('Фоновая музыка:')
                 $this.Report.ListItem($format)
                 $this.Report.EndList()
             }
@@ -321,16 +335,19 @@ class PodcastAnnouncement
         foreach ($topic in $this.Podcast['Topics'])
         {
             $formatTopic = $this.Report.Encode("[$($topic.Timestamp)] — $($topic.Subject)")
-            $this.Report.Paragraph($formatTopic)
             if ($IncludeLinks)
             {
-                $this.Report.BeginList()
+                $this.Report.BeginList($formatTopic)
                 foreach ($link in $topic.Links)
                 {
                     $formatLink = $this.Report.Link($link)
                     $this.Report.ListItem($formatLink)
                 }
                 $this.Report.EndList()
+            }
+            else
+            {
+                $this.Report.Paragraph($formatTopic)
             }
         }
 
