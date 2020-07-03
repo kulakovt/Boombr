@@ -401,7 +401,7 @@ function Format-PodcastHeader
             Title = "$([PodcastAnnouncement]::PodcastName) №${EpisodeNumber}"
             Authors = @('Анатолий Кулаков', 'Игорь Лабутин')
             Mastering = 'Максим Шошин'
-            Music = @{ 'Максим Аршинов' = 'https://hightech.group/ru/about' }
+            Music = @{ 'Максим Аршинов «Pensive yeti.0.1»' = 'https://hightech.group/ru/about' }
         }
     }
 }
