@@ -714,6 +714,10 @@ function Format-PodcastCover
             ShortDate().
             Topics($false).
             ToString()
+
+        ''
+        'cover.png: 1920 × 1080'
+        'https://www.headliner.app/'
     }
 }
 
@@ -896,3 +900,6 @@ function New-PodcastAnnouncement
 
 # Step 4
 # New-PodcastAnnouncement -Path $PodcastIndex
+# - YT/DotNetRu
+# - VK/DotNetRu
+# - Tg/DotNetRu
