@@ -1,0 +1,28 @@
+<svg width="640" height="360" xmlns="http://www.w3.org/2000/svg" xmlns:xlink= "http://www.w3.org/1999/xlink">
+  <rect x="0" y="300" width="640" height="60" fill="#3E4E86" />
+  <rect x="10" y="310" width="40" height="40" fill="#68217a" stroke="white" />
+
+  <image x="0" y="0" height="300px" width="320px" preserveAspectRatio="xMidYMid slice" xlink:href="https://raw.githubusercontent.com/DotNetRu/Audit/master/db/speakers/Anatoly-Kulakov/avatar.small.jpg"/>
+  <image x="320" y="0" height="300px" width="160px" preserveAspectRatio="xMidYMid slice" xlink:href="https://raw.githubusercontent.com/DotNetRu/Audit/master/db/speakers/Andrey-Akinshin/avatar.small.jpg"/>
+  <image x="480" y="0" height="300px" width="160px" preserveAspectRatio="xMidYMid slice" xlink:href="https://raw.githubusercontent.com/DotNetRu/Audit/master/db/speakers/Alex-Merson/avatar.small.jpg"/>
+
+  <g id="bg" fill="#68217a" opacity="0.9">
+    <rect x="0" y="220" width="290" height="70" />
+    <rect x="330" y="220" width="150" height="70" />
+    <rect x="490" y="220" width="150" height="70" />
+  </g>
+
+  <g id="text" font-family="Consolas" font-size="25" fill="white">
+    <text y="250">
+      <tspan x="20" dy="0">Анатолий</tspan>
+      <tspan x="20" dy="1em">Кулаков</tspan>
+      <tspan x="340" dy="-1em">Андрей</tspan>
+      <tspan x="340" dy="1em">Акиньшин</tspan>
+      <tspan x="500" dy="-1em">Алексей</tspan>
+      <tspan x="500" dy="1em">Мерсон</tspan>
+    </text>
+
+    <text x="100" y="340">Встреча SpbDotNet №60</text>
+  </g>
+
+</svg>
