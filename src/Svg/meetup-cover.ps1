@@ -10,6 +10,7 @@ $InformationPreference = 'Continue'
 
 $AuditDir = Join-Path -Resolve $PSScriptRoot '..\..\..\Audit\db'
 $ConverPath = Join-Path $PSScriptRoot 'Convers'
+$Inkscape = 'C:\Users\akulakov\Desktop\inkscape\bin\inkscape.com'
 
 enum SpeakerPosition
 {
@@ -83,62 +84,71 @@ class SpeakerPart
     [string] RenderBackground()
     {
         $x = 0
-        $width = 0
+        $y = 0
+        $w = 0
+        $h = 0
         switch ($this.Position)
         {
             'First'
             {
                 $x = 0
-                $width = 300
+                $y = 260
+                $w = 310
+                $h = 30
             }
             'First1'
             {
                 $x = 0
-                $width = 150
+                $y = 230
+                $w = 150
+                $h = 60
             }
             'First2'
             {
                 $x = 160
-                $width = 150
+                $y = 230
+                $w = 150
+                $h = 60
             }
             'Second'
             {
-                $x = 340
-                $width = 300
+                $x = 320
+                $y = 260
+                $w = 310
+                $h = 30
             }
             'Second1'
             {
-                $x = 330
-                $width = 150
+                $x = 320
+                $y = 230
+                $w = 150
+                $h = 60
             }
             'Second2'
             {
-                $x = 490
-                $width = 150
+                $x = 480
+                $y = 230
+                $w = 150
+                $h = 60
             }
             default
             {
                 throw "Unknown $($this.Position) position"
             }
         }
-        return '    <rect x="{0}" y="220" width="{1}" height="70" />' -f $x,$width
+        return '    <rect x="{0}" y="{1}" width="{2}" height="{3}" />' -f $x,$y,$w,$h
     }
 
     [string] RenderName()
     {
-        $y = -1
-        if (($this.Position -eq [SpeakerPosition]::First) -or
-            ($this.Position -eq [SpeakerPosition]::First1))
-        {
-            $y = 0
-        }
-
+        $oneLine = $false
         $x = 0
         switch ($this.Position)
         {
             'First'
             {
-                $x = 20
+                $x = 10
+                $oneLine = $true
             }
             'First1'
             {
@@ -150,25 +160,55 @@ class SpeakerPart
             }
             'Second'
             {
-                $x = 360
+                $x = 330
+                $oneLine = $true
             }
             'Second1'
             {
-                $x = 340
+                $x = 330
             }
             'Second2'
             {
-                $x = 500
+                $x = 490
             }
             default
             {
                 throw "Unknown $($this.Position) position"
             }
         }
-        $name1 = '      <tspan x="{0}" dy="{1}em">{2}</tspan>' -f $x,$y,$this.SpeakerName
-        $name2 = '      <tspan x="{0}" dy="1em">{1}</tspan>' -f $x,$this.SpeakerSurname
 
-        return $name1 + [System.Environment]::NewLine + $name2
+        if ($oneLine)
+        {
+            return '    <text x="{0}" y="281">{1}</text>' -f $x,($this.SpeakerName + ' ' + $this.SpeakerSurname)
+        }
+
+        return @'
+    <text y="255">
+      <tspan x="{0}" dy="0">{1}</tspan>
+      <tspan x="{0}" dy="1em">{2}</tspan>
+    </text>
+'@ -f $x,$this.SpeakerName,$this.SpeakerSurname
+    }
+
+    static [string] RenderFriend([string] $AuditDir, $Meetup)
+    {
+        $friendId = $Meetup.FriendIds | Select-Object -First 1
+        if (-not $friendId)
+        {
+            return $null
+        }
+
+        $logoPath = Join-Path $AuditDir "friends/$friendId/logo.small.png"
+        $logoUri = [Uri]::new($logoPath).AbsoluteUri
+
+        $bannerWidth = 640
+        $marginHor = 10
+        $logoHeight = 40
+        $png = New-Object System.Drawing.Bitmap $logoPath
+        [int] $logoWidth = [Math]::Ceiling($png.Width * $logoHeight / $png.Height)
+        $x = $bannerWidth - $marginHor - $logoWidth
+
+        return '  <image x="{0}" y="310" height="40" xlink:href="{1}" />' -f $x,$logoUri
     }
 }
 
@@ -200,31 +240,34 @@ function New-MeetupConver([Meetup] $Meetup, [SpeakerPart[]] $Parts)
     $images = $Parts | ForEach-Object { $_.RenderImage() } | Join-ToString -Delimeter $nl
     $bg = $Parts | ForEach-Object { $_.RenderBackground() } | Join-ToString -Delimeter $nl
     $text = $Parts | ForEach-Object { $_.RenderName() } | Join-ToString -Delimeter $nl
+
+    # We have a rendering error in the current version of Inkscape. Try again later.
+    # $friend = [SpeakerPart]::RenderFriend($AuditDir, $Meetup)
+    $friend = $null
+
 @'
 <svg width="640" height="360" xmlns="http://www.w3.org/2000/svg" xmlns:xlink= "http://www.w3.org/1999/xlink">
-  <rect x="0" y="300" width="640" height="60" fill="#3E4E86" />
-  <rect x="10" y="310" width="40" height="40" fill="#68217a" stroke="white" />
-
 {0}
 
-  <g id="bg" fill="#68217a" opacity="0.9">
+  <rect x="0" y="300" width="640" height="60" fill="#3e4e86" />
+  <rect x="10" y="310" width="40" height="40" fill="#68217a" stroke="white" />
 {1}
-  </g>
 
-  <g id="text" font-family="Consolas" font-size="25" fill="white">
-    <text y="250">
+  <g fill="#68217a" opacity="0.9">
 {2}
-    </text>
-
-    <text x="100" y="340">{3}</text>
   </g>
 
+  <g font-family="Segoe UI" fill="white" font-size="22">
+{3}
+    <text x="60" y="340" font-size="28">{4}</text>
+  </g>
 </svg>
-'@ -f $images,$bg,$text,$Meetup.Name
+'@ -f $images,$friend,$bg,$text,$Meetup.Name
 }
 
 function New-MeetupPage()
 {
+    Add-Type -AssemblyName System.Drawing
     $entities = Read-All -AuditDir $AuditDir
 
     $meetups = $entities | Where-Object { $_ -is [Meetup] } | Where-Object { $_.CommunityId -eq 'SpbDotNet' } | ConvertTo-Hashtable { $_.Id }
@@ -278,7 +321,7 @@ function New-MeetupPage()
         New-MeetupConver -Meetup $meetup -Parts $parts |
         Set-Content -Path $outPath -Encoding UTF8
 
-        C:\Users\akulakov\Desktop\inkscape\bin\inkscape.com --export-type="png" $outPath
+        &$Inkscape --export-type="png" $outPath
     }
 }
 
