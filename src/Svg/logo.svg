@@ -1,0 +1,23 @@
+<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect x="0" y="0" width="300" height="300" fill="#68217a"/>
+
+  <g fill-opacity="0">
+    <rect x="100" y="100" width="130" height="130" stroke="white" />
+    <!-- <circle cx="165" cy="165" r="65" stroke="red" stroke-dasharray="4" /> -->
+    <!-- <rect x="155" y="125" width="50" height="80" stroke="#fbff00"/> -->
+  </g>
+<!--
+  <g font-family="Consolas" font-size="31" fill="white">
+    <text x="155" y="145">SPB</text>
+    <text x="155" y="175">DOT</text>
+    <text x="155" y="205">NET</text>
+  </g>
+-->
+
+  <text y="145" font-family="Consolas" font-size="30" fill="white">
+    <tspan x="155" dy="0">SPB</tspan>
+    <tspan x="155" dy="1em">DOT</tspan>
+    <tspan x="155" dy="1em">NET</tspan>
+  </text>
+
+</svg>
