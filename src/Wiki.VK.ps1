@@ -133,7 +133,6 @@ function Get-VKRepost
 
         $response = 'wall.getReposts' | Invoke-VKMethod -QueryParts $query
 
-        $response
         $response.response.profiles |
         ForEach-Object {
             $actor = $_
