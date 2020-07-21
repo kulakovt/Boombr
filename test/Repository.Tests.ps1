@@ -9,7 +9,7 @@ Describe 'Repository verification' {
 
         function Get-AllTextFile()
         {
-            Get-ChildItem -Path $root -Exclude '.gitignore' -File -Recurse |
+            Get-ChildItem -Path $root -Include '*.ps1','*.psd1','*.yaml','*.yml','*.md' -File -Recurse |
             Where-Object { $_.FullName -notlike '*\artifacts\*' }
         }
 
