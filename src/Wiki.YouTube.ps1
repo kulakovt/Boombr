@@ -316,7 +316,8 @@ function Get-YouTubeReply
 # Where-Object { $_.Title -eq 'RadioDotNet №11'} |
 # Select-Object -ExpandProperty Id |
 # Get-YouTubeComment |
+# Where-Object { -not ($_.ParentId) } | # Not a reply
 # Where-Object { $_.AuthorChannel -NotLike '*/UCgt_mJ4akKCp6MVoDPfYFIQ' } | # Anatoly Kulakov
 # Where-Object { $_.AuthorChannel -NotLike '*/UCL1glUx4QToZ2aX8iTcieIw' } | # Igor Labutin
-# # Format-Table
+# Select-Object Author,AuthorChannel,@{ L='Text'; E={ $_.Text -replace "`n",' ' -replace "`r",' ' }} |
 # Export-Csv -Path (Join-Path $PSScriptRoot '../artifacts/yt-dotnetru-comments.csv') -NoTypeInformation -Encoding UTF8 -Delimiter ';'
