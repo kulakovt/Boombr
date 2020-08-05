@@ -115,6 +115,15 @@ function Export-Talk()
     }
 }
 
+function Export-DetailedTalkList($Talks)
+{
+    Write-Verbose "Export talk list"
+
+    $path = Join-Path $WikiConfig.WikiDir "DetailedTalks.md"
+    $content = $Talks | Format-DetailedTalkList
+    $content | Set-Content -Path $path -Encoding UTF8
+}
+
 function Export-Speaker([string] $SpeakerDir = $(throw "Speaker dir required"))
 {
     process
@@ -611,6 +620,54 @@ $($talk.Description)
     }
 }
 
+function Format-DetailedTalkList()
+{
+    begin
+    {
+        function Format-EscapeCell()
+        {
+            process
+            {
+                $_.Replace('|', '\|').Replace("`r", ' ').Replace("`n", ' ').Replace('  ', ' ')
+            }
+        }
+
+        '| Когда и где | Докладчик | Доклад | Ссылки |'
+        '| --- | --- | --- | --- |'
+    }
+    process
+    {
+        $talk = [Talk]$_
+
+        $meetup = Get-MeetupByTalk -TalkId $talk.Id
+        if ($meetup.Sessions[0].StartTime.Year -lt ((Get-Date).Year - 0))
+        {
+            return
+        }
+
+        $meetupSection = "$(Format-RuDate -Date $meetup.Sessions[0].StartTime)<br/>[[$($meetup.Name)|$($meetup.Id)]]" | Format-EscapeCell
+
+        $speakersSection = $talk.SpeakerIds |
+        ForEach-Object { $WikiRepository.Speakers[$_] } |
+        ForEach-Object {
+            $speaker = $_
+            $id = $speaker.Id
+            "$($speaker | Format-SpeakerLine)<br/>[![Photo](./$id/$id-small.jpg)](./$id/$id.jpg)"
+        } |
+        Format-EscapeCell |
+        Join-ToString -Delimeter '<br/>'
+
+        $talkSection = "**[[$($talk.Title)|$($talk.Id)]]**<br/>$($talk.Description)" | Format-EscapeCell
+
+        $linkSection = ''
+        if ($talk.VideoUrl) { $linkSection += "[Видео]($($talk.VideoUrl))<br>" }
+        if ($talk.SlidesUrl) { $linkSection += "[Слайды]($($talk.SlidesUrl))<br>" }
+        if ($talk.CodeUrl) { $linkSection += "[Демо]($($talk.CodeUrl))<br>" }
+
+        "| $meetupSection | $speakersSection | $talkSection | $linkSection |"
+    }
+}
+
 function Get-MeetupByTalk([string] $TalkId)
 {
     $WikiRepository.Meetups.Values |
@@ -887,6 +944,8 @@ function Invoke-BuildWiki()
     $WikiRepository.Friends.Values | Export-Friend -FriendDir (Join-Path $Config.AuditDir 'friends')
     $WikiRepository.Talks.Values | Export-Talk
     $WikiRepository.Speakers.Values | Export-Speaker -SpeakerDir (Join-Path $Config.AuditDir 'speakers')
+
+    Export-DetailedTalkList -Talks $WikiRepository.Talks.Values
 
     if (-not $Config.IsOffline)
     {
