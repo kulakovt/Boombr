@@ -119,9 +119,26 @@ function Export-DetailedTalkList($Talks)
 {
     Write-Verbose "Export talk list"
 
-    $path = Join-Path $WikiConfig.WikiDir "DetailedTalks.md"
-    $content = $Talks | Format-DetailedTalkList
-    $content | Set-Content -Path $path -Encoding UTF8
+    $Talks |
+    ForEach-Object {
+        $meetup = Get-MeetupByTalk -TalkId $_.Id
+        [PSCustomObject]@{
+            Talk = $_
+            Date = $meetup.Sessions[0].StartTime
+        }
+    } |
+    Group-Object -Property { $_.Date.Year } |
+    ForEach-Object {
+
+        $page = $_
+        $path = Join-Path $WikiConfig.WikiDir "DetailedTalks-$($page.Name).md"
+
+        $page.Group |
+        Sort-Object -Property Date |
+        Select-Object -ExpandProperty Talk |
+        Format-DetailedTalkList |
+        Set-Content -Path $path -Encoding UTF8
+    }
 }
 
 function Export-Speaker([string] $SpeakerDir = $(throw "Speaker dir required"))
@@ -487,6 +504,17 @@ function Format-HomePage([Community[]] $Communities)
     }
 
     ''
+    '## Детализированные списки докладов'
+    ''
+    $WikiRepository.Meetups.Values.Sessions.StartTime.Year |
+    Select-Object -Unique |
+    Sort-Object |
+    ForEach-Object {
+        "- [[За $_ год|DetailedTalks-$_]]"
+    }
+
+
+    ''
     '## Рейтинги докладов'
     ''
     ' - [[Рейтинг любимых докладов по версии YouTube зрителей|LikedVideos]]'
@@ -640,11 +668,6 @@ function Format-DetailedTalkList()
         $talk = [Talk]$_
 
         $meetup = Get-MeetupByTalk -TalkId $talk.Id
-        if ($meetup.Sessions[0].StartTime.Year -lt ((Get-Date).Year - 0))
-        {
-            return
-        }
-
         $meetupSection = "$(Format-RuDate -Date $meetup.Sessions[0].StartTime)<br/>[[$($meetup.Name)|$($meetup.Id)]]" | Format-EscapeCell
 
         $speakersSection = $talk.SpeakerIds |
@@ -652,7 +675,7 @@ function Format-DetailedTalkList()
         ForEach-Object {
             $speaker = $_
             $id = $speaker.Id
-            "$($speaker | Format-SpeakerLine)<br/>[![Photo](./$id/$id-small.jpg)](./$id/$id.jpg)"
+            "[![Photo](./$id/$id-small.jpg)](./$id/$id.jpg)<br/>$($speaker | Format-SpeakerLine)"
         } |
         Format-EscapeCell |
         Join-ToString -Delimeter '<br/>'
