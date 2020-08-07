@@ -134,8 +134,8 @@ function Export-DetailedTalkList($Talks)
         $path = Join-Path $WikiConfig.WikiDir "DetailedTalks-$($page.Name).md"
 
         $page.Group |
-        Sort-Object -Property Date |
-        Select-Object -ExpandProperty Talk |
+        Sort-Object -Property Date -Descending |
+        Select-Object -ExpandProperty Talk -First 80 | # BUG: Wiki size limit
         Format-DetailedTalkList |
         Set-Content -Path $path -Encoding UTF8
     }
@@ -508,7 +508,7 @@ function Format-HomePage([Community[]] $Communities)
     ''
     $WikiRepository.Meetups.Values.Sessions.StartTime.Year |
     Select-Object -Unique |
-    Sort-Object |
+    Sort-Object -Descending |
     ForEach-Object {
         "- [[За $_ год|DetailedTalks-$_]]"
     }
