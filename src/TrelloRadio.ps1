@@ -162,6 +162,8 @@ class PodcastAnnouncement
     static [string] $SiteUrl = 'http://Radio.DotNet.Ru'
     static [string] $RssUrl = 'https://anchor.fm/s/f0c0ef4/podcast/rss'
     static [string] $VideoUrl = 'https://www.youtube.com/playlist?list=PLbxr_aGL4q3SpQ9GRn2jv-NEpvN23CUC5'
+    static [string] $GoogleUrl = 'https://podcasts.google.com/feed/aHR0cHM6Ly9hbmNob3IuZm0vcy9mMGMwZWY0L3BvZGNhc3QvcnNz'
+    static [string] $AppleUrl = 'https://podcasts.apple.com/us/podcast/radiodotnet/id1484348948'
 
     [hashtable] $Podcast
     [hashtable] $Links
@@ -259,10 +261,14 @@ class PodcastAnnouncement
         return $this
     }
 
-    [PodcastAnnouncement] VideoPlayList()
+    [PodcastAnnouncement] PlayResources()
     {
         $link = $this.Report.Link($this::VideoUrl)
         $this.Report.Paragraph("Все видео выпуски: $link")
+        $link = $this.Report.Link($this::GoogleUrl)
+        $this.Report.Paragraph("Google Podcasts: $link")
+        $link = $this.Report.Link($this::AppleUrl)
+        $this.Report.Paragraph("Apple Podcasts: $link")
         return $this
     }
 
@@ -686,7 +692,7 @@ function Format-YouTubeAnnouncement
             Mastering().
             Music().
             Site().
-            VideoPlayList().
+            PlayResources().
             Tags().
             ToString()
     }
