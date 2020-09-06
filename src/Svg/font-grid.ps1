@@ -3,64 +3,9 @@
 Set-StrictMode -version Latest
 $ErrorActionPreference = 'Stop'
 
-class Glyph
-{
-    [string] $Unicode
-    [string] $Path
+. $PSScriptRoot\Svg.ps1
 
-    hidden [string] $BasePattern = '^m(?<X>\-?\d+)\s?(?<Y>\-?\d+)'
-
-    Glyph([string] $Unicode, [string] $Path)
-    {
-        $this.Unicode = $Unicode
-        $this.Path = $Path
-    }
-
-    static [Glyph] FromXml([xml] $PathElement)
-    {
-        return [Glyph]::new($PathElement.path.id, $PathElement.path.d)
-    }
-
-    [string] ToString()
-    {
-        return '<path id="{0}" d="{1}" />' -f $this.Unicode,$this.Path
-    }
-
-    [Hashtable] GetBasePoint()
-    {
-        if ($this.Path -match $this.BasePattern)
-        {
-            return @{
-                X = [int]$Matches.X
-                Y = [int]$Matches.Y
-            }
-        }
-
-        throw "Can't parse Path from $($this.Unicode): $($this.Path)"
-    }
-
-    [Glyph] Move([int] $TranslateX, [int] $TranslateY)
-    {
-        $basePoint = $this.GetBasePoint()
-        $newX = $basePoint.X + $TranslateX
-        $newY = $basePoint.Y + $TranslateY
-        $separator = if ($newY -ge 0) { ' ' } else { '' }
-        $newBase = "m${newX}${separator}${newY}"
-
-        $newPath = $this.Path -replace $this.BasePattern,$newBase
-
-        return [Glyph]::new($this.Unicode, $newPath)
-    }
-}
-
-function Get-Glyph()
-{
-    Get-Content (Join-Path $PSScriptRoot 'font-v2.svg') |
-    Where-Object { $_.Contains('<path id="') } |
-    ForEach-Object { [Glyph]::FromXml($_) }
-}
-
-function Format-Glyph([Glyph] $Glyph, [int] $TranslateX, [int] $TranslateY)
+function Format-Glyph([SvgGlyph] $Glyph, [int] $TranslateX, [int] $TranslateY)
 {
     $newGlyph = $Glyph.Move($TranslateX, $TranslateY)
     '    ' + $newGlyph.ToString()
@@ -70,8 +15,8 @@ function Format-Glyph([Glyph] $Glyph, [int] $TranslateX, [int] $TranslateY)
 
 function Show-SvgGrid()
 {
-    $cw = 1126
-    $ch = 1307
+    $cw = [SvgGlyph]::Width
+    $ch = [SvgGlyph]::Height
     $s = 100
     $gc = 6
     $gr = 5
@@ -99,7 +44,9 @@ function Show-SvgGrid()
 
     ''
     $i = 0
-    $glyphs = Get-Glyph | Sort-Object { Get-Random }
+    $path = Join-Path $PSScriptRoot 'ConsolasGlyphs.svg'
+    $glyphs = Get-SvgGlyph -Path $path | Sort-Object { Get-Random }
+
     for ($y = 0; $y -lt $gr; $y++)
     {
         $yh = $s + ($y * ($s + $ch + $s)) +$s
