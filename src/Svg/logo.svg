@@ -1,23 +1,16 @@
-<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
-  <rect x="0" y="0" width="300" height="300" fill="#68217a"/>
-
-  <g fill-opacity="0">
-    <rect x="100" y="100" width="130" height="130" stroke="white" />
-    <!-- <circle cx="165" cy="165" r="65" stroke="red" stroke-dasharray="4" /> -->
-    <!-- <rect x="155" y="125" width="50" height="80" stroke="#fbff00"/> -->
-  </g>
-<!--
-  <g font-family="Consolas" font-size="31" fill="white">
-    <text x="155" y="145">SPB</text>
-    <text x="155" y="175">DOT</text>
-    <text x="155" y="205">NET</text>
-  </g>
--->
-
-  <text y="145" font-family="Consolas" font-size="30" fill="white">
-    <tspan x="155" dy="0">SPB</tspan>
-    <tspan x="155" dy="1em">DOT</tspan>
-    <tspan x="155" dy="1em">NET</tspan>
-  </text>
-
+<svg width="8844" height="8844" xmlns="http://www.w3.org/2000/svg">
+ <rect x="0" y="0" width="8844" height="8844" fill="#68217a" />
+ <g fill-opacity="0" stroke-width="20">
+   <!-- Center -->
+   <circle cx="4421.802" cy="4421.802" r="100" fill="red" fill-opacity="1"/>
+   <!-- Social circle -->
+   <circle cx="4421.802" cy="4421.802" r="4421.802" stroke="coral" stroke-dasharray="100" />
+   <!-- Golden rectangle -->
+   <rect x="4421.802" y="1689" width="3378" height="5465.604" stroke="#fbff00"/>
+   <!-- Rule of thirds -->
+   <line x1="0" y1="2947.868" x2="8843.604" y2="2947.868" stroke="lime" />
+   <line x1="0" y1="5895.736" x2="8843.604" y2="5895.736" stroke="lime" />
+   <line x1="2947.868" y1="0" x2="2947.868" y2="8843.604" stroke="lime" />
+   <line x1="5895.736" y1="0" x2="5895.736" y2="8843.604" stroke="lime" />
+ </g>
 </svg>
