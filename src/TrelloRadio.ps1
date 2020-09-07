@@ -660,6 +660,7 @@ function Format-VKAnnouncement
             Authors().
             Mastering().
             Music().
+            PlayResources().
             Tags().
             ToString()
     }
