@@ -2,7 +2,7 @@ function Format-Indent([int] $IndentSize)
 {
     begin
     {
-        $indentString = ' ' * $IndentSize
+        $indentString = '  ' * $IndentSize
     }
     process
     {
@@ -17,11 +17,11 @@ function Format-Indent([int] $IndentSize)
     }
 }
 
-function New-SvgGroup()
+function New-SvgGroup([string] $FillColor)
 {
     begin
     {
-        '<g fill="white">'
+        '<g fill="{0}">' -f $FillColor
     }
     process
     {
