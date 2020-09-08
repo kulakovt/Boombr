@@ -1,4 +1,4 @@
-function Format-Indent([int] $IndentSize)
+﻿function Format-Indent([int] $IndentSize)
 {
     begin
     {

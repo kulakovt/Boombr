@@ -1,4 +1,4 @@
-Set-StrictMode -version Latest
+﻿Set-StrictMode -version Latest
 $ErrorActionPreference = 'Stop'
 
 $InformationPreference = 'Continue'
