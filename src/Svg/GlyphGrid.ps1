@@ -8,23 +8,26 @@ $ErrorActionPreference = 'Stop'
 function Format-Glyph([SvgGlyph] $Glyph, [int] $TranslateX, [int] $TranslateY)
 {
     $newGlyph = $Glyph.Move($TranslateX, $TranslateY)
-    '    ' + $newGlyph.ToString()
+    '    ' + $newGlyph.ToPath()
     $basePoint = $newGlyph.GetBasePoint()
-    '    <circle cx="{0}" cy="{1}" r="50" fill="red"/>' -f $basePoint.X,$basePoint.Y
+    '    <circle cx="{0}" cy="{1}" r="5" fill="red"/>' -f $basePoint.X,$basePoint.Y
 }
 
 function Show-SvgGrid()
 {
-    $cw = [SvgGlyph]::Width
-    $ch = [SvgGlyph]::Height
-    $s = 100
+    $path = Join-Path $PSScriptRoot 'ConsolasGlyphs.svg'
+    $glyphSet = Get-SvgGlyphSet -Path $path
+
+    $cw = $glyphSet.Width
+    $ch = $glyphSet.Height
+    $s = 10
     $gc = 6
     $gr = 5
     $gw = $s + ($gc * ($s + $cw + $s)) + $s
     $gh = $s + ($gr * ($s + $ch + $s)) + $s
 
 @'
-<svg width="{0}" height="{1}" xmlns="http://www.w3.org/2000/svg">
+<svg width="{0}" height="{1}" version="1.1" xmlns="http://www.w3.org/2000/svg">
   <rect x="0" y="0" width="{0}" height="{1}" fill="#68217a"/>
   <g stroke="#fbff00">
 
@@ -44,8 +47,7 @@ function Show-SvgGrid()
 
     ''
     $i = 0
-    $path = Join-Path $PSScriptRoot 'ConsolasGlyphs.svg'
-    $glyphs = Get-SvgGlyph -Path $path | Sort-Object { Get-Random }
+    $glyphs = $glyphSet.Glyphs | Sort-Object { Get-Random }
 
     for ($y = 0; $y -lt $gr; $y++)
     {
@@ -68,4 +70,4 @@ function Show-SvgGrid()
 '@
 }
 
-Show-SvgGrid | Set-Content (Join-Path $PSScriptRoot 'font-grid.svg')
+Show-SvgGrid | Set-Content (Join-Path $PSScriptRoot 'GlyphGrid.svg')
