@@ -164,6 +164,42 @@ function ConvertTo-Hashtable
     }
 }
 
+function Format-XmlAttributeLine
+{
+    [CmdletBinding()]
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [Hashtable]
+        $Pairs,
+
+        [Parameter()]
+        [string]
+        $Prefix = ' '
+    )
+
+    process
+    {
+        $Pairs |
+        Select-Many |
+        ForEach-Object {
+            '{0}="{1}"' -f $_.Key,$_.Value
+        } |
+        Join-ToString -Delimeter ' ' |
+        ForEach-Object {
+
+            if ($_)
+            {
+                $Prefix + $_
+            }
+            else
+            {
+                ''
+            }
+        }
+    }
+}
+
 function Format-UriQuery
 {
     [CmdletBinding()]

@@ -1,4 +1,6 @@
-﻿function Format-Indent([int] $IndentSize)
+﻿. $PSScriptRoot\..\Utility.ps1
+
+function Format-Indent([int] $IndentSize)
 {
     begin
     {
@@ -17,15 +19,15 @@
     }
 }
 
-function New-SvgGroup([string] $FillColor)
+function New-SvgGroup([Hashtable] $Attributes = @{})
 {
     begin
     {
-        '<g fill="{0}">' -f $FillColor
+        '<g{0}>' -f ($Attributes | Format-XmlAttributeLine)
     }
     process
     {
-        $_
+        $_ | Format-Indent -IndentSize 1
     }
     end
     {
@@ -33,20 +35,35 @@ function New-SvgGroup([string] $FillColor)
     }
 }
 
-function New-SvgRect([int] $X, [int] $Y, [int] $Width, [int] $Height, [string] $FillColor)
+function New-SvgRect([double] $X, [double] $Y, [double] $Width, [double] $Height, [Hashtable] $Attributes = @{})
 {
-    '<rect x="{0}" y="{1}" width="{2}" height="{3}" fill="{4}" />' -f $X,$Y,$Width,$Height,$FillColor
+    '<rect x="{0}" y="{1}" width="{2}" height="{3}"{4} />' -f "$X","$Y","$Width","$Height",($Attributes | Format-XmlAttributeLine)
 }
 
-function New-SvgDocument([int] $Width, [int] $Height)
+function New-SvgLine([double] $X1, [double] $Y1, [double] $X2, [double] $Y2, [Hashtable] $Attributes = @{})
+{
+    '<line x1="{0}" y1="{1}" x2="{2}" y2="{3}"{4} />' -f "$X1","$Y1","$X2","$Y2",($Attributes | Format-XmlAttributeLine)
+}
+
+function New-SvgCircle([double] $X, [double] $Y, [double] $Radius, [Hashtable] $Attributes = @{})
+{
+    '<circle cx="{0}" cy="{1}" r="{2}"{3} />' -f "$X","$Y","$Radius",($Attributes | Format-XmlAttributeLine)
+}
+
+function New-SvgComment($Message)
+{
+    '<!-- {0} -->' -f $Message
+}
+
+function New-SvgDocument([double] $Width, [double] $Height)
 {
     begin
     {
-'<svg width="{0}" height="{1}" version="1.1" xmlns="http://www.w3.org/2000/svg">' -f $Width,$Height
+'<svg width="{0}" height="{1}" version="1.1" xmlns="http://www.w3.org/2000/svg">' -f "$Width","$Height"
     }
     process
     {
-        $_
+        $_ | Format-Indent -IndentSize 1
     }
     end
     {
@@ -88,6 +105,7 @@ class SvgGlyph
 
     [string] ToPath()
     {
+        # TODO: Skip «id» attribute
         $id = [SvgGlyph]::UnicodeToId($this.Unicode)
         return '<path id="{0}" d="{1}" />' -f $id,$this.Path
     }
@@ -172,16 +190,18 @@ function Convert-SvgFontToTransformGlyph($Path)
         }
     }
 
-@'
-<svg width="{1}" height="{2}" version="1.1" xmlns="http://www.w3.org/2000/svg">
-  <g transform="scale(0.1, 0.1) rotate(180 {3} {4}) scale(-1, 1) translate(-{0}, 0)">
-'@ -f $width,[int]($width * $scaleFactor),[int]($height * $scaleFactor),[int]($width / 2),[int]($height / 2)
+    [int] $newWidth = $width * $scaleFactor
+    [int] $newHeight = $height * $scaleFactor
+    [int] $halfWidth = $width / 2
+    [int] $halfHeight = $height / 2
+
+    $transform = 'scale({0}, {0}) rotate(180 {1} {2}) scale(-1, 1) translate(-{3}, 0)' -f "$scaleFactor",$halfWidth,$halfHeight,$width
 
     $f.svg.defs.font.glyph |
     Select-SvgUsefulGlyph |
-    ForEach-Object { '    ' + $_.ToPath() }
-'  </g>'
-'</svg>'
+    ForEach-Object { $_.ToPath() } |
+    New-SvgGroup -Attributes @{ transform = $transform } |
+    New-SvgDocument -Width $newWidth -Height $newHeight
 }
 
 # Convert-SvgFontToTransformGlyph 'C:\Users\akulakov\Desktop\RadioDotNet\Font\consola.svg' > ./src/Svg/ConsolasRaw.svg
