@@ -22,16 +22,20 @@ function New-SettingsFromGlyphSize()
     @{
         GlyphSet = $glyphSet
         Square = @{
-            Size = $squareSize
-            Center = $squareSize / 2
+            Size = [int] $squareSize
+            Center = [int] ($squareSize / 2)
         }
         Rect = @{
             ColumnCount = $columnCount
             RowCount = 3
-            X = $secondThird - $rectWidth / 2
-            Y = $squareSize / 2 - ($rectHeight  / 2)
-            Width = $rectWidth
-            Height = $rectHeight
+            X = [int] ($secondThird - $rectWidth / 2)
+            Y = [int] ($squareSize / 2 - ($rectHeight  / 2))
+            Width = [int] $rectWidth
+            Height = [int] $rectHeight
+        }
+        Border = @{
+            # 0,0, +8, -16
+            Width = 16
         }
     }
 }
@@ -61,38 +65,48 @@ function New-GlyphRect([string] $Text)
 
 function New-Diagnostic()
 {
-    '<g id="diag" fill-opacity="0" stroke-width="2">'
-    $firstThird =  $Settings.Square.Size / 3
-    $secondThird =  $Settings.Square.Size - $firstThird
-    @(
-        '   <!-- Rule of thirds -->'
-        '  <line x1="0" y1="{1}" x2="{0}" y2="{1}" stroke="lime" />'
-        '  <line x1="0" y1="{2}" x2="{0}" y2="{2}" stroke="lime" />'
-        '  <line x1="{1}" y1="0" x2="{1}" y2="{0}" stroke="lime" />'
-        '  <line x1="{2}" y1="0" x2="{2}" y2="{0}" stroke="lime" />'
-    ) |
-    ForEach-Object {
-        $_ -f "$($Settings.Square.Size)","$firstThird","$secondThird"
-    }
-    '  <!-- Golden rectangle -->'
-    '  <rect x="{0}" y="{1}" width="{2}" height="{3}" stroke="#fbff00"/>' -f "$($Settings.Rect.X)","$($Settings.Rect.Y)","$($Settings.Rect.Width)","$($Settings.Rect.Height)"
-    '  <!-- Social circle -->'
-    '  <circle cx="{0}" cy="{0}" r="{1}" stroke="coral" stroke-dasharray="10" />' -f "$($Settings.Square.Center)","$($Settings.Square.Size / 2)"
-    '  <!-- Centers -->'
-    '  <circle cx="{0}" cy="{0}" r="10" fill="red" fill-opacity="1"/>' -f "$($Settings.Square.Center)"
-    '  <circle cx="{0}" cy="{1}" r="10" fill="red" fill-opacity="1"/>' -f "$($Settings.Rect.X + $Settings.Rect.Width / 2)","$($Settings.Rect.Y)"
-    '  <circle cx="{0}" cy="{1}" r="10" fill="red" fill-opacity="1"/>' -f "$($Settings.Rect.X + $Settings.Rect.Width / 2)","$($Settings.Rect.Y + $Settings.Rect.Height)"
-    '</g>'
+    &{
+        New-SvgComment -Message 'Rule of thirds'
+        [int] $firstThird =  $Settings.Square.Size / 3
+        [int] $secondThird =  $Settings.Square.Size - $firstThird
+        [int] $size = $Settings.Square.Size
+        @(
+            @(0, $firstThird, $size, $firstThird),
+            @(0, $secondThird, $size, $secondThird),
+            @($firstThird, 0, $firstThird, $size),
+            @($secondThird, 0, $secondThird, $size)
+        ) |
+        ForEach-Object {
+            New-SvgLine -X1 $_[0] -Y1 $_[1] -X2 $_[2] -Y2 $_[3] -Attributes @{ stroke='lime' }
+        }
+
+        New-SvgComment -Message 'Golden rectangle'
+        New-SvgRect -X $Settings.Rect.X -Y $Settings.Rect.Y -Width $Settings.Rect.Width -Height $Settings.Rect.Height -Attributes @{ stroke='#fbff00' }
+
+        New-SvgComment -Message 'Social circle'
+        $center = $Settings.Square.Center
+        New-SvgCircle -X $center -Y $center -Radius ($Settings.Square.Size / 2) -Attributes @{ stroke = 'coral'; 'stroke-dasharray' = 10 }
+
+        New-SvgComment -Message 'Centers'
+        $centerAttributes = @{ fill = 'red'; 'fill-opacity' = 1 }
+        New-SvgCircle -X $center -Y $center -Radius 10 -Attributes $centerAttributes
+        [int] $halfRectX = $Settings.Rect.X + $Settings.Rect.Width / 2
+        New-SvgCircle -X $halfRectX -Y $Settings.Rect.Y -Radius 10 -Attributes $centerAttributes
+        New-SvgCircle -X $halfRectX -Y ($Settings.Rect.Y + $Settings.Rect.Height) -Radius 10 -Attributes $centerAttributes
+    } |
+    New-SvgGroup -Attributes @{ id = 'diag'; 'fill-opacity' = 0; 'stroke-width' = 2 }
 }
 
 function New-Logo([string] $Text)
 {
     $size = $Settings.Square.Size
     &{
-        New-SvgRect -X 0 -Y 0 -Width $size -Height $size -FillColor '#68217a' | Format-Indent -IndentSize 1
-        New-GlyphRect -Text $Text.ToUpperInvariant() | Format-Indent -IndentSize 1 |
-        New-SvgGroup -FillColor 'white' | Format-Indent -IndentSize 1
-        New-Diagnostic | Format-Indent -IndentSize 1
+        New-SvgRect -X 0 -Y 0 -Width $size -Height $size -Attributes @{ fill='#68217a' }
+
+        New-GlyphRect -Text $Text.ToUpperInvariant() |
+        New-SvgGroup -Attributes @{ fill = 'white' }
+
+        New-Diagnostic
     } |
     New-SvgDocument -Width $size -Height $size
 }
