@@ -18,6 +18,7 @@ function New-SettingsFromGlyphSize()
     $squareSize = $rectWidth + $rectHeight
     $firstThird =  $squareSize / 3
     $secondThird =  $squareSize - $firstThird
+    # HACK: hardcode for Glyph 113×131
     [int] $borderThick = 16
 
     @{
@@ -47,32 +48,69 @@ function New-SettingsFromGlyphSize()
             Width = [int] ($squareSize) - $borderThick
             Height = [int] ($squareSize) - $borderThick
         }
+        Diagnostic = @{
+            Visible = $true
+        }
     }
 }
 
 # TODO: Remove static dependency
 $Settings = New-SettingsFromGlyphSize
 
-function New-GlyphRect([string] $Text)
+function New-TextGlyph([SvgGlyph] $Glyph, [int] $Position, [hashtable] $GlyphSet, [Hashtable] $TextSettings)
+{
+    $columnIndex = $Position % $TextSettings.RowCount
+    $rowIndex = [Math]::Floor($Position / $TextSettings.ColumnCount)
+    [int] $x = $TextSettings.X + $GlyphSet.Width * $columnIndex
+    $verticalSpace = ($TextSettings.Height - ($GlyphSet.Height * $TextSettings.RowCount)) / ($TextSettings.RowCount - 1)
+    [int] $y = $TextSettings.Y + ($GlyphSet.Height + $verticalSpace) * $rowIndex
+
+    $Glyph.Move($x, $y)
+}
+
+function Select-TextGlyph
+{
+    [CmdletBinding()]
+    [OutputType([SvgGlyph])]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [string]
+        $Letter,
+
+        [Parameter(Mandatory)]
+        [hashtable]
+        $GlyphSet,
+
+        [Parameter(Mandatory)]
+        [Hashtable]
+        $TextSettings
+    )
+
+    begin
+    {
+        $Position = -1
+    }
+    process
+    {
+        $Position++
+
+        $glyph = $GlyphSet.Glyphs | Where-Object { $_.Unicode -eq $Letter }
+        if (-not $glyph) { throw "Can't find glyph for «$letter»" }
+
+        New-TextGlyph -Glyph $glyph -Position $Position -GlyphSet $GlyphSet -TextSettings $TextSettings
+    }
+}
+
+function New-Text([string] $Text)
 {
     $maxLenth = $Settings.Rect.ColumnCount * $Settings.Rect.RowCount
     if ($Text.Length -ne $maxLenth) { throw "Text length must be $maxLenth letters long" }
 
-    for ($i = 0; $i -lt $Text.Length; $i++)
-    {
-        # TODO: Split method
-        $columnIndex = $i % $Settings.Rect.RowCount
-        $rowIndex = [Math]::Floor($i / $Settings.Rect.ColumnCount)
-        [int] $x = $Settings.Rect.X + $Settings.GlyphSet.Width * $columnIndex
-        $ys = ($Settings.Rect.Height - ($Settings.GlyphSet.Height * $Settings.Rect.RowCount)) / ($Settings.Rect.RowCount - 1)
-        [int] $y = $Settings.Rect.Y + ($Settings.GlyphSet.Height + $ys) * $rowIndex
-
-        $letter = $Text[$i]
-        $glyph = $Settings.GlyphSet.Glyphs | Where-Object { $_.Unicode -eq $letter }
-        if (-not $glyph) { throw "Can't find glyph for «$letter»" }
-
-        $glyph.Move($x, $y).ToPath()
-    }
+    $Text |
+    Select-Many |
+    Select-TextGlyph -GlyphSet $Settings.GlyphSet -TextSettings $Settings.Rect |
+    ForEach-Object { $_.ToPath() } |
+    New-SvgGroup -Attributes @{ fill = 'white' }
 }
 
 function New-Border()
@@ -92,6 +130,11 @@ function New-Border()
 
 function New-Diagnostic()
 {
+    if (-not $Settings.Diagnostic.Visible)
+    {
+        return
+    }
+
     &{
         New-SvgComment -Message 'Rule of thirds'
         [int] $firstThird =  $Settings.Square.Size / 3
@@ -132,8 +175,7 @@ function New-Logo([string] $Text)
 
         New-Border
 
-        New-GlyphRect -Text $Text.ToUpperInvariant() |
-        New-SvgGroup -Attributes @{ fill = 'white' }
+        New-Text -Text $Text.ToUpperInvariant()
 
         New-Diagnostic
     } |
