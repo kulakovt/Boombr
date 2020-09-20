@@ -18,28 +18,39 @@ function New-SettingsFromGlyphSize()
     $squareSize = $rectWidth + $rectHeight
     $firstThird =  $squareSize / 3
     $secondThird =  $squareSize - $firstThird
+    [int] $borderThick = 16
 
     @{
         GlyphSet = $glyphSet
+        # TODO: Rename to Background
         Square = @{
+            # TODO: Split to Width separate demensions
             Size = [int] $squareSize
             Center = [int] ($squareSize / 2)
         }
+        # TODO: Rename to Text
         Rect = @{
+            # TODO: Remove Counts (non-configurable options)
             ColumnCount = $columnCount
             RowCount = 3
             X = [int] ($secondThird - $rectWidth / 2)
             Y = [int] ($squareSize / 2 - ($rectHeight  / 2))
+            # TODO: Check customization
             Width = [int] $rectWidth
             Height = [int] $rectHeight
         }
         Border = @{
-            # 0,0, +8, -16
-            Width = 16
+            Visible = $true
+            Thickness = $borderThick
+            X = [int] ($borderThick / 2)
+            Y = [int] ($borderThick / 2)
+            Width = [int] ($squareSize) - $borderThick
+            Height = [int] ($squareSize) - $borderThick
         }
     }
 }
 
+# TODO: Remove static dependency
 $Settings = New-SettingsFromGlyphSize
 
 function New-GlyphRect([string] $Text)
@@ -49,6 +60,7 @@ function New-GlyphRect([string] $Text)
 
     for ($i = 0; $i -lt $Text.Length; $i++)
     {
+        # TODO: Split method
         $columnIndex = $i % $Settings.Rect.RowCount
         $rowIndex = [Math]::Floor($i / $Settings.Rect.ColumnCount)
         [int] $x = $Settings.Rect.X + $Settings.GlyphSet.Width * $columnIndex
@@ -61,6 +73,21 @@ function New-GlyphRect([string] $Text)
 
         $glyph.Move($x, $y).ToPath()
     }
+}
+
+function New-Border()
+{
+    if (-not $Settings.Border.Visible)
+    {
+        return
+    }
+
+    $borderAttributes = [Ordered] @{
+        stroke = 'white'
+        'stroke-width' = $Settings.Border.Thickness
+        'fill-opacity' = '0'
+    }
+    New-SvgRect -X $Settings.Border.X -Y $Settings.Border.Y -Width $Settings.Border.Width -Height $Settings.Border.Height -Attributes $borderAttributes
 }
 
 function New-Diagnostic()
@@ -88,7 +115,7 @@ function New-Diagnostic()
         New-SvgCircle -X $center -Y $center -Radius ($Settings.Square.Size / 2) -Attributes @{ stroke = 'coral'; 'stroke-dasharray' = 10 }
 
         New-SvgComment -Message 'Centers'
-        $centerAttributes = @{ fill = 'red'; 'fill-opacity' = 1 }
+        $centerAttributes = [Ordered] @{ fill = 'red'; 'fill-opacity' = 1 }
         New-SvgCircle -X $center -Y $center -Radius 10 -Attributes $centerAttributes
         [int] $halfRectX = $Settings.Rect.X + $Settings.Rect.Width / 2
         New-SvgCircle -X $halfRectX -Y $Settings.Rect.Y -Radius 10 -Attributes $centerAttributes
@@ -102,6 +129,8 @@ function New-Logo([string] $Text)
     $size = $Settings.Square.Size
     &{
         New-SvgRect -X 0 -Y 0 -Width $size -Height $size -Attributes @{ fill='#68217a' }
+
+        New-Border
 
         New-GlyphRect -Text $Text.ToUpperInvariant() |
         New-SvgGroup -Attributes @{ fill = 'white' }
