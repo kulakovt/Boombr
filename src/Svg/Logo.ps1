@@ -13,42 +13,37 @@ function New-SettingsFromGlyphSize()
 
     $fi = 1.618
     $columnCount = 3
-    $rectWidth = $glyphSet.Width * $columnCount
-    $rectHeight = $rectWidth * $fi
-    $squareSize = $rectWidth + $rectHeight
-    $firstThird =  $squareSize / 3
-    $secondThird =  $squareSize - $firstThird
+    $textWidth = $glyphSet.Width * $columnCount
+    $textHeight = $textWidth * $fi
+    $width = $textWidth + $textHeight
+    $height = $width
+    $firstThird =  $width / 3
+    $secondThird =  $width - $firstThird
     # HACK: hardcode for Glyph 113×131
     [int] $borderThick = 16
+    # TODO: Add border, text, and bg colors
 
     @{
         GlyphSet = $glyphSet
-        # TODO: Rename to Background
-        Square = @{
-            # TODO: Split to Width separate demensions
-            Size = [int] $squareSize
-            Width = [int] $squareSize
-            Height = [int] $squareSize
-            Center = [int] ($squareSize / 2)
+        Background = @{
+            Width = [int] $width
+            Height = [int] $height
         }
-        # TODO: Rename to Text
-        Rect = @{
-            # TODO: Remove Counts (non-configurable options)
+        Text = @{
             ColumnCount = $columnCount
             RowCount = 3
-            X = [int] ($secondThird - $rectWidth / 2)
-            Y = [int] ($squareSize / 2 - ($rectHeight  / 2))
-            # TODO: Check customization
-            Width = [int] $rectWidth
-            Height = [int] $rectHeight
+            X = [int] ($secondThird - $textWidth / 2)
+            Y = [int] ($height / 2 - ($textHeight  / 2))
+            Width = [int] $textWidth
+            Height = [int] $textHeight
         }
         Border = @{
             Visible = $true
             Thickness = $borderThick
             X = [int] ($borderThick / 2)
             Y = [int] ($borderThick / 2)
-            Width = [int] ($squareSize) - $borderThick
-            Height = [int] ($squareSize) - $borderThick
+            Width = [int] ($width) - $borderThick
+            Height = [int] ($height) - $borderThick
         }
         Diagnostic = @{
             Visible = $true
@@ -56,12 +51,9 @@ function New-SettingsFromGlyphSize()
     }
 }
 
-# TODO: Remove static dependency
-$Settings = New-SettingsFromGlyphSize
-
 function New-Background([hashtable] $BackgroundSettings)
 {
-    New-SvgRect -X 0 -Y 0 -Width $BackgroundSettings.Widht -Height $BackgroundSettings.Height -Attributes @{ fill='#68217a' }
+    New-SvgRect -X 0 -Y 0 -Width $BackgroundSettings.Width -Height $BackgroundSettings.Height -Attributes @{ fill='#68217a' }
 }
 
 function New-TextGlyph([SvgGlyph] $Glyph, [int] $Position, [hashtable] $GlyphSet, [Hashtable] $TextSettings)
@@ -120,19 +112,19 @@ function New-Text([string] $Text, [hashtable] $GlyphSet, [Hashtable] $TextSettin
     New-SvgGroup -Attributes @{ fill = 'white' }
 }
 
-function New-Border()
+function New-Border([Hashtable] $BorderSettings)
 {
-    if (-not $Settings.Border.Visible)
+    if (-not $BorderSettings.Visible)
     {
         return
     }
 
     $borderAttributes = [Ordered] @{
         stroke = 'white'
-        'stroke-width' = $Settings.Border.Thickness
+        'stroke-width' = $BorderSettings.Thickness
         'fill-opacity' = '0'
     }
-    New-SvgRect -X $Settings.Border.X -Y $Settings.Border.Y -Width $Settings.Border.Width -Height $Settings.Border.Height -Attributes $borderAttributes
+    New-SvgRect -X $BorderSettings.X -Y $BorderSettings.Y -Width $BorderSettings.Width -Height $BorderSettings.Height -Attributes $borderAttributes
 }
 
 function New-Diagnostic([hashtable] $Settings)
@@ -144,49 +136,55 @@ function New-Diagnostic([hashtable] $Settings)
 
     &{
         New-SvgComment -Message 'Rule of thirds'
-        [int] $firstThird =  $Settings.Square.Size / 3
-        [int] $secondThird =  $Settings.Square.Size - $firstThird
-        [int] $size = $Settings.Square.Size
+        [int] $width = $Settings.Background.Width
+        [int] $h13 =  $width / 3
+        [int] $h23 =  $width - $h13
+        [int] $height = $Settings.Background.Height
+        [int] $v13 =  $height / 3
+        [int] $v23 =  $height - $v13
         @(
-            @(0, $firstThird, $size, $firstThird),
-            @(0, $secondThird, $size, $secondThird),
-            @($firstThird, 0, $firstThird, $size),
-            @($secondThird, 0, $secondThird, $size)
+            @($h13, 0, $h13, $height),
+            @($h23, 0, $h23, $height),
+            @(0, $v13, $width, $v13),
+            @(0, $v23, $width, $v23)
         ) |
         ForEach-Object {
             New-SvgLine -X1 $_[0] -Y1 $_[1] -X2 $_[2] -Y2 $_[3] -Attributes @{ stroke='lime' }
         }
 
         New-SvgComment -Message 'Golden rectangle'
-        New-SvgRect -X $Settings.Rect.X -Y $Settings.Rect.Y -Width $Settings.Rect.Width -Height $Settings.Rect.Height -Attributes @{ stroke='#fbff00' }
+        New-SvgRect -X $Settings.Text.X -Y $Settings.Text.Y -Width $Settings.Text.Width -Height $Settings.Text.Height -Attributes @{ stroke='#fbff00' }
 
         New-SvgComment -Message 'Social circle'
-        $center = $Settings.Square.Center
-        New-SvgCircle -X $center -Y $center -Radius ($Settings.Square.Size / 2) -Attributes @{ stroke = 'coral'; 'stroke-dasharray' = 10 }
+        [int] $centerX = $width / 2
+        [int] $centerY = $height / 2
+        [int] $radius = [Math]::Min($width, $height) / 2
+        New-SvgCircle -X $centerX -Y $centerY -Radius $radius -Attributes @{ stroke = 'coral'; 'stroke-dasharray' = 10 }
 
         New-SvgComment -Message 'Centers'
         $centerAttributes = [Ordered] @{ fill = 'red'; 'fill-opacity' = 1 }
-        New-SvgCircle -X $center -Y $center -Radius 10 -Attributes $centerAttributes
-        [int] $halfRectX = $Settings.Rect.X + $Settings.Rect.Width / 2
-        New-SvgCircle -X $halfRectX -Y $Settings.Rect.Y -Radius 10 -Attributes $centerAttributes
-        New-SvgCircle -X $halfRectX -Y ($Settings.Rect.Y + $Settings.Rect.Height) -Radius 10 -Attributes $centerAttributes
+        New-SvgCircle -X $centerX -Y $centerY -Radius 10 -Attributes $centerAttributes
+        [int] $halfRectX = $Settings.Text.X + $Settings.Text.Width / 2
+        New-SvgCircle -X $halfRectX -Y $Settings.Text.Y -Radius 10 -Attributes $centerAttributes
+        New-SvgCircle -X $halfRectX -Y ($Settings.Text.Y + $Settings.Text.Height) -Radius 10 -Attributes $centerAttributes
     } |
     New-SvgGroup -Attributes @{ id = 'diag'; 'fill-opacity' = 0; 'stroke-width' = 2 }
 }
 
 function New-Logo([string] $Text)
 {
-    $size = $Settings.Square.Size
+    # TODO: Add Ids for external customization
+    $settings = New-SettingsFromGlyphSize
     &{
-        New-Background -BackgroundSettings $Settings.Square
+        New-Background -BackgroundSettings $settings.Background
 
-        New-Border
+        New-Border -BorderSettings $settings.Border
 
-        New-Text -Text $Text.ToUpperInvariant() -GlyphSet $Settings.Rect -TextSettings $Settings.GlyphSet
+        New-Text -Text $Text.ToUpperInvariant() -GlyphSet $settings.GlyphSet -TextSettings $settings.Text
 
-        New-Diagnostic -Settings $Settings
+        New-Diagnostic -Settings $settings
     } |
-    New-SvgDocument -Width $size -Height $size
+    New-SvgDocument -Width $settings.Background.Width -Height $settings.Background.Height
 }
 
 New-Logo -Text 'SpbDotNet' | Set-Content (Join-Path $PSScriptRoot 'Logo.svg')
