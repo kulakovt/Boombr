@@ -27,6 +27,8 @@ function New-SettingsFromGlyphSize()
         Square = @{
             # TODO: Split to Width separate demensions
             Size = [int] $squareSize
+            Width = [int] $squareSize
+            Height = [int] $squareSize
             Center = [int] ($squareSize / 2)
         }
         # TODO: Rename to Text
@@ -56,6 +58,11 @@ function New-SettingsFromGlyphSize()
 
 # TODO: Remove static dependency
 $Settings = New-SettingsFromGlyphSize
+
+function New-Background([hashtable] $BackgroundSettings)
+{
+    New-SvgRect -X 0 -Y 0 -Width $BackgroundSettings.Widht -Height $BackgroundSettings.Height -Attributes @{ fill='#68217a' }
+}
 
 function New-TextGlyph([SvgGlyph] $Glyph, [int] $Position, [hashtable] $GlyphSet, [Hashtable] $TextSettings)
 {
@@ -101,14 +108,14 @@ function Select-TextGlyph
     }
 }
 
-function New-Text([string] $Text)
+function New-Text([string] $Text, [hashtable] $GlyphSet, [Hashtable] $TextSettings)
 {
-    $maxLenth = $Settings.Rect.ColumnCount * $Settings.Rect.RowCount
+    $maxLenth = $TextSettings.ColumnCount * $TextSettings.RowCount
     if ($Text.Length -ne $maxLenth) { throw "Text length must be $maxLenth letters long" }
 
     $Text |
     Select-Many |
-    Select-TextGlyph -GlyphSet $Settings.GlyphSet -TextSettings $Settings.Rect |
+    Select-TextGlyph -GlyphSet $GlyphSet -TextSettings $TextSettings |
     ForEach-Object { $_.ToPath() } |
     New-SvgGroup -Attributes @{ fill = 'white' }
 }
@@ -128,7 +135,7 @@ function New-Border()
     New-SvgRect -X $Settings.Border.X -Y $Settings.Border.Y -Width $Settings.Border.Width -Height $Settings.Border.Height -Attributes $borderAttributes
 }
 
-function New-Diagnostic()
+function New-Diagnostic([hashtable] $Settings)
 {
     if (-not $Settings.Diagnostic.Visible)
     {
@@ -171,13 +178,13 @@ function New-Logo([string] $Text)
 {
     $size = $Settings.Square.Size
     &{
-        New-SvgRect -X 0 -Y 0 -Width $size -Height $size -Attributes @{ fill='#68217a' }
+        New-Background -BackgroundSettings $Settings.Square
 
         New-Border
 
-        New-Text -Text $Text.ToUpperInvariant()
+        New-Text -Text $Text.ToUpperInvariant() -GlyphSet $Settings.Rect -TextSettings $Settings.GlyphSet
 
-        New-Diagnostic
+        New-Diagnostic -Settings $Settings
     } |
     New-SvgDocument -Width $size -Height $size
 }
