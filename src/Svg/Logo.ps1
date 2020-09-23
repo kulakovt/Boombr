@@ -24,7 +24,6 @@ function New-SettingsFromGlyphSize()
     $includeId = $true
     $includeDiagnostic = $true
     # TODO: Add border, text, and bg colors
-    # TODO: Remove spaces from single elements
 
     @{
         GlyphSet = $glyphSet

@@ -36,13 +36,13 @@ function Show-SvgGrid()
     for ($x = 0; $x -le $gc; $x++)
     {
         $xw = $s + ($x * ($s + $cw + $s))
-'    <line x1="{0}" y1="{1}" x2="{2}" y2="{3}" />' -f $xw,$s,$xw,($gh - $s)
+'    <line x1="{0}" y1="{1}" x2="{2}" y2="{3}"/>' -f $xw,$s,$xw,($gh - $s)
     }
 
     for ($y = 0; $y -le $gr; $y++)
     {
         $yh = $s + ($y * ($s + $ch + $s))
-'    <line x1="{0}" y1="{1}" x2="{2}" y2="{3}" />' -f $s,$yh,($gw - $s),$yh
+'    <line x1="{0}" y1="{1}" x2="{2}" y2="{3}"/>' -f $s,$yh,($gw - $s),$yh
     }
 
     ''
