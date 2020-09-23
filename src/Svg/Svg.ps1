@@ -44,17 +44,17 @@ function New-SvgRect([double] $X, [double] $Y, [double] $Width, [double] $Height
         $Attributes.Remove('id')
     }
 
-    '<rect{0} x="{1}" y="{2}" width="{3}" height="{4}"{5} />' -f $idPart,"$X","$Y","$Width","$Height",($Attributes | Format-XmlAttributeLine)
+    '<rect{0} x="{1}" y="{2}" width="{3}" height="{4}"{5}/>' -f $idPart,"$X","$Y","$Width","$Height",($Attributes | Format-XmlAttributeLine)
 }
 
 function New-SvgLine([double] $X1, [double] $Y1, [double] $X2, [double] $Y2, [Hashtable] $Attributes = @{})
 {
-    '<line x1="{0}" y1="{1}" x2="{2}" y2="{3}"{4} />' -f "$X1","$Y1","$X2","$Y2",($Attributes | Format-XmlAttributeLine)
+    '<line x1="{0}" y1="{1}" x2="{2}" y2="{3}"{4}/>' -f "$X1","$Y1","$X2","$Y2",($Attributes | Format-XmlAttributeLine)
 }
 
 function New-SvgCircle([double] $X, [double] $Y, [double] $Radius, [Hashtable] $Attributes = @{})
 {
-    '<circle cx="{0}" cy="{1}" r="{2}"{3} />' -f "$X","$Y","$Radius",($Attributes | Format-XmlAttributeLine)
+    '<circle cx="{0}" cy="{1}" r="{2}"{3}/>' -f "$X","$Y","$Radius",($Attributes | Format-XmlAttributeLine)
 }
 
 function New-SvgComment($Message)
@@ -110,18 +110,21 @@ class SvgGlyph
         return $id
     }
 
+    [string] ToPath()
+    {
+        return $this.ToPath($false)
+    }
+
     [string] ToPath([bool] $AddIdentity)
     {
-        # TODO: Skip «id» attribute
-        $id = [SvgGlyph]::UnicodeToId($this.Unicode)
+        $idPart = ''
         if ($AddIdentity)
         {
-            return '<path id="{0}" d="{1}" />' -f $id,$this.Path
+            $id = [SvgGlyph]::UnicodeToId($this.Unicode)
+            $idPart = ' id="{0}"' -f $id
         }
-        else
-        {
-            return '<path d="{0}" />' -f $this.Path
-        }
+
+        return '<path{0} d="{1}"/>' -f $idPart,$this.Path
     }
 
     [Hashtable] GetBasePoint()
@@ -213,7 +216,7 @@ function Convert-SvgFontToTransformGlyph($Path)
 
     $f.svg.defs.font.glyph |
     Select-SvgUsefulGlyph |
-    ForEach-Object { $_.ToPath() } |
+    ForEach-Object { $_.ToPath($true) } |
     New-SvgGroup -Attributes @{ transform = $transform } |
     New-SvgDocument -Width $newWidth -Height $newHeight
 }
