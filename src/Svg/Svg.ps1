@@ -37,7 +37,14 @@ function New-SvgGroup([Hashtable] $Attributes = @{})
 
 function New-SvgRect([double] $X, [double] $Y, [double] $Width, [double] $Height, [Hashtable] $Attributes = @{})
 {
-    '<rect x="{0}" y="{1}" width="{2}" height="{3}"{4} />' -f "$X","$Y","$Width","$Height",($Attributes | Format-XmlAttributeLine)
+    $idPart = ''
+    if ($Attributes.ContainsKey('id'))
+    {
+        $idPart = ' id="{0}"' -f $Attributes['id']
+        $Attributes.Remove('id')
+    }
+
+    '<rect{0} x="{1}" y="{2}" width="{3}" height="{4}"{5} />' -f $idPart,"$X","$Y","$Width","$Height",($Attributes | Format-XmlAttributeLine)
 }
 
 function New-SvgLine([double] $X1, [double] $Y1, [double] $X2, [double] $Y2, [Hashtable] $Attributes = @{})
@@ -103,11 +110,18 @@ class SvgGlyph
         return $id
     }
 
-    [string] ToPath()
+    [string] ToPath([bool] $AddIdentity)
     {
         # TODO: Skip «id» attribute
         $id = [SvgGlyph]::UnicodeToId($this.Unicode)
-        return '<path id="{0}" d="{1}" />' -f $id,$this.Path
+        if ($AddIdentity)
+        {
+            return '<path id="{0}" d="{1}" />' -f $id,$this.Path
+        }
+        else
+        {
+            return '<path d="{0}" />' -f $this.Path
+        }
     }
 
     [Hashtable] GetBasePoint()

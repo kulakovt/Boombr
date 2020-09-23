@@ -21,13 +21,17 @@ function New-SettingsFromGlyphSize()
     $secondThird =  $width - $firstThird
     # HACK: hardcode for Glyph 113×131
     [int] $borderThick = 16
+    $includeId = $true
+    $includeDiagnostic = $true
     # TODO: Add border, text, and bg colors
+    # TODO: Remove spaces from single elements
 
     @{
         GlyphSet = $glyphSet
         Background = @{
             Width = [int] $width
             Height = [int] $height
+            AddId = $includeId
         }
         Text = @{
             ColumnCount = $columnCount
@@ -36,6 +40,8 @@ function New-SettingsFromGlyphSize()
             Y = [int] ($height / 2 - ($textHeight  / 2))
             Width = [int] $textWidth
             Height = [int] $textHeight
+            AddId = $includeId
+            AddGlyphId = $includeDiagnostic
         }
         Border = @{
             Visible = $true
@@ -44,16 +50,26 @@ function New-SettingsFromGlyphSize()
             Y = [int] ($borderThick / 2)
             Width = [int] ($width) - $borderThick
             Height = [int] ($height) - $borderThick
+            AddId = $includeId
         }
         Diagnostic = @{
-            Visible = $true
+            Visible = $includeDiagnostic
         }
     }
 }
 
 function New-Background([hashtable] $BackgroundSettings)
 {
-    New-SvgRect -X 0 -Y 0 -Width $BackgroundSettings.Width -Height $BackgroundSettings.Height -Attributes @{ fill='#68217a' }
+    $bgAttributes = [ordered] @{
+        fill = '#68217a'
+    }
+
+    if ($BackgroundSettings.AddId)
+    {
+        $bgAttributes.id = 'bg'
+    }
+
+    New-SvgRect -X 0 -Y 0 -Width $BackgroundSettings.Width -Height $BackgroundSettings.Height -Attributes $bgAttributes
 }
 
 function New-TextGlyph([SvgGlyph] $Glyph, [int] $Position, [hashtable] $GlyphSet, [Hashtable] $TextSettings)
@@ -105,11 +121,20 @@ function New-Text([string] $Text, [hashtable] $GlyphSet, [Hashtable] $TextSettin
     $maxLenth = $TextSettings.ColumnCount * $TextSettings.RowCount
     if ($Text.Length -ne $maxLenth) { throw "Text length must be $maxLenth letters long" }
 
+    $txAttributes = [ordered] @{
+        fill = 'white'
+    }
+
+    if ($TextSettings.AddId)
+    {
+        $txAttributes.id = 'tx'
+    }
+
     $Text |
     Select-Many |
     Select-TextGlyph -GlyphSet $GlyphSet -TextSettings $TextSettings |
-    ForEach-Object { $_.ToPath() } |
-    New-SvgGroup -Attributes @{ fill = 'white' }
+    ForEach-Object { $_.ToPath($TextSettings.AddGlyphId) } |
+    New-SvgGroup -Attributes $txAttributes
 }
 
 function New-Border([Hashtable] $BorderSettings)
@@ -119,12 +144,18 @@ function New-Border([Hashtable] $BorderSettings)
         return
     }
 
-    $borderAttributes = [Ordered] @{
+    $brAttributes = [ordered] @{
         stroke = 'white'
         'stroke-width' = $BorderSettings.Thickness
         'fill-opacity' = '0'
     }
-    New-SvgRect -X $BorderSettings.X -Y $BorderSettings.Y -Width $BorderSettings.Width -Height $BorderSettings.Height -Attributes $borderAttributes
+
+    if ($BorderSettings.AddId)
+    {
+        $brAttributes.id = 'br'
+    }
+
+    New-SvgRect -X $BorderSettings.X -Y $BorderSettings.Y -Width $BorderSettings.Width -Height $BorderSettings.Height -Attributes $brAttributes
 }
 
 function New-Diagnostic([hashtable] $Settings)
@@ -173,7 +204,6 @@ function New-Diagnostic([hashtable] $Settings)
 
 function New-Logo([string] $Text)
 {
-    # TODO: Add Ids for external customization
     $settings = New-SettingsFromGlyphSize
     &{
         New-Background -BackgroundSettings $settings.Background
