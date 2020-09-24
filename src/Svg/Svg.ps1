@@ -19,11 +19,24 @@ function Format-Indent([int] $IndentSize)
     }
 }
 
-function New-SvgGroup([Hashtable] $Attributes = @{})
+function Format-SvgIdPair([string] $Id)
+{
+    if ($Id)
+    {
+        ' id="{0}"' -f $Id
+    }
+    else
+    {
+        ''
+    }
+}
+
+function New-SvgGroup([string] $Id = $null, [Hashtable] $Attributes = @{})
 {
     begin
     {
-        '<g{0}>' -f ($Attributes | Format-XmlAttributeLine)
+        $idPair = Format-SvgIdPair -Id $Id
+        '<g{0}{1}>' -f $idPair,($Attributes | Format-XmlAttributeLine)
     }
     process
     {
@@ -35,16 +48,10 @@ function New-SvgGroup([Hashtable] $Attributes = @{})
     }
 }
 
-function New-SvgRect([double] $X, [double] $Y, [double] $Width, [double] $Height, [Hashtable] $Attributes = @{})
+function New-SvgRect([string] $Id = $null, [double] $X, [double] $Y, [double] $Width, [double] $Height, [Hashtable] $Attributes = @{})
 {
-    $idPart = ''
-    if ($Attributes.ContainsKey('id'))
-    {
-        $idPart = ' id="{0}"' -f $Attributes['id']
-        $Attributes.Remove('id')
-    }
-
-    '<rect{0} x="{1}" y="{2}" width="{3}" height="{4}"{5}/>' -f $idPart,"$X","$Y","$Width","$Height",($Attributes | Format-XmlAttributeLine)
+    $idPair = Format-SvgIdPair -Id $Id
+    '<rect{0} x="{1}" y="{2}" width="{3}" height="{4}"{5}/>' -f $idPair,"$X","$Y","$Width","$Height",($Attributes | Format-XmlAttributeLine)
 }
 
 function New-SvgLine([double] $X1, [double] $Y1, [double] $X2, [double] $Y2, [Hashtable] $Attributes = @{})
@@ -121,7 +128,7 @@ class SvgGlyph
         if ($AddIdentity)
         {
             $id = [SvgGlyph]::UnicodeToId($this.Unicode)
-            $idPart = ' id="{0}"' -f $id
+            $idPart = Format-SvgIdPair -Id $id
         }
 
         return '<path{0} d="{1}"/>' -f $idPart,$this.Path
