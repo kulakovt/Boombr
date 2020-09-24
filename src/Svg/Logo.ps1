@@ -30,7 +30,7 @@ function New-SettingsFromGlyphSize()
         Background = @{
             Width = [int] $width
             Height = [int] $height
-            AddId = $includeId
+            Id = if ($includeId) { 'bg' } else { $null }
         }
         Text = @{
             ColumnCount = $columnCount
@@ -39,7 +39,7 @@ function New-SettingsFromGlyphSize()
             Y = [int] ($height / 2 - ($textHeight  / 2))
             Width = [int] $textWidth
             Height = [int] $textHeight
-            AddId = $includeId
+            Id = if ($includeId) { 'tx' } else { $null }
             AddGlyphId = $includeDiagnostic
         }
         Border = @{
@@ -49,10 +49,11 @@ function New-SettingsFromGlyphSize()
             Y = [int] ($borderThick / 2)
             Width = [int] ($width) - $borderThick
             Height = [int] ($height) - $borderThick
-            AddId = $includeId
+            Id = if ($includeId) { 'br' } else { $null }
         }
         Diagnostic = @{
             Visible = $includeDiagnostic
+            Id = 'dg'
         }
     }
 }
@@ -63,12 +64,7 @@ function New-Background([hashtable] $BackgroundSettings)
         fill = '#68217a'
     }
 
-    if ($BackgroundSettings.AddId)
-    {
-        $bgAttributes.id = 'bg'
-    }
-
-    New-SvgRect -X 0 -Y 0 -Width $BackgroundSettings.Width -Height $BackgroundSettings.Height -Attributes $bgAttributes
+    New-SvgRect -Id $BackgroundSettings.Id -X 0 -Y 0 -Width $BackgroundSettings.Width -Height $BackgroundSettings.Height -Attributes $bgAttributes
 }
 
 function New-TextGlyph([SvgGlyph] $Glyph, [int] $Position, [hashtable] $GlyphSet, [Hashtable] $TextSettings)
@@ -124,16 +120,11 @@ function New-Text([string] $Text, [hashtable] $GlyphSet, [Hashtable] $TextSettin
         fill = 'white'
     }
 
-    if ($TextSettings.AddId)
-    {
-        $txAttributes.id = 'tx'
-    }
-
     $Text |
     Select-Many |
     Select-TextGlyph -GlyphSet $GlyphSet -TextSettings $TextSettings |
     ForEach-Object { $_.ToPath($TextSettings.AddGlyphId) } |
-    New-SvgGroup -Attributes $txAttributes
+    New-SvgGroup -Id $TextSettings.Id -Attributes $txAttributes
 }
 
 function New-Border([Hashtable] $BorderSettings)
@@ -149,12 +140,7 @@ function New-Border([Hashtable] $BorderSettings)
         'fill-opacity' = '0'
     }
 
-    if ($BorderSettings.AddId)
-    {
-        $brAttributes.id = 'br'
-    }
-
-    New-SvgRect -X $BorderSettings.X -Y $BorderSettings.Y -Width $BorderSettings.Width -Height $BorderSettings.Height -Attributes $brAttributes
+    New-SvgRect -Id $BorderSettings.Id -X $BorderSettings.X -Y $BorderSettings.Y -Width $BorderSettings.Width -Height $BorderSettings.Height -Attributes $brAttributes
 }
 
 function New-Diagnostic([hashtable] $Settings)
@@ -198,7 +184,7 @@ function New-Diagnostic([hashtable] $Settings)
         New-SvgCircle -X $halfRectX -Y $Settings.Text.Y -Radius 10 -Attributes $centerAttributes
         New-SvgCircle -X $halfRectX -Y ($Settings.Text.Y + $Settings.Text.Height) -Radius 10 -Attributes $centerAttributes
     } |
-    New-SvgGroup -Attributes @{ id = 'diag'; 'fill-opacity' = 0; 'stroke-width' = 2 }
+    New-SvgGroup -Id $Settings.Diagnostic.Id -Attributes @{ 'fill-opacity' = 0; 'stroke-width' = 2 }
 }
 
 function New-Logo([string] $Text)

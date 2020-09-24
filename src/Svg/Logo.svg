@@ -12,7 +12,7 @@
     <path id="E" d="m629 719h-74.3v-130.7h74.3v15h-56.5v40.5h54.3v15h-54.3v45h56.5z"/>
     <path id="T" d="m752 603h-38.7v115.5h-18v-115.5h-38.7v-15.2h95.4z"/>
   </g>
-  <g stroke-width="2" fill-opacity="0" id="diag">
+  <g id="dg" fill-opacity="0" stroke-width="2">
     <!-- Rule of thirds -->
     <line x1="296" y1="0" x2="296" y2="888" stroke="lime"/>
     <line x1="592" y1="0" x2="592" y2="888" stroke="lime"/>
