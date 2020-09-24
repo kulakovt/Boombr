@@ -180,6 +180,8 @@ function Format-XmlAttributeLine
 
     process
     {
+        $Prefix = $Prefix # HACK: Avoid Analizer BUG
+
         $Pairs |
         Select-Many |
         ForEach-Object {
