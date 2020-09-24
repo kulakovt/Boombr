@@ -19,11 +19,13 @@ function New-SettingsFromGlyphSize()
     $height = $width
     $firstThird =  $width / 3
     $secondThird =  $width - $firstThird
-    # HACK: hardcode for Glyph 113×131
-    [int] $borderThick = 16
+    # Origin Thick (Vertical Letter Line Width) / Origin Glyph Width
+    $thickRatio = 160.0 / 1126.0
+    [int] $borderThick = $glyphSet.Width * $thickRatio
     $includeId = $true
     $includeDiagnostic = $true
     # TODO: Add border, text, and bg colors
+    # TODO: Make golden size for bordered version
 
     @{
         GlyphSet = $glyphSet
@@ -150,6 +152,12 @@ function New-Diagnostic([hashtable] $Settings)
         return
     }
 
+    # Origin Thick / Origin Glyph Width
+    $thickRatio = 20.0 / 1126.0
+    [int] $thick = $Settings.GlyphSet.Width * $thickRatio
+    [int] $thickDash = $thick * 5
+    [int] $centerRadius = $thick * 5
+
     &{
         New-SvgComment -Message 'Rule of thirds'
         [int] $width = $Settings.Background.Width
@@ -175,16 +183,16 @@ function New-Diagnostic([hashtable] $Settings)
         [int] $centerX = $width / 2
         [int] $centerY = $height / 2
         [int] $radius = [Math]::Min($width, $height) / 2
-        New-SvgCircle -X $centerX -Y $centerY -Radius $radius -Attributes @{ stroke = 'coral'; 'stroke-dasharray' = 10 }
+        New-SvgCircle -X $centerX -Y $centerY -Radius $radius -Attributes @{ stroke = 'coral'; 'stroke-dasharray' = $thickDash }
 
         New-SvgComment -Message 'Centers'
         $centerAttributes = [Ordered] @{ fill = 'red'; 'fill-opacity' = 1 }
-        New-SvgCircle -X $centerX -Y $centerY -Radius 10 -Attributes $centerAttributes
+        New-SvgCircle -X $centerX -Y $centerY -Radius $centerRadius -Attributes $centerAttributes
         [int] $halfRectX = $Settings.Text.X + $Settings.Text.Width / 2
-        New-SvgCircle -X $halfRectX -Y $Settings.Text.Y -Radius 10 -Attributes $centerAttributes
-        New-SvgCircle -X $halfRectX -Y ($Settings.Text.Y + $Settings.Text.Height) -Radius 10 -Attributes $centerAttributes
+        New-SvgCircle -X $halfRectX -Y $Settings.Text.Y -Radius $centerRadius -Attributes $centerAttributes
+        New-SvgCircle -X $halfRectX -Y ($Settings.Text.Y + $Settings.Text.Height) -Radius $centerRadius -Attributes $centerAttributes
     } |
-    New-SvgGroup -Id $Settings.Diagnostic.Id -Attributes @{ 'fill-opacity' = 0; 'stroke-width' = 2 }
+    New-SvgGroup -Id $Settings.Diagnostic.Id -Attributes @{ 'fill-opacity' = 0; 'stroke-width' = $thick }
 }
 
 function New-Logo([string] $Text)
