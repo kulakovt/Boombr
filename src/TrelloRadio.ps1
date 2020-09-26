@@ -62,6 +62,26 @@ class FormatString
         return $this.Wrap('<strong>', $text, '</strong>')
     }
 
+    static [string] GetTextByUrl([string] $url)
+    {
+        $uri = [Uri] $url
+        $max = 42
+        $tail = $uri.AbsolutePath
+        $tail = $tail.Replace('/en-us/', '/').Replace('/ru-ru/', '/')
+        $tail = $tail -replace '/\d{4}/\d{2}/\d{2}/','/'
+        $tail = $tail.TrimEnd('/', '-')
+        $tail = if ($tail.Length -le $max)
+        {
+            $tail
+        }
+        else
+        {
+            $suffix = '...'
+            $tail.Substring(0, $max - $suffix.Length) + '...'
+        }
+        return $uri.Authority + $tail
+    }
+
     [string] Link([string] $url)
     {
         return $this.Link($url, $null)
@@ -80,7 +100,7 @@ class FormatString
             '_u_' { return $url }
             '_ut' { return "$text ($url)" }
             'h_t' { return $text }
-            'hu_' { return '<a href="{0}">{0}</a>' -f $url }
+            'hu_' { return '<a href="{0}">{1}</a>' -f $url,[FormatString]::GetTextByUrl($url) }
             'hut' { return '<a href="{0}">{1}</a>' -f $url,$text }
             # '___'
             # 'h__'
