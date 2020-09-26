@@ -1,4 +1,4 @@
-﻿#Requires -Version 5
+#Requires -Version 5
 #Requires -Modules PowerTrello
 
 Set-StrictMode -version Latest
@@ -164,6 +164,7 @@ class PodcastAnnouncement
     static [string] $VideoUrl = 'https://www.youtube.com/playlist?list=PLbxr_aGL4q3SpQ9GRn2jv-NEpvN23CUC5'
     static [string] $GoogleUrl = 'https://podcasts.google.com/feed/aHR0cHM6Ly9hbmNob3IuZm0vcy9mMGMwZWY0L3BvZGNhc3QvcnNz'
     static [string] $AppleUrl = 'https://podcasts.apple.com/us/podcast/radiodotnet/id1484348948'
+    static [string] $YandexUrl = 'https://music.yandex.ru/album/12041961'
 
     [hashtable] $Podcast
     [hashtable] $Links
@@ -263,12 +264,14 @@ class PodcastAnnouncement
 
     [PodcastAnnouncement] PlayResources()
     {
-        $link = $this.Report.Link($this::VideoUrl)
-        $this.Report.Paragraph("Все видео выпуски: $link")
         $link = $this.Report.Link($this::GoogleUrl)
         $this.Report.Paragraph("Google Podcasts: $link")
         $link = $this.Report.Link($this::AppleUrl)
         $this.Report.Paragraph("Apple Podcasts: $link")
+        $link = $this.Report.Link($this::YandexUrl)
+        $this.Report.Paragraph("Яндекс Подкасты: $link")
+        $link = $this.Report.Link($this::VideoUrl)
+        $this.Report.Paragraph("YouTube Playlist: $link")
         return $this
     }
 
@@ -803,7 +806,7 @@ function New-PodcastFromTrello
 
         $timer | Stop-TimeOperation
 
-        Write-Information "Please, fill in Description and Timestamps before the next step in «$(Split-Path -Leaf $filePath)»"
+        Write-Information "Please, fill in Authors, Description and Timestamps before the next step in «$(Split-Path -Leaf $filePath)»"
     }
 }
 
