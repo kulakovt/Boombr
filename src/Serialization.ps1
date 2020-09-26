@@ -189,6 +189,12 @@ function Read-Speaker($AuditDir = $(throw "AuditDir required"))
     Read-NiceXml
 }
 
+function Read-Community($AuditDir = $(throw "AuditDir required"))
+{
+    Get-ChildItem -Path (Join-Path $AuditDir 'communities') -Filter '*.xml' |
+    Read-NiceXml
+}
+
 function Save-Entity($AuditDir = $(throw "AuditDir required"), [switch] $CreateOnly)
 {
     process

@@ -330,3 +330,23 @@ function ConvertTo-LocalTime
         [TimeZoneInfo]::ConvertTimeFromUtc($utcTime, $mskTimeZone)
     }
 }
+
+function Confirm-DirectoryExist
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [ValidateNotNullOrEmpty()]
+        [string]
+        $Path
+    )
+
+    process
+    {
+        if (-not (Test-Path -Path $Path -PathType 'Container'))
+        {
+            New-Item -Path $Path -ItemType 'Directory' | Out-Null
+        }
+    }
+}
+

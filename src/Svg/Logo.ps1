@@ -1,12 +1,11 @@
-﻿Set-StrictMode -version Latest
-$ErrorActionPreference = 'Stop'
+﻿. $PSScriptRoot\Svg.ps1
 
-$InformationPreference = 'Continue'
-$VerbosePreference = 'SilentlyContinue'
-
-. $PSScriptRoot\Svg.ps1
-
-function New-SettingsFromGlyphSize()
+function New-SettingsFromGlyphSize(
+    [bool] $IncludeBorder = $false,
+    [bool] $IncludeId = $true,
+    [bool] $IncludeDiagnostic = $false,
+    [string] $ForegroundColor = 'white',
+    [string] $BackgroundColor = '#68217a')
 {
     $fontPath = Join-Path $PSScriptRoot 'ConsolasGlyphs.svg'
     $glyphSet = Get-SvgGlyphSet -Path $fontPath
@@ -22,20 +21,15 @@ function New-SettingsFromGlyphSize()
     # Origin Thick (Vertical Letter Line Width) / Origin Glyph Width
     $thickRatio = 160.0 / 1126.0
     [int] $borderThick = $glyphSet.Width * $thickRatio
-    $includeId = $true
-    $includeDiagnostic = $true
-    $includeBorder = $true
-    $x = if ($includeBorder) { $borderThick } else { 0 }
-    $y = if ($includeBorder) { $borderThick } else { 0 }
-    $foregroundColor = 'white'
-    $backgroundColor = '#68217a'
+    $x = if ($IncludeBorder) { $borderThick } else { 0 }
+    $y = if ($IncludeBorder) { $borderThick } else { 0 }
 
     $x = 0
     $y = 0
     $docWidth = $width
     $docHeight = $height
 
-    if ($includeBorder)
+    if ($IncludeBorder)
     {
         $x = $borderThick
         $y = $borderThick
@@ -50,37 +44,37 @@ function New-SettingsFromGlyphSize()
             Height = [int] $docHeight
         }
         Background = @{
-            Id = if ($includeId) { 'bg' } else { $null }
+            Id = if ($IncludeId) { 'bg' } else { $null }
             X = [int] $x
             Y = [int] $y
             Width = [int] $width
             Height = [int] $height
-            Color = $backgroundColor
+            Color = $BackgroundColor
         }
         Text = @{
-            Id = if ($includeId) { 'tx' } else { $null }
+            Id = if ($IncludeId) { 'tx' } else { $null }
             ColumnCount = $columnCount
             RowCount = 3
             X = [int] ($x + $secondThird - $textWidth / 2)
             Y = [int] ($y + $height / 2 - ($textHeight  / 2))
             Width = [int] $textWidth
             Height = [int] $textHeight
-            AddGlyphId = $includeDiagnostic
-            Color = $foregroundColor
+            AddGlyphId = $IncludeDiagnostic
+            Color = $ForegroundColor
         }
         Border = @{
-            Id = if ($includeId) { 'br' } else { $null }
-            Visible = $includeBorder
+            Id = if ($IncludeId) { 'br' } else { $null }
+            Visible = $IncludeBorder
             Thickness = $borderThick
             X = [int] ($borderThick / 2)
             Y = [int] ($borderThick / 2)
             Width = [int] ($docWidth) - $borderThick
             Height = [int] ($docHeight) - $borderThick
-            Color = $foregroundColor
+            Color = $ForegroundColor
         }
         Diagnostic = @{
             Id = 'dg'
-            Visible = $includeDiagnostic
+            Visible = $IncludeDiagnostic
         }
     }
 }
@@ -222,19 +216,24 @@ function New-Diagnostic([hashtable] $Settings)
     New-SvgGroup -Id $Settings.Diagnostic.Id -Attributes @{ 'fill-opacity' = 0; 'stroke-width' = $thick }
 }
 
-function New-Logo([string] $Text)
+function New-Logo([string] $Text, [Hashtable] $Settings)
 {
-    $settings = New-SettingsFromGlyphSize
+    if (-not $Settings)
+    {
+        $Settings = New-SettingsFromGlyphSize
+    }
+
     &{
-        New-Background -BackgroundSettings $settings.Background
+        New-Background -BackgroundSettings $Settings.Background
 
-        New-Border -BorderSettings $settings.Border
+        New-Border -BorderSettings $Settings.Border
 
-        New-Text -Text $Text.ToUpperInvariant() -GlyphSet $settings.GlyphSet -TextSettings $settings.Text
+        New-Text -Text $Text.ToUpperInvariant() -GlyphSet $Settings.GlyphSet -TextSettings $Settings.Text
 
-        New-Diagnostic -Settings $settings
+        New-Diagnostic -Settings $Settings
     } |
-    New-SvgDocument -Width $settings.Document.Width -Height $settings.Document.Height
+    New-SvgDocument -Width $Settings.Document.Width -Height $Settings.Document.Height
 }
 
-New-Logo -Text 'SpbDotNet' | Set-Content (Join-Path $PSScriptRoot 'Logo.svg')
+# $settings = New-SettingsFromGlyphSize -IncludeId $true -IncludeDiagnostic $true -IncludeBorder $true
+# New-Logo -Text 'SpbDotNet' -Settings $settings | Set-Content (Join-Path $PSScriptRoot 'Logo.svg')
