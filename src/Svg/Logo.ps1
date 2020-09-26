@@ -27,7 +27,8 @@ function New-SettingsFromGlyphSize()
     $includeBorder = $true
     $x = if ($includeBorder) { $borderThick } else { 0 }
     $y = if ($includeBorder) { $borderThick } else { 0 }
-    # TODO: Add border, text, and bg colors
+    $foregroundColor = 'white'
+    $backgroundColor = '#68217a'
 
     $x = 0
     $y = 0
@@ -54,6 +55,7 @@ function New-SettingsFromGlyphSize()
             Y = [int] $y
             Width = [int] $width
             Height = [int] $height
+            Color = $backgroundColor
         }
         Text = @{
             Id = if ($includeId) { 'tx' } else { $null }
@@ -64,6 +66,7 @@ function New-SettingsFromGlyphSize()
             Width = [int] $textWidth
             Height = [int] $textHeight
             AddGlyphId = $includeDiagnostic
+            Color = $foregroundColor
         }
         Border = @{
             Id = if ($includeId) { 'br' } else { $null }
@@ -73,6 +76,7 @@ function New-SettingsFromGlyphSize()
             Y = [int] ($borderThick / 2)
             Width = [int] ($docWidth) - $borderThick
             Height = [int] ($docHeight) - $borderThick
+            Color = $foregroundColor
         }
         Diagnostic = @{
             Id = 'dg'
@@ -84,7 +88,7 @@ function New-SettingsFromGlyphSize()
 function New-Background([hashtable] $BackgroundSettings)
 {
     $bgAttributes = [ordered] @{
-        fill = '#68217a'
+        fill = $BackgroundSettings.Color
     }
 
     New-SvgRect -Id $BackgroundSettings.Id -X $BackgroundSettings.X -Y $BackgroundSettings.Y -Width $BackgroundSettings.Width -Height $BackgroundSettings.Height -Attributes $bgAttributes
@@ -140,7 +144,7 @@ function New-Text([string] $Text, [hashtable] $GlyphSet, [Hashtable] $TextSettin
     if ($Text.Length -ne $maxLenth) { throw "Text length must be $maxLenth letters long" }
 
     $txAttributes = [ordered] @{
-        fill = 'white'
+        fill = $TextSettings.Color
     }
 
     $Text |
@@ -158,7 +162,7 @@ function New-Border([Hashtable] $BorderSettings)
     }
 
     $brAttributes = [ordered] @{
-        stroke = 'white'
+        stroke = $BorderSettings.Color
         'stroke-width' = $BorderSettings.Thickness
         'fill-opacity' = 0
     }
