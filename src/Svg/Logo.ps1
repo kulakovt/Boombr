@@ -24,38 +24,59 @@ function New-SettingsFromGlyphSize()
     [int] $borderThick = $glyphSet.Width * $thickRatio
     $includeId = $true
     $includeDiagnostic = $true
+    $includeBorder = $true
+    $x = if ($includeBorder) { $borderThick } else { 0 }
+    $y = if ($includeBorder) { $borderThick } else { 0 }
     # TODO: Add border, text, and bg colors
-    # TODO: Make golden size for bordered version
+
+    $x = 0
+    $y = 0
+    $docWidth = $width
+    $docHeight = $height
+
+    if ($includeBorder)
+    {
+        $x = $borderThick
+        $y = $borderThick
+        $docWidth = $width + $borderThick * 2
+        $docHeight = $height + $borderThick * 2
+    }
 
     @{
         GlyphSet = $glyphSet
+        Document = @{
+            Width = [int] $docWidth
+            Height = [int] $docHeight
+        }
         Background = @{
+            Id = if ($includeId) { 'bg' } else { $null }
+            X = [int] $x
+            Y = [int] $y
             Width = [int] $width
             Height = [int] $height
-            Id = if ($includeId) { 'bg' } else { $null }
         }
         Text = @{
+            Id = if ($includeId) { 'tx' } else { $null }
             ColumnCount = $columnCount
             RowCount = 3
-            X = [int] ($secondThird - $textWidth / 2)
-            Y = [int] ($height / 2 - ($textHeight  / 2))
+            X = [int] ($x + $secondThird - $textWidth / 2)
+            Y = [int] ($y + $height / 2 - ($textHeight  / 2))
             Width = [int] $textWidth
             Height = [int] $textHeight
-            Id = if ($includeId) { 'tx' } else { $null }
             AddGlyphId = $includeDiagnostic
         }
         Border = @{
-            Visible = $true
+            Id = if ($includeId) { 'br' } else { $null }
+            Visible = $includeBorder
             Thickness = $borderThick
             X = [int] ($borderThick / 2)
             Y = [int] ($borderThick / 2)
-            Width = [int] ($width) - $borderThick
-            Height = [int] ($height) - $borderThick
-            Id = if ($includeId) { 'br' } else { $null }
+            Width = [int] ($docWidth) - $borderThick
+            Height = [int] ($docHeight) - $borderThick
         }
         Diagnostic = @{
-            Visible = $includeDiagnostic
             Id = 'dg'
+            Visible = $includeDiagnostic
         }
     }
 }
@@ -66,7 +87,7 @@ function New-Background([hashtable] $BackgroundSettings)
         fill = '#68217a'
     }
 
-    New-SvgRect -Id $BackgroundSettings.Id -X 0 -Y 0 -Width $BackgroundSettings.Width -Height $BackgroundSettings.Height -Attributes $bgAttributes
+    New-SvgRect -Id $BackgroundSettings.Id -X $BackgroundSettings.X -Y $BackgroundSettings.Y -Width $BackgroundSettings.Width -Height $BackgroundSettings.Height -Attributes $bgAttributes
 }
 
 function New-TextGlyph([SvgGlyph] $Glyph, [int] $Position, [hashtable] $GlyphSet, [Hashtable] $TextSettings)
@@ -139,7 +160,7 @@ function New-Border([Hashtable] $BorderSettings)
     $brAttributes = [ordered] @{
         stroke = 'white'
         'stroke-width' = $BorderSettings.Thickness
-        'fill-opacity' = '0'
+        'fill-opacity' = 0
     }
 
     New-SvgRect -Id $BorderSettings.Id -X $BorderSettings.X -Y $BorderSettings.Y -Width $BorderSettings.Width -Height $BorderSettings.Height -Attributes $brAttributes
@@ -160,6 +181,8 @@ function New-Diagnostic([hashtable] $Settings)
 
     &{
         New-SvgComment -Message 'Rule of thirds'
+        $x = $Settings.Background.X
+        $y = $Settings.Background.Y
         [int] $width = $Settings.Background.Width
         [int] $h13 =  $width / 3
         [int] $h23 =  $width - $h13
@@ -167,10 +190,10 @@ function New-Diagnostic([hashtable] $Settings)
         [int] $v13 =  $height / 3
         [int] $v23 =  $height - $v13
         @(
-            @($h13, 0, $h13, $height),
-            @($h23, 0, $h23, $height),
-            @(0, $v13, $width, $v13),
-            @(0, $v23, $width, $v23)
+            @(($x + $h13), $y, ($x + $h13), ($y + $height)),
+            @(($x + $h23), $y, ($x + $h23), ($y + $height)),
+            @($x, ($y + $v13), ($x + $width), ($y + $v13)),
+            @($x, ($y + $v23), ($x + $width), ($y + $v23))
         ) |
         ForEach-Object {
             New-SvgLine -X1 $_[0] -Y1 $_[1] -X2 $_[2] -Y2 $_[3] -Attributes @{ stroke='lime' }
@@ -180,8 +203,8 @@ function New-Diagnostic([hashtable] $Settings)
         New-SvgRect -X $Settings.Text.X -Y $Settings.Text.Y -Width $Settings.Text.Width -Height $Settings.Text.Height -Attributes @{ stroke='#fbff00' }
 
         New-SvgComment -Message 'Social circle'
-        [int] $centerX = $width / 2
-        [int] $centerY = $height / 2
+        [int] $centerX = $x + $width / 2
+        [int] $centerY = $y + $height / 2
         [int] $radius = [Math]::Min($width, $height) / 2
         New-SvgCircle -X $centerX -Y $centerY -Radius $radius -Attributes @{ stroke = 'coral'; 'stroke-dasharray' = $thickDash }
 
@@ -207,7 +230,7 @@ function New-Logo([string] $Text)
 
         New-Diagnostic -Settings $settings
     } |
-    New-SvgDocument -Width $settings.Background.Width -Height $settings.Background.Height
+    New-SvgDocument -Width $settings.Document.Width -Height $settings.Document.Height
 }
 
 New-Logo -Text 'SpbDotNet' | Set-Content (Join-Path $PSScriptRoot 'Logo.svg')
