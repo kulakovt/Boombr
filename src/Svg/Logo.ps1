@@ -2,6 +2,7 @@
 
 function New-SettingsFromGlyphSize(
     [bool] $IncludeBorder = $false,
+    [bool] $IncludeBackground = $true,
     [bool] $IncludeId = $true,
     [bool] $IncludeDiagnostic = $false,
     [string] $ForegroundColor = 'white',
@@ -45,6 +46,7 @@ function New-SettingsFromGlyphSize(
         }
         Background = @{
             Id = if ($IncludeId) { 'bg' } else { $null }
+            Visible = $IncludeBackground
             X = [int] $x
             Y = [int] $y
             Width = [int] $width
@@ -81,6 +83,11 @@ function New-SettingsFromGlyphSize(
 
 function New-Background([hashtable] $BackgroundSettings)
 {
+    if (-not $BackgroundSettings.Visible)
+    {
+        return
+    }
+
     $bgAttributes = [ordered] @{
         fill = $BackgroundSettings.Color
     }

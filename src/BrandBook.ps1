@@ -9,10 +9,14 @@ $VerbosePreference = 'SilentlyContinue'
 . $PSScriptRoot\Serialization.ps1
 . $PSScriptRoot\Svg\Logo.ps1
 
-function Update-BrandLogo([string] $Path, [Community] $Community)
+function Update-BrandLogo([string] $Path, [Community] $Community, [Hashtable] $Type)
 {
-    New-Logo -Text $Community.Name |
-    Set-Content (Join-Path $Path 'Logo.svg')
+    $fileName = $Type.NameTemplate -replace '{CommunityName}',$Community.Name.ToLowerInvariant()
+    $fileName += '.svg'
+    $settings = New-SettingsFromGlyphSize -IncludeBorder $Type.IncludeBorder -IncludeBackground $Type.IncludeBackground
+
+    New-Logo -Text $Community.Name -Settings $settings |
+    Set-Content (Join-Path $Path $fileName)
 }
 
 function Update-BrandCommunity
@@ -22,7 +26,12 @@ function Update-BrandCommunity
         [Parameter(Mandatory, ValueFromPipeline)]
         [ValidateNotNullOrEmpty()]
         [Community]
-        $Community
+        $Community,
+
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [array]
+        $Types
     )
 
     process
@@ -31,7 +40,10 @@ function Update-BrandCommunity
         $communityPath = Join-Path $logoPath $shortName
         Confirm-DirectoryExist -Path $communityPath
 
-        Update-BrandLogo -Path $communityPath -Community $Community
+        foreach ($type in $Types)
+        {
+            Update-BrandLogo -Path $communityPath -Community $Community -Type $type
+        }
     }
 }
 
@@ -40,8 +52,27 @@ function Update-BrandBook([string] $Path, [Hashtable] $Config)
     $logopath = Join-Path $Path 'Logo'
     Confirm-DirectoryExist -Path $logoPath
 
+    $logoTypes = @(
+        @{ NameTemplate = '{CommunityName}-logo-squared'; IncludeBorder = $false; IncludeBackground = $true },
+        @{ NameTemplate = '{CommunityName}-logo-squared-bordered'; IncludeBorder = $true; IncludeBackground = $true; },
+        @{ NameTemplate = '{CommunityName}-logo-squared-white'; IncludeBorder = $false; IncludeBackground = $false; },
+        @{ NameTemplate = '{CommunityName}-logo-squared-white-bordered'; IncludeBorder = $true; IncludeBackground = $false }
+    )
+
+    # - SVG
+    # - PNG-200
+    # - PNG-800
+    # - PNG-5000
+    # - EPS
+    $logoFormats = @(
+        @{ Type = 'eps' },
+        @{ Type = 'png'; Width = 200; Height = 200; },
+        @{ Type = 'png'; Width = 800; Height = 800; },
+        @{ Type = 'png'; Width = 5000; Height = 5000; }
+    )
+
     Read-Community -AuditDir $Config.AuditDir |
-    Update-BrandCommunity
+    Update-BrandCommunity -Types $logoTypes
 }
 
 
