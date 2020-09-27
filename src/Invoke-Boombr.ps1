@@ -20,6 +20,8 @@ $Config = @{
     RootDir = $PSScriptRoot
     ArtifactsDir = Resolve-FullPath $PSScriptRoot '..\artifacts'
     AuditDir = Resolve-FullPath $PSScriptRoot '..\..\Audit\db'
+    BrandBookDir = Resolve-FullPath $PSScriptRoot '..\..\BrandBook'
+    Inkscape = Resolve-FullPath $PSScriptRoot '..\..\..\inkscape\bin\inkscape.com'
     IsOffline = $false
 }
 
@@ -85,6 +87,12 @@ function Start-BoombrCommand([string] $Command = $(throw 'Command required'))
             Invoke-BuildAnnouncement
         }
 
+        'build brand'
+        {
+            . $PSScriptRoot\BrandBook.ps1
+            Update-BrandBook
+        }
+
         default { "Command not found: $Command" }
     }
 }
@@ -111,6 +119,7 @@ if ($args.Length -lt 2)
     Write-Information '- export xml'
     Write-Information '- export images'
     Write-Information '- new announcement'
+    Write-Information '- build brand'
     return
 }
 

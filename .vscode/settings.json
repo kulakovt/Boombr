@@ -3,5 +3,6 @@
     "files.insertFinalNewline": true,
 
     "powershell.codeFormatting.preset": "Allman",
-    "powershell.scriptAnalysis.settingsPath": "PSScriptAnalyzerSettings.psd1"
+    "powershell.scriptAnalysis.settingsPath": "PSScriptAnalyzerSettings.psd1",
+    "svg.preview.background": "transparent"
 }

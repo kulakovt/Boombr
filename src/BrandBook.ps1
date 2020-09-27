@@ -1,13 +1,36 @@
-Set-StrictMode -version Latest
-$ErrorActionPreference = 'Stop'
-
-$InformationPreference = 'Continue'
-$VerbosePreference = 'SilentlyContinue'
-
 . $PSScriptRoot\Utility.ps1
 . $PSScriptRoot\Model.ps1
 . $PSScriptRoot\Serialization.ps1
 . $PSScriptRoot\Svg\Logo.ps1
+
+function Format-BrandLogo
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [ValidateNotNullOrEmpty()]
+        [string]
+        $Path
+    )
+
+    process
+    {
+        $Inkscape = $Config.Inkscape
+
+        $sourceFile = Get-ChildItem -Path $Path
+        $directory = $sourceFile.DirectoryName
+        $baseName =  $sourceFile.BaseName
+
+        $outPath = Join-Path $directory "${baseName}-200.png"
+        &$Inkscape --export-type=png --export-width=200 --export-height=200 --export-filename=$outPath $Path
+
+        $outPath = Join-Path $directory "${baseName}-800.png"
+        &$Inkscape --export-type=png --export-width=800 --export-height=800 --export-filename=$outPath $Path
+
+        $outPath = Join-Path $directory "${baseName}.eps"
+        &$Inkscape --export-type=eps --export-filename=$outPath $Path
+    }
+}
 
 function Update-BrandLogo([string] $Path, [Community] $Community, [Hashtable] $Type)
 {
@@ -27,13 +50,12 @@ function Update-BrandLogo([string] $Path, [Community] $Community, [Hashtable] $T
     New-Logo -Text $Community.Name -Settings $settings |
     Set-Content $outPath
 
-    $outPath
+    $outPath | Format-BrandLogo
 }
 
 function Update-BrandCommunity
 {
     [CmdletBinding()]
-    [OutputType([string])]
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
         [ValidateNotNullOrEmpty()]
@@ -42,7 +64,7 @@ function Update-BrandCommunity
 
         [Parameter(Mandatory)]
         [ValidateNotNullOrEmpty()]
-        [sring]
+        [string]
         $Path
     )
 
@@ -66,45 +88,12 @@ function Update-BrandCommunity
     }
 }
 
-function Format-BrandLogo
-{
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory, ValueFromPipeline)]
-        [ValidateNotNullOrEmpty()]
-        [string]
-        $Path,
-
-        [Parameter(Mandatory)]
-        [ValidateNotNullOrEmpty()]
-        [string]
-        $Inkscape
-    )
-
-    process
-    {
-        $sourceFile = Get-ChildItem -Path $Path
-        $directory = $sourceFile.DirectoryName
-        $baseName =  $sourceFile.BaseName
-
-        $outPath = Join-Path $directory "${baseName}-200.png"
-        &$Inkscape --export-type=png --export-width=200 --export-height=200 --export-filename=$outPath $Path
-
-        $outPath = Join-Path $directory "${baseName}-800.png"
-        &$Inkscape --export-type=png --export-width=800 --export-height=800 --export-filename=$outPath $Path
-
-        $outPath = Join-Path $directory "${baseName}.eps"
-        &$Inkscape --export-type=eps --export-filename=$outPath $Path
-    }
-}
-
-function Update-BrandBook([Hashtable] $Config)
+function Update-BrandBook()
 {
     $logoPath = Join-Path $Config.BrandBookDir 'Logo'
     Confirm-DirectoryExist -Path $logoPath
 
     Read-Community -AuditDir $Config.AuditDir |
-    Update-BrandCommunity -Path $logoPath |
-    Format-BrandLogo -Inkscape $Config.Inkscape
+    Update-BrandCommunity -Path $logoPath
 }
 
