@@ -13,15 +13,27 @@ function Update-BrandLogo([string] $Path, [Community] $Community, [Hashtable] $T
 {
     $fileName = $Type.NameTemplate -replace '{CommunityName}',$Community.Name.ToLowerInvariant()
     $fileName += '.svg'
+    $outPath = (Join-Path $Path $fileName)
+
+    if (Test-Path -PathType Leaf $outPath)
+    {
+        Write-Information "Skip existed $fileName file"
+        return
+    }
+
+    Write-Information "Generate $fileName file"
     $settings = New-SettingsFromGlyphSize -IncludeBorder $Type.IncludeBorder -IncludeBackground $Type.IncludeBackground
 
     New-Logo -Text $Community.Name -Settings $settings |
-    Set-Content (Join-Path $Path $fileName)
+    Set-Content $outPath
+
+    $outPath
 }
 
 function Update-BrandCommunity
 {
     [CmdletBinding()]
+    [OutputType([string])]
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
         [ValidateNotNullOrEmpty()]
@@ -30,56 +42,69 @@ function Update-BrandCommunity
 
         [Parameter(Mandatory)]
         [ValidateNotNullOrEmpty()]
-        [array]
-        $Types
+        [sring]
+        $Path
     )
 
     process
     {
         $shortName = $Community.Name -replace 'DotNet$',''
-        $communityPath = Join-Path $logoPath $shortName
+        $communityPath = Join-Path $Path $shortName
         Confirm-DirectoryExist -Path $communityPath
 
-        foreach ($type in $Types)
+        $logoTypes = @(
+            @{ NameTemplate = '{CommunityName}-logo-squared'; IncludeBorder = $false; IncludeBackground = $true },
+            @{ NameTemplate = '{CommunityName}-logo-squared-bordered'; IncludeBorder = $true; IncludeBackground = $true; },
+            @{ NameTemplate = '{CommunityName}-logo-squared-white'; IncludeBorder = $false; IncludeBackground = $false; },
+            @{ NameTemplate = '{CommunityName}-logo-squared-white-bordered'; IncludeBorder = $true; IncludeBackground = $false }
+        )
+
+        foreach ($type in $logoTypes)
         {
             Update-BrandLogo -Path $communityPath -Community $Community -Type $type
         }
     }
 }
 
-function Update-BrandBook([string] $Path, [Hashtable] $Config)
+function Format-BrandLogo
 {
-    $logopath = Join-Path $Path 'Logo'
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [ValidateNotNullOrEmpty()]
+        [string]
+        $Path,
+
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string]
+        $Inkscape
+    )
+
+    process
+    {
+        $sourceFile = Get-ChildItem -Path $Path
+        $directory = $sourceFile.DirectoryName
+        $baseName =  $sourceFile.BaseName
+
+        $outPath = Join-Path $directory "${baseName}-200.png"
+        &$Inkscape --export-type=png --export-width=200 --export-height=200 --export-filename=$outPath $Path
+
+        $outPath = Join-Path $directory "${baseName}-800.png"
+        &$Inkscape --export-type=png --export-width=800 --export-height=800 --export-filename=$outPath $Path
+
+        $outPath = Join-Path $directory "${baseName}.eps"
+        &$Inkscape --export-type=eps --export-filename=$outPath $Path
+    }
+}
+
+function Update-BrandBook([Hashtable] $Config)
+{
+    $logoPath = Join-Path $Config.BrandBookDir 'Logo'
     Confirm-DirectoryExist -Path $logoPath
 
-    $logoTypes = @(
-        @{ NameTemplate = '{CommunityName}-logo-squared'; IncludeBorder = $false; IncludeBackground = $true },
-        @{ NameTemplate = '{CommunityName}-logo-squared-bordered'; IncludeBorder = $true; IncludeBackground = $true; },
-        @{ NameTemplate = '{CommunityName}-logo-squared-white'; IncludeBorder = $false; IncludeBackground = $false; },
-        @{ NameTemplate = '{CommunityName}-logo-squared-white-bordered'; IncludeBorder = $true; IncludeBackground = $false }
-    )
-
-    # - SVG
-    # - PNG-200
-    # - PNG-800
-    # - PNG-5000
-    # - EPS
-    $logoFormats = @(
-        @{ Type = 'eps' },
-        @{ Type = 'png'; Width = 200; Height = 200; },
-        @{ Type = 'png'; Width = 800; Height = 800; },
-        @{ Type = 'png'; Width = 5000; Height = 5000; }
-    )
-
     Read-Community -AuditDir $Config.AuditDir |
-    Update-BrandCommunity -Types $logoTypes
+    Update-BrandCommunity -Path $logoPath |
+    Format-BrandLogo -Inkscape $Config.Inkscape
 }
 
-
-$Config = @{
-    RootDir = $PSScriptRoot
-    ArtifactsDir = Resolve-FullPath $PSScriptRoot '..\artifacts'
-    AuditDir = Resolve-FullPath $PSScriptRoot '..\..\Audit\db'
-    IsOffline = $false
-}
-Update-BrandBook -Path 'C:\Users\akulakov\Desktop\GitHub\BrandBook' -Config $Config
