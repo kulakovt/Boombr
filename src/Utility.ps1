@@ -128,6 +128,51 @@ function Join-ToString
     }
 }
 
+function Join-ToPipe
+{
+    [CmdletBinding()]
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        $Item,
+
+        [Parameter()]
+        $Before = $null,
+
+        [Parameter()]
+        $BeforeMany = @(),
+
+        [Parameter()]
+        $After = $null,
+
+        [Parameter()]
+        $AfterMany = @()
+    )
+
+    begin
+    {
+        if ($Before)
+        {
+            $Before
+        }
+
+        $BeforeMany | Select-Many
+    }
+    process
+    {
+        $Item
+    }
+    end
+    {
+        if ($After)
+        {
+            $After
+        }
+
+        $AfterMany | Select-Many
+    }
+}
+
 function ConvertTo-Hashtable
 {
     [CmdletBinding()]

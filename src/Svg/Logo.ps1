@@ -103,6 +103,15 @@ function New-TextGlyph([SvgGlyph] $Glyph, [int] $Position, [hashtable] $GlyphSet
     $verticalSpace = ($TextSettings.Height - ($GlyphSet.Height * $TextSettings.RowCount)) / ($TextSettings.RowCount - 1)
     [int] $y = $TextSettings.Y + ($GlyphSet.Height + $verticalSpace) * $rowIndex
 
+    # HACK: for DotNet.Ru logo
+    if ((($Position -eq 7) -and ($Glyph.Unicode -eq 'R')) -or
+        (($Position -eq 8) -and ($Glyph.Unicode -eq 'U')))
+    {
+        # BUG: It works only for glyph size 113×131
+        # «-38.7» — is the third number from glyph «T»
+        $x -= 38.7
+    }
+
     $Glyph.Move($x, $y)
 }
 

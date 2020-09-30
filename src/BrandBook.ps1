@@ -32,9 +32,9 @@ function Format-BrandLogo
     }
 }
 
-function Update-BrandLogo([string] $Path, [Community] $Community, [Hashtable] $Type)
+function Update-BrandLogo([string] $Path, [string] $CommunityName, [Hashtable] $Type)
 {
-    $fileName = $Type.NameTemplate -replace '{CommunityName}',$Community.Name.ToLowerInvariant()
+    $fileName = $Type.NameTemplate -replace '{CommunityName}',$CommunityName.ToLowerInvariant()
     $fileName += '.svg'
     $outPath = (Join-Path $Path $fileName)
 
@@ -47,7 +47,14 @@ function Update-BrandLogo([string] $Path, [Community] $Community, [Hashtable] $T
     Write-Information "Generate $fileName file"
     $settings = New-SettingsFromGlyphSize -IncludeBorder $Type.IncludeBorder -IncludeBackground $Type.IncludeBackground
 
-    New-Logo -Text $Community.Name -Settings $settings |
+    $logoText = $CommunityName
+    # HACK: for DotNet.Ru logo
+    if ($CommunityName -ieq 'DotNetRu')
+    {
+        $logoText = 'DotNet.Ru'
+    }
+
+    New-Logo -Text $logoText -Settings $settings |
     Set-Content $outPath
 
     $outPath | Format-BrandLogo
@@ -59,8 +66,8 @@ function Update-BrandCommunity
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
         [ValidateNotNullOrEmpty()]
-        [Community]
-        $Community,
+        [string]
+        $CommunityName,
 
         [Parameter(Mandatory)]
         [ValidateNotNullOrEmpty()]
@@ -70,7 +77,7 @@ function Update-BrandCommunity
 
     process
     {
-        $shortName = $Community.Name -replace 'DotNet$',''
+        $shortName = $CommunityName -replace 'DotNet',''
         $communityPath = Join-Path $Path $shortName
         Confirm-DirectoryExist -Path $communityPath
 
@@ -83,7 +90,7 @@ function Update-BrandCommunity
 
         foreach ($type in $logoTypes)
         {
-            Update-BrandLogo -Path $communityPath -Community $Community -Type $type
+            Update-BrandLogo -Path $communityPath -CommunityName $CommunityName -Type $type
         }
     }
 }
@@ -94,6 +101,8 @@ function Update-BrandBook()
     Confirm-DirectoryExist -Path $logoPath
 
     Read-Community -AuditDir $Config.AuditDir |
+    Select-Object -ExpandProperty 'Name' |
+    Join-ToPipe -After 'DotNetRu' |
     Update-BrandCommunity -Path $logoPath
 }
 
