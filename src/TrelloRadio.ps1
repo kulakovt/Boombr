@@ -1,4 +1,4 @@
-#Requires -Version 5
+﻿#Requires -Version 5
 #Requires -Modules PowerTrello
 
 Set-StrictMode -version Latest
@@ -67,8 +67,12 @@ class FormatString
         $uri = [Uri] $url
         $max = 42
         $tail = $uri.AbsolutePath
+
+        # Remove lang segment
         $tail = $tail.Replace('/en-us/', '/').Replace('/ru-ru/', '/')
+        # Remove date segment
         $tail = $tail -replace '/\d{4}/\d{2}/\d{2}/','/'
+
         $tail = $tail.TrimEnd('/', '-')
         $tail = if ($tail.Length -le $max)
         {
@@ -284,12 +288,14 @@ class PodcastAnnouncement
 
     [PodcastAnnouncement] PlayResources()
     {
+        $link = $this.Report.Link($this::SiteUrl)
+        $this.Report.Paragraph("Сайт: $link")
         $link = $this.Report.Link($this::GoogleUrl)
         $this.Report.Paragraph("Google Podcasts: $link")
         $link = $this.Report.Link($this::AppleUrl)
         $this.Report.Paragraph("Apple Podcasts: $link")
         $link = $this.Report.Link($this::YandexUrl)
-        $this.Report.Paragraph("Яндекс Подкасты: $link")
+        $this.Report.Paragraph("Яндекс Музыка: $link")
         $link = $this.Report.Link($this::VideoUrl)
         $this.Report.Paragraph("YouTube Playlist: $link")
         return $this
@@ -748,6 +754,7 @@ function Format-PodcastCover
         ''
         'cover.png: 1920 × 1080'
         'https://www.headliner.app/'
+        'Rss: https://anchor.fm/s/f0c0ef4/podcast/rss'
     }
 }
 
@@ -930,6 +937,7 @@ function New-PodcastAnnouncement
 
 # Step 4
 # New-PodcastAnnouncement -Path $PodcastIndex
-# - YT/DotNetRu
 # - VK/DotNetRu
 # - Tg/DotNetRu
+# - Tw/DotNetRu
+# - YT/DotNetRu
