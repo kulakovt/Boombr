@@ -44,7 +44,7 @@ function Update-BrandLogo([string] $Path, [string] $CommunityName, [Hashtable] $
         return
     }
 
-    Write-Information "Generate $fileName file"
+    Write-Information "Generate $fileName"
     $settings = New-SettingsFromGlyphSize -IncludeBorder $Type.IncludeBorder -IncludeBackground $Type.IncludeBackground
 
     $logoText = $CommunityName
@@ -66,8 +66,8 @@ function Update-BrandCommunity
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
         [ValidateNotNullOrEmpty()]
-        [string]
-        $CommunityName,
+        [Hashtable]
+        $Community,
 
         [Parameter(Mandatory)]
         [ValidateNotNullOrEmpty()]
@@ -77,7 +77,8 @@ function Update-BrandCommunity
 
     process
     {
-        $shortName = $CommunityName -replace 'DotNet',''
+        $communityName = $Community.Name
+        $shortName = $Community.ShortName
         $communityPath = Join-Path $Path $shortName
         Confirm-DirectoryExist -Path $communityPath
 
@@ -90,8 +91,10 @@ function Update-BrandCommunity
 
         foreach ($type in $logoTypes)
         {
-            Update-BrandLogo -Path $communityPath -CommunityName $CommunityName -Type $type
+            Update-BrandLogo -Path $communityPath -CommunityName $communityName -Type $type
         }
+
+        Update-BrandReeadMe -Path $communityPath -Community $Community
     }
 }
 
@@ -100,9 +103,26 @@ function Update-BrandBook()
     $logoPath = Join-Path $Config.BrandBookDir 'Logo'
     Confirm-DirectoryExist -Path $logoPath
 
+    $dotNetRu = @{
+        Name = 'DotNetRu'
+        City = $null
+        ShortName = 'Ru'
+        Site = [Uri] 'https://dotnet.ru/'
+    }
+
     Read-Community -AuditDir $Config.AuditDir |
-    Select-Object -ExpandProperty 'Name' |
-    Join-ToPipe -After 'DotNetRu' |
+    ForEach-Object {
+
+        $shortName = $_.Name -replace 'DotNet',''
+        @{
+            Name = $_.Name
+            City = $_.City
+            ShortName = $shortName
+            # TODO: Add Site to Audit (DotNetRu/Audit#199)
+            Site = [Uri] ('https://{0}.dotnet.ru/' -f $shortName.ToLowerInvariant())
+        }
+    } |
+    Join-ToPipe -After $dotNetRu |
     Update-BrandCommunity -Path $logoPath
 }
 
@@ -127,6 +147,15 @@ class Component
     [string] $RootPath
     [string] $ReadMePath
     [ImageFamily[]] $Families
+}
+
+class CommunityComponent
+{
+    [string] $Name
+    [string] $City
+    [Uri] $Site
+    [string] $HashTag
+    [ImageFamily[]] $Logos
 }
 
 function Get-Image
@@ -192,31 +221,37 @@ function Get-Family([string] $Path)
     }
 }
 
-function Get-Component
+function Get-CommunityComponent
 {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
         [ValidateNotNullOrEmpty()]
         [string]
-        $Path
+        $Path,
+
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [Hashtable]
+        $Community
     )
 
     process
     {
-        $component = [Component]::new()
-        $component.Name = Split-Path -Leaf $Path
-        $component.RootPath = Resolve-Path $Path
-        $component.ReadMePath = Join-Path $component.RootPath 'README.md'
-        $component.Families = Get-Family -Path $component.RootPath
-
+        $component = [CommunityComponent]::new()
+        $component.Name = $Community.Name
+        $component.City = $Community.City
+        $component.Site = $Community.Site
+        $component.HashTag = '#{0}' -f $Community.Name.ToLowerInvariant()
+        $component.Logos = Get-Family -Path $Path
         $component
     }
 }
 
-function Find-AllComponent([string] $Path)
+function Update-BrandReeadMe([string] $Path, [Hashtable] $Community)
 {
-    Get-ChildItem $Path -Directory |
-    Select-Object -ExpandProperty 'FullName' |
-    Get-Component
+    $readMePath = Join-Path $Path 'README.md'
+    $Model = Get-CommunityComponent -Path $Path -Community $Community
+    . $PSScriptRoot\BrandBook.Logo.ps1 |
+    Out-File -FilePath $readMePath -Encoding UTF8
 }
