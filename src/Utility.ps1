@@ -395,3 +395,63 @@ function Confirm-DirectoryExist
     }
 }
 
+function Get-GitRemotePath
+{
+    [CmdletBinding()]
+    [OutputType([Uri])]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('FullName')]
+        [string]
+        $Path,
+
+        [Parameter()]
+        [switch]
+        $UserContent
+    )
+
+    begin
+    {
+        Push-Location
+    }
+    process
+    {
+        $startDirectory = if (Test-Path -Path $Path -PathType Leaf) { Split-Path $Path } else { $Path }
+        Set-Location -Path $startDirectory
+        $status = Get-GitStatus
+        if (-not $status)
+        {
+            throw "Git repository not found in $startDirectory"
+        }
+
+        $localRoot = Split-Path $status.GitDir
+        Set-Location $localRoot
+        $relativeLocal = Resolve-Path -Path $Path -Relative
+
+        $remoteRoot = (git config --get remote.origin.url) -replace '\.git$',''
+        if (Test-Path -Path $Path -PathType Leaf)
+        {
+            if ($UserContent)
+            {
+                $remoteRoot = $remoteRoot.Replace('https://github.com/', 'https://raw.githubusercontent.com/')
+            }
+            else
+            {
+                $remoteRoot = Join-Uri $remoteRoot 'blob'
+            }
+        }
+        else
+        {
+            $remoteRoot = Join-Uri $remoteRoot 'tree'
+        }
+
+        $remoteRoot = Join-Uri $remoteRoot ($status.Branch + '/')
+        [Uri]::new($remoteRoot, $relativeLocal)
+    }
+    end
+    {
+        Pop-Location
+    }
+}
+
