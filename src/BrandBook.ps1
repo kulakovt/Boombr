@@ -128,8 +128,17 @@ function Update-BrandBook()
 
 class Image
 {
-    [string] $Path
-    [string] $Name
+    static [array] $Orderer = @(
+        @{ Expression = { @('png', 'svg').IndexOf($_.Format) }; Descending = $true }
+        @{ Expression = 'Format'; Ascending = $true }
+        @{ Expression = 'Width'; Ascending = $true }
+    )
+
+    static $IsPreview = { $_.Format -eq 'png' -and $_.Width -eq 200 }
+
+    [string] $LocalPath
+    [string] $RemotePath
+    [string] $DownloadPath
     [string] $Format
     [int] $Width
 }
@@ -171,8 +180,10 @@ function Get-Image
     process
     {
         $image = [Image]::new()
-        $image.Path = $File.FullName
-        $image.Name = $File.Name
+        $image.LocalPath = $File.FullName
+        $image.RemotePath = $File | Get-GitRemotePath
+        $image.DownloadPath = $File | Get-GitRemotePath -UserContent
+
         $image.Format = $File.Extension.Trim('.').ToLowerInvariant()
         $image.Width = -1
         if ($File.Name -match '.*-(?<Width>\d+)\.\w+$')
@@ -181,7 +192,7 @@ function Get-Image
         }
         if ($image.Format -eq 'svg')
         {
-            $svg = Select-Xml -Path $image.Path -XPath '/ns:svg' -Namespace @{ ns = 'http://www.w3.org/2000/svg' }
+            $svg = Select-Xml -Path $image.LocalPath -XPath '/ns:svg' -Namespace @{ ns = 'http://www.w3.org/2000/svg' }
             if ($svg -and $svg.Node.width)
             {
                 $width = $svg.Node.width -replace 'px',''
@@ -215,8 +226,8 @@ function Get-Family([string] $Path)
 
         $family = [ImageFamily]::new()
         $family.Name = $group.Name
-        $family.Images = $group.Group
-        $family.Preview = $family.Images | Where-Object { $_.Format -eq 'png' -and $_.Width -eq 200 } | Select-Object -First 1
+        $family.Images = $group.Group | Sort-Object ([Image]::Orderer)
+        $family.Preview = $family.Images | Where-Object ([Image]::IsPreview) | Select-Single -ElementNames 'image preview'
         $family
     }
 }
