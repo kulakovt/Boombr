@@ -1,4 +1,4 @@
-. $PSScriptRoot\Utility.ps1
+﻿. $PSScriptRoot\Utility.ps1
 . $PSScriptRoot\Model.ps1
 . $PSScriptRoot\Serialization.ps1
 . $PSScriptRoot\Svg\Logo.ps1
@@ -140,6 +140,7 @@ class Image
 
     static $IsPreview = { $_.Format -eq 'png' -and $_.Width -eq 200 }
 
+    [string] $Name
     [string] $LocalPath
     [string] $RemotePath
     [string] $DownloadPath
@@ -150,25 +151,11 @@ class Image
 class ImageFamily
 {
     [string] $Name
+    [string] $Title
     [Image[]] $Images
     [Image] $Preview
-}
-
-class Component
-{
-    [string] $Name
-    [string] $RootPath
-    [string] $ReadMePath
-    [ImageFamily[]] $Families
-}
-
-class CommunityComponent
-{
-    [string] $Name
-    [string] $City
-    [Uri] $Site
-    [string] $HashTag
-    [ImageFamily[]] $Logos
+    [string[]] $Tags
+    [string] $Description
 }
 
 function Get-Image
@@ -204,27 +191,74 @@ function Get-Image
             }
         }
 
+        $image.Name = $image.Format.ToUpperInvariant()
+        if (($image.Format -eq 'png') -and ($image.Width -ge 0))
+        {
+            $image.Name += '×' + $image.Width
+        }
+
         $image
     }
 }
 
-function Get-FamilyName([string] $ImageName)
+function Get-FamilyName([string] $ImagePath)
 {
-    $familyName = [IO.Path]::GetFileNameWithoutExtension($ImageName)
+    $familyName = [IO.Path]::GetFileNameWithoutExtension($ImagePath)
     if ($familyName -match '(?<BaseName>.*)-\d+$')
     {
         $familyName = $Matches.BaseName
     }
 
+    # Humanizer
+    # $familyName = $familyName -replace '-',' ' -replace '_',' '
+    # $familyName = [Text.RegularExpressions.Regex]::Replace($familyName, '\b\w', { param($match) $match.Value.ToUpper() })
+    # $familyName = $familyName -replace 'dotnetru','DotNetRu' -replace 'techtrain','TechTrain'
+
     $familyName
+}
+
+function Get-FamilyTag([string] $Name)
+{
+    @('white', 'bordered') |
+    ForEach-Object {
+        $tag = $_
+        if ($Name -match "\b$tag\b")
+        {
+            $tag
+        }
+    }
+}
+
+function Get-FamilyRank([ImageFamily] $Family)
+{
+    $rank = 0
+    $rank += ($Family.Tags | Where-Object { $_ -ne 'bordered' } | Measure-Object | Select-Object -ExpandProperty Count) * 10
+    $rank += ($Family.Tags | Where-Object { $_ -eq 'bordered' } | Measure-Object | Select-Object -ExpandProperty Count) * 05
+    $rank
+}
+
+function Set-FamilyDisplayInfo([ImageFamily] $Family)
+{
+    $display = switch -Wildcard ($Family.Name)
+    {
+        '*-logo-squared' { @('Квадрат', 'На светлом фоне используйте логотип без рамки. Подходит для создания круглых миниатюр в соц. сетях.') }
+        '*-logo-squared-bordered' { @('Квадрат с рамкой', 'На тёмном фоне используйте логотип с рамкой.') }
+        '*-logo-squared-white' { @('Квадрат на прозрачном фоне', 'На тёмном цветном фоне используйте прозрачный логотип.') }
+        '*-logo-squared-white-bordered' { @('Квадрат на прозрачном фоне с рамкой', 'На тёмном цветном фоне используйте прозрачный логотип с рамкой.') }
+        default { @('', '') }
+    }
+
+    $Family.Title = $display[0]
+    $Family.Description = $display[1]
 }
 
 function Get-Family([string] $Path)
 {
     $imageFormats = @('*.svg', '*.ai', '*.eps', '*.png')
+
     Get-ChildItem -Path $Path -Include $imageFormats -Recurse -File |
     Get-Image |
-    Group-Object -Property { Get-FamilyName -ImageName $_.Name } |
+    Group-Object -Property { Get-FamilyName -ImagePath $_.LocalPath } |
     ForEach-Object {
         $group = $_
 
@@ -232,8 +266,11 @@ function Get-Family([string] $Path)
         $family.Name = $group.Name
         $family.Images = $group.Group | Sort-Object ([Image]::Orderer)
         $family.Preview = $family.Images | Where-Object ([Image]::IsPreview) | Select-Single -ElementNames 'image preview'
+        $family.Tags = Get-FamilyTag -Name $group.Name
+        Set-FamilyDisplayInfo -Family $family
         $family
-    }
+    } |
+    Sort-Object { Get-FamilyRank -Family $_ }
 }
 
 function Expand-CommunityComponent

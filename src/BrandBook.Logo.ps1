@@ -1,53 +1,36 @@
-﻿$title = "Сообщество $($Model.Name)"
-$position = "Независимое сообщество .NET разработчиков из города $($Model.City)"
-if ($Model.Name -ieq 'DotNetRu')
+﻿function Format-DownloadSection($Images)
 {
-     $title = $Model.Name
-     $position = 'Объединение независимых русскоязычных .NET сообществ'
-}
-$logoPrefix = $Model.Name.ToLowerInvariant()
-$logoSq = $Model.Logos | Where-Object { $_.Name -eq ($logoPrefix + '-logo-squared') } | Select-Single
-$logoSqBr = $Model.Logos | Where-Object { $_.Name -eq ($logoPrefix + '-logo-squared-bordered') } | Select-Single
-$logoSqWt = $Model.Logos | Where-Object { $_.Name -eq ($logoPrefix + '-logo-squared-white') } | Select-Single
-$logoSqWtBr = $Model.Logos | Where-Object { $_.Name -eq ($logoPrefix + '-logo-squared-white-bordered') } | Select-Single
-
-function Format-DownloadImage($Image)
-{
-    process
-    {
-        $image = $_
-        $up1 = Split-Path -Parent $image.Path
-        $link = 'https://raw.githubusercontent.com/AnatolyKulakov/SpbDotNet/master/Logo' |
-            Join-Uri -RelativeUri (Split-Path -Leaf $up1) |
-            Join-Uri -RelativeUri $image.Name
-
-        $text = $image.Format.ToUpperInvariant()
-        if ($image.Format -eq 'png')
-        {
-            $text += '×' + $image.Width
-        }
-
-        "[$text]($link)"
-    }
-}
-
-function Format-DownloadSection($Images)
-{
-    $order = @(
-        @{ Expression = { @('png', 'svg').IndexOf($_.Format) }; Descending = $true }
-        @{ Expression = 'Width'; Ascending = $true }
-    )
-
     $Images |
-    Sort-Object $order |
-    Format-DownloadImage |
+    ForEach-Object {
+        "[$($_.Name)]($($_.DownloadPath))"
+    } |
     Join-ToString -Delimeter ', '
 }
 
-@"
-# $title
+function Format-Family
+{
+    process
+    {
+        $family = $_
+        $previewLink = Split-Path -Leaf $family.Preview.RemotePath
 
-$position. Официальный сайт [$($Model.Site.Authority)]($($Model.Site)). Хэштег в социальных сетях _$($Model.HashTag)_.
+"#### $($family.Title)"
+''
+        $($family.Description)
+''
+'|       |'
+'| :---: |'
+'|       |'
+"| ![$($family.Title)]($previewLink) |"
+"| Скачать: $(Format-DownloadSection($family.Images)) |"
+''
+    }
+}
+
+@"
+# $($Model.Title)
+
+$($Model.Description). Официальный сайт [$($Model.Site.Authority)]($($Model.Site)). Хэштег в социальных сетях _$($Model.HashTag)_.
 
 ## Логотип
 
@@ -73,46 +56,9 @@ $position. Официальный сайт [$($Model.Site.Authority)]($($Model.S
 
 Подбирайте вариант логотипа наиболее подходящий под ваши конкретные нужды.
 
-#### Квадрат
-
-На светлом фоне используйте логотип без рамки. Подходит для создания круглых миниатюр в соц. сетях.
-
-|       |
-| :---: |
-|       |
-| ![Квадратный логотип $($Model.Name)]($($logoSq.Preview.Name)) |
-| Скачать: $(Format-DownloadSection($logoSq.Images)) |
-
-#### Квадрат с рамкой
-
-На тёмном фоне используйте логотип с рамкой.
-
-|       |
-| :---: |
-|       |
-| ![Квадратный логотип $($Model.Name) с рамкой]($($logoSqBr.Preview.Name)) |
-| Скачать: $(Format-DownloadSection($logoSqBr.Images)) |
-
-#### Квадрат на прозрачном фоне
-
-На тёмном цветном фоне используйте прозрачный логотип.
-
-|       |
-| :---: |
-|       |
-| ![Квадратный прозрачный логотип $($Model.Name)]($($logoSqWt.Preview.Name)) |
-| Скачать: $(Format-DownloadSection($logoSqWt.Images)) |
-
-#### Квадрат на прозрачном фоне с рамкой
-
-На тёмном цветном фоне используйте прозрачный логотип с рамкой.
-
-|       |
-| :---: |
-|       |
-| ![Квадратный прозрачный логотип $($Model.Name) с рамкой]($($logoSqWtBr.Preview.Name))  |
-| Скачать: $(Format-DownloadSection($logoSqWtBr.Images)) |
-
+"@
+$Model.Logos | Format-Family
+@"
 ## Шрифты
 
 В нашем логотипе используется шрифт Consolas ™. Это шрифт по-умолчанию который используют .NET разработчики в своих редакторах кода.
