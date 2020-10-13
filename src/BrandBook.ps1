@@ -105,9 +105,11 @@ function Update-BrandBook()
 
     $dotNetRu = @{
         Name = 'DotNetRu'
+        Title = 'DotNetRu'
         City = $null
         ShortName = 'Ru'
         Site = [Uri] 'https://dotnet.ru/'
+        Description = 'Объединение независимых русскоязычных .NET сообществ'
     }
 
     Read-Community -AuditDir $Config.AuditDir |
@@ -116,10 +118,12 @@ function Update-BrandBook()
         $shortName = $_.Name -replace 'DotNet',''
         @{
             Name = $_.Name
+            Title = "Сообщество $($_.Name)"
             City = $_.City
             ShortName = $shortName
             # TODO: Add Site to Audit (DotNetRu/Audit#199)
             Site = [Uri] ('https://{0}.dotnet.ru/' -f $shortName.ToLowerInvariant())
+            Description = "Независимое сообщество .NET разработчиков из города $($_.City)"
         }
     } |
     Join-ToPipe -After $dotNetRu |
@@ -232,9 +236,10 @@ function Get-Family([string] $Path)
     }
 }
 
-function Get-CommunityComponent
+function Expand-CommunityComponent
 {
     [CmdletBinding()]
+    [OutputType([Hashtable])]
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
         [ValidateNotNullOrEmpty()]
@@ -249,20 +254,25 @@ function Get-CommunityComponent
 
     process
     {
-        $component = [CommunityComponent]::new()
-        $component.Name = $Community.Name
-        $component.City = $Community.City
-        $component.Site = $Community.Site
-        $component.HashTag = '#{0}' -f $Community.Name.ToLowerInvariant()
-        $component.Logos = Get-Family -Path $Path
-        $component
+        @('Name', 'Title', 'City', 'Site', 'Description') |
+        ForEach-Object {
+            $key = $_
+            if (-not $Community.ContainsKey($key))
+            {
+                throw "Property $key not found in Community object"
+            }
+        }
+
+        $Community.HashTag = '#{0}' -f $Community.Name.ToLowerInvariant()
+        $Community.Logos = Get-Family -Path $Path
+        $Community
     }
 }
 
 function Update-BrandReeadMe([string] $Path, [Hashtable] $Community)
 {
     $readMePath = Join-Path $Path 'README.md'
-    $Model = Get-CommunityComponent -Path $Path -Community $Community
+    $Model = Expand-CommunityComponent -Path $Path -Community $Community
     . $PSScriptRoot\BrandBook.Logo.ps1 |
     Out-File -FilePath $readMePath -Encoding UTF8
 }
