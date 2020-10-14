@@ -1,4 +1,4 @@
-﻿. $PSScriptRoot\Utility.ps1
+. $PSScriptRoot\Utility.ps1
 . $PSScriptRoot\Model.ps1
 . $PSScriptRoot\Serialization.ps1
 . $PSScriptRoot\Svg\Logo.ps1
@@ -309,6 +309,7 @@ function Expand-CommunityComponent
 function Update-BrandReeadMe([string] $Path, [Hashtable] $Community)
 {
     $readMePath = Join-Path $Path 'README.md'
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUserDeclaredVarsMoreThanAssignments', '', Scope='Function', Target='Model')]
     $Model = Expand-CommunityComponent -Path $Path -Community $Community
     . $PSScriptRoot\BrandBook.Logo.ps1 |
     Out-File -FilePath $readMePath -Encoding UTF8
