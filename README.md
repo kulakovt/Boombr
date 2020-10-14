@@ -11,7 +11,7 @@ Boombr — скрипт для помощи в подготовке статич
 1. Склонируйре репозиторий Boombr
 
 ```batch
-git clone https://github.com/AnatolyKulakov/Boombr.git
+git clone https://github.com/kulakovt/Boombr.git
 ```
 
 2. Склонируйте репозиторий с Audit'ом, если будите с ним работать
@@ -23,7 +23,13 @@ git clone https://github.com/DotNetRu/Audit.git
 3. Склонируйте репозиторий с Wiki, если будите с ней работать
 
 ```batch
-git clone https://github.com/AnatolyKulakov/SpbDotNet.wiki.git
+git clone https://github.com/kulakovt/SpbDotNet.wiki.git
+```
+
+4. Склонируйте репозиторий с Brand Book, если будите с ней работать
+
+```batch
+git clone https://github.com/kulakovt/SpbDotNet.git
 ```
 
 Все репозитории должны лежать рядом, в одной общей папке.
@@ -56,3 +62,42 @@ Boombr пока не умеет работать с картинками. Поэ
 ```
 
 Boombr перестроит все страницы для всех сообществ из текущей версии Audit'а.
+
+Для прогрева кеша запустите команду:
+
+```posh
+./Invoke-Boombr.ps1 build cache
+```
+
+Boombr закеширует всю необходимую информацию из внешних источников (обложки для слайдов и видео-роликов) для более быстрого построения wiki в будущем.
+
+### Форматирование Аудита
+
+Для переформатирования базы Аудита запустите команду:
+
+```posh
+./Invoke-Boombr.ps1 rebuild xml
+```
+
+Boombr загрузит Аудит в текущую модель и сохранит обратно. Это полезно для миграции существующих данных при изменении модели.
+
+### Создание анонса Встречи
+
+Для создания анонса вастречи запустите команду:
+
+```posh
+./Invoke-Boombr.ps1 new announcement
+```
+
+Boombr отформатирует анонс в текстовом файле для публикации на сайте TimePad.
+
+### Генерация Brand Book
+
+Для создания Brand Book запустите команду:
+
+```posh
+./Invoke-Boombr.ps1 build brand
+```
+
+Boombr актуализирует логотипы сообществ, картинки и текстовые описания к ним.
+
