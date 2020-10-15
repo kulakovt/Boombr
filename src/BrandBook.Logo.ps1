@@ -1,33 +1,4 @@
-﻿function Format-DownloadSection($Images)
-{
-    $Images |
-    ForEach-Object {
-        "[$($_.Name)]($($_.DownloadPath))"
-    } |
-    Join-ToString -Delimeter ', '
-}
-
-function Format-Family
-{
-    process
-    {
-        $family = $_
-        $previewLink = Split-Path -Leaf $family.Preview.RemotePath
-
-"#### $($family.Title)"
-''
-        $($family.Description)
-''
-'|       |'
-'| :---: |'
-'|       |'
-"| ![$($family.Title)]($previewLink) |"
-"| Скачать: $(Format-DownloadSection($family.Images)) |"
-''
-    }
-}
-
-@"
+﻿@"
 # $($Model.Title)
 
 $($Model.Description). Официальный сайт [$($Model.Site.Authority)]($($Model.Site)). Хэштег в социальных сетях _$($Model.HashTag)_.

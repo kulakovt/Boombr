@@ -1,4 +1,4 @@
-. $PSScriptRoot\Utility.ps1
+﻿. $PSScriptRoot\Utility.ps1
 . $PSScriptRoot\Model.ps1
 . $PSScriptRoot\Serialization.ps1
 . $PSScriptRoot\Svg\Logo.ps1
@@ -94,13 +94,14 @@ function Update-BrandCommunity
             Update-BrandLogo -Path $communityPath -CommunityName $communityName -Type $type
         }
 
-        Update-BrandReeadMe -Path $communityPath -Community $Community
+        Update-BrandReadMe -Path $communityPath -Community $Community
     }
 }
 
 function Update-BrandBook()
 {
     $logoPath = Join-Path $Config.BrandBookDir 'Logo'
+    $artPath = Join-Path $Config.BrandBookDir 'Art'
     Confirm-DirectoryExist -Path $logoPath
 
     $dotNetRu = @{
@@ -128,6 +129,11 @@ function Update-BrandBook()
     } |
     Join-ToPipe -After $dotNetRu |
     Update-BrandCommunity -Path $logoPath
+
+    Get-ChildItem $artPath -Directory |
+    ForEach-Object {
+        Update-ArtReadMe -Path $_.FullName
+    }
 }
 
 class Image
@@ -209,11 +215,6 @@ function Get-FamilyName([string] $ImagePath)
         $familyName = $Matches.BaseName
     }
 
-    # Humanizer
-    # $familyName = $familyName -replace '-',' ' -replace '_',' '
-    # $familyName = [Text.RegularExpressions.Regex]::Replace($familyName, '\b\w', { param($match) $match.Value.ToUpper() })
-    # $familyName = $familyName -replace 'dotnetru','DotNetRu' -replace 'techtrain','TechTrain'
-
     $familyName
 }
 
@@ -237,19 +238,24 @@ function Get-FamilyRank([ImageFamily] $Family)
     $rank
 }
 
-function Set-FamilyDisplayInfo([ImageFamily] $Family)
+function Expand-LogoFamilyDisplayInfo()
 {
-    $display = switch -Wildcard ($Family.Name)
+    process
     {
-        '*-logo-squared' { @('Квадрат', 'На светлом фоне используйте логотип без рамки. Подходит для создания круглых миниатюр в соц. сетях.') }
-        '*-logo-squared-bordered' { @('Квадрат с рамкой', 'На тёмном фоне используйте логотип с рамкой.') }
-        '*-logo-squared-white' { @('Квадрат на прозрачном фоне', 'На тёмном цветном фоне используйте прозрачный логотип.') }
-        '*-logo-squared-white-bordered' { @('Квадрат на прозрачном фоне с рамкой', 'На тёмном цветном фоне используйте прозрачный логотип с рамкой.') }
-        default { @('', '') }
-    }
+        $family = [ImageFamily] $_
+        $display = switch -Wildcard ($family.Name)
+        {
+            '*-logo-squared' { @('Квадрат', 'На светлом фоне используйте логотип без рамки. Подходит для создания круглых миниатюр в соц. сетях.') }
+            '*-logo-squared-bordered' { @('Квадрат с рамкой', 'На тёмном фоне используйте логотип с рамкой.') }
+            '*-logo-squared-white' { @('Квадрат на прозрачном фоне', 'На тёмном цветном фоне используйте прозрачный логотип.') }
+            '*-logo-squared-white-bordered' { @('Квадрат на прозрачном фоне с рамкой', 'На тёмном цветном фоне используйте прозрачный логотип с рамкой.') }
+            default { @('', '') }
+        }
 
-    $Family.Title = $display[0]
-    $Family.Description = $display[1]
+        $family.Title = $display[0]
+        $family.Description = $display[1]
+        $family
+    }
 }
 
 function Get-Family([string] $Path)
@@ -264,13 +270,45 @@ function Get-Family([string] $Path)
 
         $family = [ImageFamily]::new()
         $family.Name = $group.Name
+        $family.Title = $group.Name
         $family.Images = $group.Group | Sort-Object ([Image]::Orderer)
         $family.Preview = $family.Images | Where-Object ([Image]::IsPreview) | Select-Single -ElementNames 'image preview'
         $family.Tags = Get-FamilyTag -Name $group.Name
-        Set-FamilyDisplayInfo -Family $family
         $family
     } |
     Sort-Object { Get-FamilyRank -Family $_ }
+}
+
+function Format-DownloadSection([Image[]] $Images)
+{
+    $Images |
+    ForEach-Object {
+        "[$($_.Name)]($($_.DownloadPath))"
+    } |
+    Join-ToString -Delimeter ', '
+}
+
+function Format-Family
+{
+    process
+    {
+        $family = [ImageFamily] $_
+        $previewLink = Split-Path -Leaf $family.Preview.RemotePath
+
+"#### $($family.Title)"
+''
+        if ($family.Description)
+        {
+            $($family.Description)
+            ''
+        }
+'|       |'
+'| :---: |'
+'|       |'
+"| ![$($family.Title)]($previewLink) |"
+"| Скачать: $(Format-DownloadSection($family.Images)) |"
+''
+    }
 }
 
 function Expand-CommunityComponent
@@ -301,16 +339,50 @@ function Expand-CommunityComponent
         }
 
         $Community.HashTag = '#{0}' -f $Community.Name.ToLowerInvariant()
-        $Community.Logos = Get-Family -Path $Path
+        $Community.Logos = Get-Family -Path $Path | Expand-LogoFamilyDisplayInfo
         $Community
     }
 }
 
-function Update-BrandReeadMe([string] $Path, [Hashtable] $Community)
+function Expand-ArtComponent
+{
+    [CmdletBinding()]
+    [OutputType([Hashtable])]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [ValidateNotNullOrEmpty()]
+        [string]
+        $Path
+    )
+
+    process
+    {
+        $art = @{}
+        $art.Title = Split-Path -Leaf $Path
+        $art.Pictures = Get-Family -Path $Path
+        $art
+    }
+}
+
+function Update-BrandReadMe([string] $Path, [Hashtable] $Community)
 {
     $readMePath = Join-Path $Path 'README.md'
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUserDeclaredVarsMoreThanAssignments', '', Scope='Function', Target='Model')]
     $Model = Expand-CommunityComponent -Path $Path -Community $Community
     . $PSScriptRoot\BrandBook.Logo.ps1 |
     Out-File -FilePath $readMePath -Encoding UTF8
+}
+
+function Update-ArtReadMe([string] $Path)
+{
+    $readMePath = Join-Path $Path 'README.md'
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUserDeclaredVarsMoreThanAssignments', '', Scope='Function', Target='Model')]
+    $Model = Expand-ArtComponent -Path $Path
+    . $PSScriptRoot\BrandBook.Art.ps1 |
+    Out-File -FilePath $readMePath -Encoding UTF8
+
+    # TODO:
+    # - ReSave SVG
+    # - Remove AI
+    # - Order by ABC?
 }

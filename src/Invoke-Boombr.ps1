@@ -31,12 +31,21 @@ function Test-BoombrEnvironment()
     Write-Information "Start at «$($Config.RootDir)» ($mode mode)"
     Write-Information "Use Artifact directory «$($Config.ArtifactsDir)»"
 
-    if (-not (Test-Path -Path $Config.AuditDir))
+    if (-not (Test-Path -Path $Config.AuditDir -PathType 'Container'))
     {
         throw "Audit directory is not found at «$($Config.AuditDir)»"
     }
 
     Write-Information "Found Audit directory at «$($Config.AuditDir)»"
+
+    if (Test-Path -Path $Config.BrandBookDir -PathType 'Container')
+    {
+        Write-Information "Found BarndBook directory at «$($Config.BrandBookDir)»"
+    }
+    if (Test-Path -Path $Config.Inkscape -PathType 'Leaf')
+    {
+        Write-Information "Found Inkscape at «$($Config.Inkscape)»"
+    }
 }
 
 function Start-BoombrCommand([string] $Command = $(throw 'Command required'))
