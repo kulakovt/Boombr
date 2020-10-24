@@ -98,7 +98,7 @@ function Start-BoombrCommand([string] $Command = $(throw 'Command required'))
 
         'build brand'
         {
-            . $PSScriptRoot\BrandBook.ps1
+            . $PSScriptRoot\Brand\BrandBook.ps1
             Update-BrandBook
         }
 

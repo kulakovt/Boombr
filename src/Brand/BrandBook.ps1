@@ -1,7 +1,7 @@
-﻿. $PSScriptRoot\Utility.ps1
-. $PSScriptRoot\Model.ps1
-. $PSScriptRoot\Serialization.ps1
-. $PSScriptRoot\Svg\Logo.ps1
+﻿. $PSScriptRoot\..\Utility.ps1
+. $PSScriptRoot\..\Model.ps1
+. $PSScriptRoot\..\Serialization.ps1
+. $PSScriptRoot\..\Svg\Logo.ps1
 
 function Format-BrandLogo
 {
