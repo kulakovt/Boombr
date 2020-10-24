@@ -1,4 +1,4 @@
-. $PSScriptRoot\Utility.ps1
+﻿. $PSScriptRoot\Utility.ps1
 . $PSScriptRoot\Model.ps1
 . $PSScriptRoot\Serialization.ps1
 . $PSScriptRoot\Svg\Logo.ps1
@@ -134,6 +134,8 @@ function Update-BrandBook()
     ForEach-Object {
         Update-ArtReadMe -Path $_.FullName
     }
+
+    Update-PodcastsReadMe -Path $logoPath
 }
 
 class Image
@@ -235,10 +237,10 @@ function Get-FamilyOrderer()
     @(
         @{ Expression = {
             $Family = [ImageFamily] $_
-    $rank = 0
-    $rank += ($Family.Tags | Where-Object { $_ -ne 'bordered' } | Measure-Object | Select-Object -ExpandProperty Count) * 10
-    $rank += ($Family.Tags | Where-Object { $_ -eq 'bordered' } | Measure-Object | Select-Object -ExpandProperty Count) * 05
-    $rank
+            $rank = 0
+            $rank += ($Family.Tags | Where-Object { $_ -ne 'bordered' } | Measure-Object | Select-Object -ExpandProperty Count) * 10
+            $rank += ($Family.Tags | Where-Object { $_ -eq 'bordered' } | Measure-Object | Select-Object -ExpandProperty Count) * 05
+            $rank
         }; Ascending = $true }
         @{ Expression = 'Name'; Ascending = $true }
     )
@@ -386,9 +388,41 @@ function Update-ArtReadMe([string] $Path)
     $Model = Expand-ArtComponent -Path $Path
     . $PSScriptRoot\BrandBook.Art.ps1 |
     Out-File -FilePath $readMePath -Encoding UTF8
+}
+
+function Update-PodcastsReadMe([string] $Path)
+{
+    $radioPath = Join-Path $Path 'Radio'
+    $radio = @{
+        Title = 'RadioDotNet'
+        Description = 'Разговоры на тему .NET во всех его проявлениях, новости, статьи, библиотеки, конференции, личности и прочее интересное из мира IT'
+        Site = [Uri] 'https://radio.dotnet.ru/'
+        HashTag = '#radiodotnet'
+        RootPath = $radioPath
+    }
+
+    $morePath = Join-Path $Path 'More'
+    $more = @{
+        Title = 'DotNet & More'
+        Description = 'Подкаст о DotNet разработке и не только'
+        Site = [Uri] 'https://dotnetmore.ru/'
+        HashTag = '#dotnetmore'
+        RootPath = $morePath
+    }
+
+    @($radio, $more) |
+    ForEach-Object {
+
+        $Model = $_
+        $Model.Logos = Get-Family -Path $Model.RootPath | Expand-LogoFamilyDisplayInfo
+        $readMePath = Join-Path $Model.RootPath 'README.md'
+        . $PSScriptRoot\BrandBook.Podcast.ps1 |
+        Out-File -FilePath $readMePath -Encoding UTF8
+    }
+}
 
     # TODO:
-    # - ReSave SVG
-    # - Remove AI
-    # - Order by ABC?
-}
+    # - More README:
+    #   /Logo
+    #   /Art
+    #   /README.md
