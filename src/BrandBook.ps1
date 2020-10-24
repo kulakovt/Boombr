@@ -1,4 +1,4 @@
-﻿. $PSScriptRoot\Utility.ps1
+. $PSScriptRoot\Utility.ps1
 . $PSScriptRoot\Model.ps1
 . $PSScriptRoot\Serialization.ps1
 . $PSScriptRoot\Svg\Logo.ps1
@@ -230,12 +230,18 @@ function Get-FamilyTag([string] $Name)
     }
 }
 
-function Get-FamilyRank([ImageFamily] $Family)
+function Get-FamilyOrderer()
 {
+    @(
+        @{ Expression = {
+            $Family = [ImageFamily] $_
     $rank = 0
     $rank += ($Family.Tags | Where-Object { $_ -ne 'bordered' } | Measure-Object | Select-Object -ExpandProperty Count) * 10
     $rank += ($Family.Tags | Where-Object { $_ -eq 'bordered' } | Measure-Object | Select-Object -ExpandProperty Count) * 05
     $rank
+        }; Ascending = $true }
+        @{ Expression = 'Name'; Ascending = $true }
+    )
 }
 
 function Expand-LogoFamilyDisplayInfo()
@@ -276,7 +282,7 @@ function Get-Family([string] $Path)
         $family.Tags = Get-FamilyTag -Name $group.Name
         $family
     } |
-    Sort-Object { Get-FamilyRank -Family $_ }
+    Sort-Object (Get-FamilyOrderer)
 }
 
 function Format-DownloadSection([Image[]] $Images)
