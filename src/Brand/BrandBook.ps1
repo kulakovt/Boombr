@@ -1,4 +1,4 @@
-. $PSScriptRoot\..\Utility.ps1
+﻿. $PSScriptRoot\..\Utility.ps1
 . $PSScriptRoot\..\Model.ps1
 . $PSScriptRoot\..\Serialization.ps1
 . $PSScriptRoot\..\Svg\Logo.ps1
@@ -63,6 +63,7 @@ function Update-BrandLogo([string] $Path, [string] $CommunityName, [Hashtable] $
 function Update-BrandCommunity
 {
     [CmdletBinding()]
+    [OutputType([Hashtable])]
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
         [ValidateNotNullOrEmpty()]
@@ -130,12 +131,21 @@ function Update-BrandBook()
     Join-ToPipe -Before $dotNetRu |
     Update-BrandCommunity -Path $logoPath
 
-    Get-ChildItem $artPath -Directory |
+    $arts = Get-ChildItem $artPath -Directory |
     ForEach-Object {
         Update-ArtReadMe -Path $_.FullName
+    } |
+    Sort-Object -Property { $_.'Title' }
+
+    $podcasts = Update-PodcastsReadMe -Path $logoPath
+
+    $all = @{
+        Communities = $communities
+        Arts = $arts
+        Podcasts = $podcasts
     }
 
-    Update-PodcastsReadMe -Path $logoPath
+    Update-MainReadMe -Path $Config.BrandBookDir -LogoPath $logoPath -Data $all
 }
 
 class Image
@@ -348,6 +358,7 @@ function Expand-CommunityComponent
 
         $Community.HashTag = '#{0}' -f $Community.Name.ToLowerInvariant()
         $Community.Logos = Get-Family -Path $Path | Expand-LogoFamilyDisplayInfo
+        $Community.Path = $Path
         $Community
     }
 }
@@ -368,7 +379,50 @@ function Expand-ArtComponent
         $art = @{}
         $art.Title = Split-Path -Leaf $Path
         $art.Pictures = Get-Family -Path $Path
+        $art.Path = $Path
         $art
+    }
+}
+
+function Expand-MainComponent
+{
+    [CmdletBinding()]
+    [OutputType([Hashtable])]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [ValidateNotNullOrEmpty()]
+        [string]
+        $Path,
+
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [Hashtable]
+        $Data
+    )
+
+    begin
+    {
+        Push-Location
+    }
+    process
+    {
+        Set-Location -Path $Path
+
+        $components = $Data.Communities |
+        Join-ToPipe -After $Data.Arts |
+        Join-ToPipe -After $Data.Podcasts
+
+        foreach ($component in $components)
+        {
+            $relativePath = Resolve-Path -Path $component.Path -Relative
+            $component.Link = $relativePath.TrimStart('.').TrimStart('\').Replace('\', '/')
+        }
+
+        $Data
+    }
+    end
+    {
+        Pop-Location
     }
 }
 
@@ -379,6 +433,8 @@ function Update-BrandReadMe([string] $Path, [Hashtable] $Community)
     $Model = Expand-CommunityComponent -Path $Path -Community $Community
     . $PSScriptRoot\BrandBook.Logo.ps1 |
     Out-File -FilePath $readMePath -Encoding UTF8
+
+    $Model
 }
 
 function Update-ArtReadMe([string] $Path)
@@ -388,6 +444,8 @@ function Update-ArtReadMe([string] $Path)
     $Model = Expand-ArtComponent -Path $Path
     . $PSScriptRoot\BrandBook.Art.ps1 |
     Out-File -FilePath $readMePath -Encoding UTF8
+
+    $Model
 }
 
 function Update-PodcastsReadMe([string] $Path)
@@ -398,7 +456,7 @@ function Update-PodcastsReadMe([string] $Path)
         Description = 'Разговоры на тему .NET во всех его проявлениях, новости, статьи, библиотеки, конференции, личности и прочее интересное из мира IT'
         Site = [Uri] 'https://radio.dotnet.ru/'
         HashTag = '#radiodotnet'
-        RootPath = $radioPath
+        Path = $radioPath
     }
 
     $morePath = Join-Path $Path 'More'
@@ -407,22 +465,33 @@ function Update-PodcastsReadMe([string] $Path)
         Description = 'Подкаст о DotNet разработке и не только'
         Site = [Uri] 'https://dotnetmore.ru/'
         HashTag = '#dotnetmore'
-        RootPath = $morePath
+        Path = $morePath
     }
 
     @($radio, $more) |
     ForEach-Object {
 
         $Model = $_
-        $Model.Logos = Get-Family -Path $Model.RootPath | Expand-LogoFamilyDisplayInfo
-        $readMePath = Join-Path $Model.RootPath 'README.md'
+        $Model.Title = "Подкаст $($Model.Title)"
+        $Model.Logos = Get-Family -Path $Model.Path | Expand-LogoFamilyDisplayInfo
+        $readMePath = Join-Path $Model.Path 'README.md'
         . $PSScriptRoot\BrandBook.Podcast.ps1 |
         Out-File -FilePath $readMePath -Encoding UTF8
+
+        $Model
     }
 }
 
-    # TODO:
-    # - More README:
-    #   /Logo
-    #   /Art
-    #   /README.md
+function Update-MainReadMe([string] $Path, [string] $LogoPath, [Hashtable] $Data)
+{
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUserDeclaredVarsMoreThanAssignments', '', Scope='Function', Target='Model')]
+    $Model = $Path | Expand-MainComponent -Data $Data
+
+    # $readMePath = Join-Path $LogoPath 'README.md'
+    # . $PSScriptRoot\BrandBook.LogoMain.ps1 |
+    # Out-File -FilePath $readMePath -Encoding UTF8
+
+    $readMePath = Join-Path $Path 'README.md'
+    . $PSScriptRoot\BrandBook.Main.ps1 |
+    Out-File -FilePath $readMePath -Encoding UTF8
+}

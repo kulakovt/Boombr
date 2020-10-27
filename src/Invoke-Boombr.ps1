@@ -20,7 +20,7 @@ $Config = @{
     RootDir = $PSScriptRoot
     ArtifactsDir = Resolve-FullPath $PSScriptRoot '..\artifacts'
     AuditDir = Resolve-FullPath $PSScriptRoot '..\..\Audit\db'
-    BrandBookDir = Resolve-FullPath $PSScriptRoot '..\..\SpbDotNet'
+    BrandBookDir = Resolve-FullPath $PSScriptRoot '..\..\BrandBook'
     Inkscape = Resolve-FullPath $PSScriptRoot '..\..\..\inkscape\bin\inkscape.com'
     IsOffline = $false
 }
