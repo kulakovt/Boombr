@@ -189,9 +189,24 @@ function Read-Speaker($AuditDir = $(throw "AuditDir required"))
     Read-NiceXml
 }
 
-function Read-Community($AuditDir = $(throw "AuditDir required"))
+function Read-Community($AuditDir = $(throw "AuditDir required"), [switch] $Sorted)
 {
-    Get-ChildItem -Path (Join-Path $AuditDir 'communities') -Filter '*.xml' |
+    $communities =
+        Get-ChildItem -Path (Join-Path $AuditDir 'communities') -Filter '*.xml' |
+        Read-NiceXml
+
+    if ($Sorted)
+    {
+        $meetups = Read-Meetup -AuditDir $Config.AuditDir
+        $communities = $communities | Sort-Object (Get-CommunitySorter -Meetups $meetups)
+    }
+
+    $communities
+}
+
+function Read-Meetup($AuditDir = $(throw "AuditDir required"))
+{
+    Get-ChildItem -Path (Join-Path $AuditDir 'meetups') -Filter '*.xml' |
     Read-NiceXml
 }
 
@@ -237,3 +252,19 @@ function Invoke-ReXml()
     Read-All $Config.AuditDir |
     Save-Entity $Config.AuditDir
 }
+
+function Get-CommunitySorter([Meetup[]] $Meetups = $(throw "Meetups required"))
+{
+    @(
+        @{ Expression = {
+
+            $community = $_
+            $Meetups |
+            Where-Object { $_.CommunityId -eq $community.Id } |
+            ForEach-Object { $_.Sessions[0].StartTime } |
+            Sort-Object |
+            Select-Object -First 1
+        }; Ascending = $true }
+    )
+}
+

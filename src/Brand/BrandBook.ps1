@@ -1,4 +1,4 @@
-﻿. $PSScriptRoot\..\Utility.ps1
+. $PSScriptRoot\..\Utility.ps1
 . $PSScriptRoot\..\Model.ps1
 . $PSScriptRoot\..\Serialization.ps1
 . $PSScriptRoot\..\Svg\Logo.ps1
@@ -113,7 +113,7 @@ function Update-BrandBook()
         Description = 'Объединение независимых русскоязычных .NET сообществ'
     }
 
-    Read-Community -AuditDir $Config.AuditDir |
+    $communities = Read-Community -AuditDir $Config.AuditDir -Sorted |
     ForEach-Object {
 
         $shortName = $_.Name -replace 'DotNet',''
@@ -127,7 +127,7 @@ function Update-BrandBook()
             Description = "Независимое сообщество .NET разработчиков из города $($_.City)"
         }
     } |
-    Join-ToPipe -After $dotNetRu |
+    Join-ToPipe -Before $dotNetRu |
     Update-BrandCommunity -Path $logoPath
 
     Get-ChildItem $artPath -Directory |
