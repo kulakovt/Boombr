@@ -2,7 +2,7 @@
 
 $WikiConfig = @{
     CacheDir = Resolve-FullPath $Config.ArtifactsDir 'cache'
-    WikiDir = Resolve-FullPath $Config.RootDir '..\..\SpbDotNet.wiki'
+    WikiDir = Resolve-FullPath $Config.RootDir '..\..\BrandBook.wiki'
     DotNetRuChannelId = 'UCHFl23Ah_l4gEUTXYUStQdQ'
 }
 
