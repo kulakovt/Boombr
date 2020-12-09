@@ -185,6 +185,11 @@ function Initialize-CommunitySite
         ### TODO ##################################################################
         # - [GitHub Pages] Enable GitHub Pages at master branch
         # - [GitHub Pages] Enable Enforce HTTPS
+        # - [Features] Disable Preserve this repository (Include this code in the GitHub Archive Program)
+        # - [Details] Remove Releases
+        # - [Details] Remove Packages
+        # - [Details] Remove Environments
+        # - [Actions] Disable Actions (The Actions tab is hidden and no workflows can run)
     }
 }
 
