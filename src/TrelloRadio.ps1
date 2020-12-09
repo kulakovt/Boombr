@@ -264,9 +264,11 @@ class PodcastAnnouncement
     {
         if ($this.Podcast.Contains('Description'))
         {
-            # TODO: MarkDown to HTML (Para, Links)
-            $format = $this.Report.Encode($this.Podcast['Description'])
+            $this.Podcast['Description'] -split "`r`n`r`n" |
+            ForEach-Object {
+                $format = $this.Report.Encode($_)
             $this.Report.Paragraph($format)
+        }
         }
 
         return $this
