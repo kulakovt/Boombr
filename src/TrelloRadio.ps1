@@ -72,6 +72,8 @@ class FormatString
         $tail = $tail.Replace('/en-us/', '/').Replace('/ru-ru/', '/')
         # Remove date segment
         $tail = $tail -replace '/\d{4}/\d{2}/\d{2}/','/'
+        # Remove short date segment
+        $tail = $tail -replace '/\d{4}/\d{2}/','/'
 
         $tail = $tail.TrimEnd('/', '-')
         $tail = if ($tail.Length -le $max)
@@ -83,7 +85,12 @@ class FormatString
             $suffix = '...'
             $tail.Substring(0, $max - $suffix.Length) + '...'
         }
-        return $uri.Authority + $tail
+
+        $authority = $uri.Authority
+        # Remove www segment
+        $authority = $authority.TrimStart('www.')
+
+        return $authority + $tail
     }
 
     [string] Link([string] $url)
