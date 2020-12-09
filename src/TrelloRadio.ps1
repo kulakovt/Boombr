@@ -643,16 +643,12 @@ function Format-AnchorAnnouncement
         [Parameter(Mandatory)]
         [ValidateNotNullOrEmpty()]
         [hashtable]
-        $Podcast,
-
-        [Parameter(Mandatory)]
-        [hashtable]
-        $Links
+        $Podcast
     )
 
     process
     {
-        [PodcastAnnouncement]::new($Podcast, $Links, $true).
+        [PodcastAnnouncement]::new($Podcast, @{}, $true).
             Identity().
             Description().
             Site().
@@ -740,16 +736,12 @@ function Format-PodcastCover
 
         [Parameter(Mandatory)]
         [string]
-        $PodcastHome,
-
-        [Parameter(Mandatory)]
-        [hashtable]
-        $Links
+        $PodcastHome
     )
 
     process
     {
-        [PodcastAnnouncement]::new($Podcast, $Links).
+        [PodcastAnnouncement]::new($Podcast, @{}).
             Identity().
             ShortDate().
             Topics($false).
@@ -859,9 +851,14 @@ function New-PodcastAnnouncementForAnchor
         Write-Information "Format Anchor announcement from «$Path»"
 
         $podcast = Get-PodcastFromFile -Path $Path
+        $podcastHome = Split-Path $Path
 
-        Format-AnchorAnnouncement -Podcast $podcast -Links @{} |
+        Format-AnchorAnnouncement -Podcast $podcast |
         Set-Content -Path ([IO.Path]::ChangeExtension($Path, 'anchor.html')) -Encoding UTF8
+
+        # TODO: Format SVG cover
+        Format-PodcastCover -Podcast $podcast -PodcastHome $podcastHome |
+        Set-Content -Path ([IO.Path]::ChangeExtension($Path, 'cover.txt')) -Encoding UTF8
     }
 }
 
@@ -914,12 +911,7 @@ function New-PodcastAnnouncement
         Write-Information "Format announcements from «$($Path)»"
 
         $podcast = Get-PodcastFromFile -Path $Path
-        $podcastHome = Split-Path $Path
         $links = Read-PersonLink -AuditPath $AuditDir
-
-        # TODO: Format SVG cover
-        Format-PodcastCover -Podcast $podcast -PodcastHome $podcastHome -Links $links |
-        Set-Content -Path ([IO.Path]::ChangeExtension($Path, 'cover.txt')) -Encoding UTF8
 
         Format-YouTubeAnnouncement -Podcast $podcast -Links $links |
         Set-Content -Path ([IO.Path]::ChangeExtension($Path, 'youtube.txt')) -Encoding UTF8
