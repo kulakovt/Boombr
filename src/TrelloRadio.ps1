@@ -1,4 +1,4 @@
-﻿#Requires -Version 5
+#Requires -Version 5
 #Requires -Modules PowerTrello
 
 Set-StrictMode -version Latest
@@ -739,6 +739,10 @@ function Format-PodcastCover
         $Podcast,
 
         [Parameter(Mandatory)]
+        [string]
+        $PodcastHome,
+
+        [Parameter(Mandatory)]
         [hashtable]
         $Links
     )
@@ -751,8 +755,10 @@ function Format-PodcastCover
             Topics($false).
             ToString()
 
+        $coverPath = Join-Path $PodcastHome 'cover.svg'
         ''
-        'cover.png: 1920 × 1080'
+        "$coverPath"
+        'PNG: 1920 × 1080'
         'https://www.headliner.app/'
         'Rss: https://anchor.fm/s/f0c0ef4/podcast/rss'
     }
@@ -908,10 +914,11 @@ function New-PodcastAnnouncement
         Write-Information "Format announcements from «$($Path)»"
 
         $podcast = Get-PodcastFromFile -Path $Path
+        $podcastHome = Split-Path $Path
         $links = Read-PersonLink -AuditPath $AuditDir
 
         # TODO: Format SVG cover
-        Format-PodcastCover -Podcast $podcast -Links $links |
+        Format-PodcastCover -Podcast $podcast -PodcastHome $podcastHome -Links $links |
         Set-Content -Path ([IO.Path]::ChangeExtension($Path, 'cover.txt')) -Encoding UTF8
 
         Format-YouTubeAnnouncement -Podcast $podcast -Links $links |
