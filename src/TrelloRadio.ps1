@@ -803,6 +803,37 @@ function Get-PodcastFromFile
     }
 }
 
+function Test-PodcastFormat
+{
+    [CmdletBinding()]
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [hashtable]
+        $Podcast
+    )
+
+    process
+    {
+        $prevTimestamp = [TimeSpan]::Zero
+        foreach ($topic in $Podcast.Topics)
+        {
+            if ($topic.Timestamp -eq [TimeSpan]::Zero)
+            {
+                throw "Timestamp not found for «$($topic.Subject)»"
+            }
+
+            if ($topic.Timestamp -le $prevTimestamp)
+            {
+                throw "Timestamp doesn't grow for «$($topic.Subject)»"
+            }
+
+            $prevTimestamp = $topic.Timestamp
+        }
+    }
+}
+
 function New-PodcastFromTrello
 {
     [CmdletBinding()]
@@ -861,6 +892,8 @@ function New-PodcastAnnouncementForAnchor
 
         $podcast = Get-PodcastFromFile -Path $Path
         $podcastHome = Split-Path $Path
+
+        Test-PodcastFormat -Podcast $podcast
 
         Format-AnchorAnnouncement -Podcast $podcast |
         Set-Content -Path ([IO.Path]::ChangeExtension($Path, 'anchor.html')) -Encoding UTF8
