@@ -1,4 +1,4 @@
-﻿. $PSScriptRoot\Svg.ps1
+. $PSScriptRoot\Svg.ps1
 
 function New-SettingsFromGlyphSize(
     [bool] $IncludeBorder = $false,
@@ -98,7 +98,7 @@ function New-Background([hashtable] $BackgroundSettings)
 function New-TextGlyph([SvgGlyph] $Glyph, [int] $Position, [hashtable] $GlyphSet, [Hashtable] $TextSettings)
 {
     $columnIndex = $Position % $TextSettings.RowCount
-    $rowIndex = [Math]::Floor($Position / $TextSettings.ColumnCount)
+    $rowIndex = [Math]::Floor([Math]::Abs($Position) / $TextSettings.ColumnCount)
     [int] $x = $TextSettings.X + $GlyphSet.Width * $columnIndex
     $verticalSpace = ($TextSettings.Height - ($GlyphSet.Height * $TextSettings.RowCount)) / ($TextSettings.RowCount - 1)
     [int] $y = $TextSettings.Y + ($GlyphSet.Height + $verticalSpace) * $rowIndex
@@ -132,12 +132,15 @@ function Select-TextGlyph
 
         [Parameter(Mandatory)]
         [Hashtable]
-        $TextSettings
+        $TextSettings,
+
+        [int]
+        $StartPosition = -1
     )
 
     begin
     {
-        $Position = -1
+        $Position = $StartPosition
     }
     process
     {
@@ -153,7 +156,16 @@ function Select-TextGlyph
 function New-Text([string] $Text, [hashtable] $GlyphSet, [Hashtable] $TextSettings)
 {
     $maxLenth = $TextSettings.ColumnCount * $TextSettings.RowCount
-    if ($Text.Length -ne $maxLenth) { throw "Text length must be $maxLenth letters long" }
+    $hackMaxLength = 11
+    if (($Text.Length -lt $maxLenth) -or ($Text.Length -gt $hackMaxLength))
+    {
+        throw "Text length must be minimum $maxLenth letters long and meximun $hackMaxLength"
+    }
+    $startPosition = -1
+    if ($Text.Length -gt $maxLenth)
+    {
+        $startPosition = $maxLenth - $Text.Length - 1
+    }
 
     $txAttributes = [ordered] @{
         fill = $TextSettings.Color
@@ -161,7 +173,7 @@ function New-Text([string] $Text, [hashtable] $GlyphSet, [Hashtable] $TextSettin
 
     $Text |
     Select-Many |
-    Select-TextGlyph -GlyphSet $GlyphSet -TextSettings $TextSettings |
+    Select-TextGlyph -GlyphSet $GlyphSet -TextSettings $TextSettings -StartPosition $startPosition |
     ForEach-Object { $_.ToPath($TextSettings.AddGlyphId) } |
     New-SvgGroup -Id $TextSettings.Id -Attributes $txAttributes
 }
