@@ -8,7 +8,7 @@
   <image x="480" y="0" height="300px" width="160px" preserveAspectRatio="xMidYMid slice" xlink:href="https://raw.githubusercontent.com/DotNetRu/Audit/master/db/speakers/Alex-Merson/avatar.small.jpg"/>
 
   <rect x="0" y="300" width="640" height="60" fill="#3e4e86" />
-  <rect x="10" y="310" width="40" height="40" fill="#68217a" stroke="white" />
+  <rect x="10" y="310" width="40" height="40" fill="#68217a" stroke="#fff" />
   <image x="558" y="310" height="40" xlink:href="https://raw.githubusercontent.com/DotNetRu/Audit/master/db/friends/JetBrains/logo.small.png" />
 
   <g fill="#68217a" opacity="0.9">
@@ -17,7 +17,7 @@
     <rect x="480" y="230" width="150" height="60" />
   </g>
 
-  <g font-family="Segoe UI" fill="white" font-size="22">
+  <g font-family="Segoe UI" fill="#fff" font-size="22">
     <text x="10" y="281">
       <textPath xlink:href="#truncateF">Анатолий Кулаков — tsar of power</textPath>
     </text>
