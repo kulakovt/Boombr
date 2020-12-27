@@ -86,11 +86,3 @@ function New-SvgWave(
     } |
     New-SvgGroup -Id $SecondId -Attributes @{ 'fill' = $SecondColor }
 }
-
-# &{
-#     New-SvgRect -X 0 -Y 0 -Width 800 -Height 800 -Attributes @{fill='#68217a'}
-#     New-SvgWave -X 50 -Y 150 -Width 210 -Height 339
-#     New-SvgRect -X 50 -Y 150 -Width 210 -Height 339 -Attributes @{ stroke='black';'fill-opacity'=0;'stroke-width'=1 }
-# } |
-# New-SvgDocument -Width 800 -Height 800 |
-# Set-Content (Join-Path $PSScriptRoot 'Logo.Radio.svg')
