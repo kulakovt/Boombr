@@ -278,14 +278,25 @@ function New-RadioLogo([Hashtable] $Settings)
     $firstId = if ($includeId) { 'wl' } else { $null }
     $secondId = if ($includeId) { 'wr' } else { $null }
 
+    $waveArguments = @{
+        X = $Settings.Slot1.X
+        Y = $Settings.Slot1.Y
+        Width = $Settings.Slot1.Width
+        Height = $Settings.Slot1.Height
+        FirstId = $firstId
+        SecondId = $secondId
+    }
+
+    $isNY = $false
+    if ($isNY)
+    {
+        $waveArguments.FirstColor = '#fff'
+        $waveArguments.SecondColor = '#0f0'
+        $waveArguments.Partitions = @(0.15,0.3,0.4,0.5,0.6,0.7,0.8,0.9, 1.0)
+    }
+
     $drawWave = {
-        New-SvgWave `
-            -X $Settings.Slot1.X `
-            -Y $Settings.Slot1.Y `
-            -Width $Settings.Slot1.Width `
-            -Height $Settings.Slot1.Height `
-            -FirstId $firstId `
-            -SecondId $secondId
+        New-SvgWave @waveArguments
     }
 
     New-Logo -Text 'RadioDotNet' -Settings $settings -Enricher $drawWave
