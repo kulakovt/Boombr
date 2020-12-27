@@ -62,7 +62,9 @@ function New-SvgWave(
     [double] $Height,
     [string] $FirstColor = '#fff',
     [string] $SecondColor = '#cf18fd',
-    [array] $Partitions)
+    [string] $FirstId = $null,
+    [string] $SecondId = $null,
+    [array] $Partitions = @(0.29,0.67,0.41,0.71,1.0,0.59,0.19,0.47,0.73))
 {
     # Magic formula, means: the height of a partition is the entire height divided by the number of partitions
     # with spaces, except for the last one. The size of the space is one-third of the height of the partition.
@@ -75,20 +77,20 @@ function New-SvgWave(
         $Partitions |
         Select-SvgWaveLine -X $X -Y $Y -Width $halfWidth -PartitionHeight $partitionHeight -Space $space -Invert $true
     } |
-    New-SvgGroup -Attributes @{ 'fill' = $FirstColor }
+    New-SvgGroup -Id $FirstId -Attributes @{ 'fill' = $FirstColor }
 
     &{
         $secondX = $X + $halfWidth + $space
         $Partitions |
         Select-SvgWaveLine -X $secondX -Y $Y -Width $halfWidth -PartitionHeight $partitionHeight -Space $space -Invert $false
     } |
-    New-SvgGroup -Attributes @{ 'fill' = $SecondColor }
+    New-SvgGroup -Id $SecondId -Attributes @{ 'fill' = $SecondColor }
 }
 
-&{
-    New-SvgRect -X 0 -Y 0 -Width 800 -Height 800 -Attributes @{fill='#68217a'}
-    New-SvgWave -X 50 -Y 150 -Width 210 -Height 339 -Partitions @(0.31,0.67,0.37,0.71,1.0,0.59,0.19,0.47,0.73)
-    New-SvgRect -X 50 -Y 150 -Width 210 -Height 339 -Attributes @{ stroke='black';'fill-opacity'=0;'stroke-width'=1 }
-} |
-New-SvgDocument -Width 800 -Height 800 |
-Set-Content (Join-Path $PSScriptRoot 'Logo.Radio.svg')
+# &{
+#     New-SvgRect -X 0 -Y 0 -Width 800 -Height 800 -Attributes @{fill='#68217a'}
+#     New-SvgWave -X 50 -Y 150 -Width 210 -Height 339
+#     New-SvgRect -X 50 -Y 150 -Width 210 -Height 339 -Attributes @{ stroke='black';'fill-opacity'=0;'stroke-width'=1 }
+# } |
+# New-SvgDocument -Width 800 -Height 800 |
+# Set-Content (Join-Path $PSScriptRoot 'Logo.Radio.svg')
