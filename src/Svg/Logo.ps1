@@ -1,4 +1,5 @@
-. $PSScriptRoot\Svg.ps1
+﻿. $PSScriptRoot\Svg.ps1
+. $PSScriptRoot\Logo.Radio.ps1
 
 function New-SettingsFromGlyphSize(
     [bool] $IncludeBorder = $false,
@@ -13,8 +14,10 @@ function New-SettingsFromGlyphSize(
 
     $fi = 1.618
     $columnCount = 3
+    $rowCount = 3
     $textWidth = $glyphSet.Width * $columnCount
     $textHeight = $textWidth * $fi
+    $textSpace = ($textHeight - ($glyphSet.Height * $rowCount)) / ($rowCount - 1)
     $width = $textWidth + $textHeight
     $height = $width
     $firstThird =  $width / 3
@@ -22,8 +25,6 @@ function New-SettingsFromGlyphSize(
     # Origin Thick (Vertical Letter Line Width) / Origin Glyph Width
     $thickRatio = 160.0 / 1126.0
     [int] $borderThick = $glyphSet.Width * $thickRatio
-    $x = if ($IncludeBorder) { $borderThick } else { 0 }
-    $y = if ($IncludeBorder) { $borderThick } else { 0 }
 
     $x = 0
     $y = 0
@@ -37,6 +38,10 @@ function New-SettingsFromGlyphSize(
         $docWidth = $width + $borderThick * 2
         $docHeight = $height + $borderThick * 2
     }
+
+    $textY = $y + $height / 2 - ($textHeight  / 2)
+    $slot1Width = $textWidth / $fi
+    $slot1Y = $textY + $glyphSet.Height + $textSpace
 
     @{
         GlyphSet = $glyphSet
@@ -56,11 +61,12 @@ function New-SettingsFromGlyphSize(
         Text = @{
             Id = if ($IncludeId) { 'tx' } else { $null }
             ColumnCount = $columnCount
-            RowCount = 3
+            RowCount = $rowCount
             X = [int] ($x + $secondThird - $textWidth / 2)
-            Y = [int] ($y + $height / 2 - ($textHeight  / 2))
+            Y = [int] $textY
             Width = [int] $textWidth
             Height = [int] $textHeight
+            VerticalSpace = [int] $textSpace
             AddGlyphId = $IncludeDiagnostic
             Color = $ForegroundColor
         }
@@ -74,9 +80,16 @@ function New-SettingsFromGlyphSize(
             Height = [int] ($docHeight) - $borderThick
             Color = $ForegroundColor
         }
+        Slot1 = @{
+            X = $x + $firstThird - $slot1Width / 2
+            Y = $slot1Y
+            Width = [int] $slot1Width
+            Height = [int] ($slot1Width * $fi)
+        }
         Diagnostic = @{
             Id = 'dg'
             Visible = $IncludeDiagnostic
+            Slot1Visible = $false
         }
     }
 }
@@ -100,8 +113,7 @@ function New-TextGlyph([SvgGlyph] $Glyph, [int] $Position, [hashtable] $GlyphSet
     $columnIndex = $Position % $TextSettings.RowCount
     $rowIndex = [Math]::Floor([Math]::Abs($Position) / $TextSettings.ColumnCount)
     [int] $x = $TextSettings.X + $GlyphSet.Width * $columnIndex
-    $verticalSpace = ($TextSettings.Height - ($GlyphSet.Height * $TextSettings.RowCount)) / ($TextSettings.RowCount - 1)
-    [int] $y = $TextSettings.Y + ($GlyphSet.Height + $verticalSpace) * $rowIndex
+    [int] $y = $TextSettings.Y + ($GlyphSet.Height + $TextSettings.VerticalSpace) * $rowIndex
 
     # HACK: for DotNet.Ru logo
     if ((($Position -eq 6) -and ($Glyph.Unicode -eq '.')) -or
@@ -134,6 +146,7 @@ function Select-TextGlyph
         [Hashtable]
         $TextSettings,
 
+        [Parameter()]
         [int]
         $StartPosition = -1
     )
@@ -205,7 +218,7 @@ function New-Diagnostic([hashtable] $Settings)
     $thickRatio = 20.0 / 1126.0
     [int] $thick = $Settings.GlyphSet.Width * $thickRatio
     [int] $thickDash = $thick * 5
-    [int] $centerRadius = $thick * 5
+    [int] $centerRadius = $thick * 4
 
     &{
         New-SvgComment -Message 'Rule of thirds'
@@ -228,7 +241,12 @@ function New-Diagnostic([hashtable] $Settings)
         }
 
         New-SvgComment -Message 'Golden rectangle'
-        New-SvgRect -X $Settings.Text.X -Y $Settings.Text.Y -Width $Settings.Text.Width -Height $Settings.Text.Height -Attributes @{ stroke='#fbff00' }
+        $rectAttributes = [Ordered] @{ stroke='#fbff00' }
+        New-SvgRect -X $Settings.Text.X -Y $Settings.Text.Y -Width $Settings.Text.Width -Height $Settings.Text.Height -Attributes $rectAttributes
+        if ($Settings.Diagnostic.Slot1Visible)
+        {
+            New-SvgRect -X $Settings.Slot1.X -Y $Settings.Slot1.Y -Width $Settings.Slot1.Width -Height $Settings.Slot1.Height -Attributes $rectAttributes
+        }
 
         New-SvgComment -Message 'Social circle'
         [int] $centerX = $x + $width / 2
@@ -242,11 +260,38 @@ function New-Diagnostic([hashtable] $Settings)
         [int] $halfRectX = $Settings.Text.X + $Settings.Text.Width / 2
         New-SvgCircle -X $halfRectX -Y $Settings.Text.Y -Radius $centerRadius -Attributes $centerAttributes
         New-SvgCircle -X $halfRectX -Y ($Settings.Text.Y + $Settings.Text.Height) -Radius $centerRadius -Attributes $centerAttributes
+
+        if ($Settings.Diagnostic.Slot1Visible)
+        {
+            [int] $halfRect1X = $Settings.Slot1.X + $Settings.Slot1.Width / 2
+            New-SvgCircle -X $halfRect1X -Y $Settings.Slot1.Y -Radius $centerRadius -Attributes $centerAttributes
+            New-SvgCircle -X $halfRect1X -Y ($Settings.Slot1.Y + $Settings.Slot1.Height) -Radius $centerRadius -Attributes $centerAttributes
+        }
     } |
     New-SvgGroup -Id $Settings.Diagnostic.Id -Attributes @{ 'fill-opacity' = 0; 'stroke-width' = $thick }
 }
 
-function New-Logo([string] $Text, [Hashtable] $Settings)
+function New-RadioLogo([Hashtable] $Settings)
+{
+    $Settings.Diagnostic.Slot1Visible = $true
+    $includeId = if ($Settings.Text.Id) { $true } else { $false }
+    $firstId = if ($includeId) { 'wl' } else { $null }
+    $secondId = if ($includeId) { 'wr' } else { $null }
+
+    $drawWave = {
+        New-SvgWave `
+            -X $Settings.Slot1.X `
+            -Y $Settings.Slot1.Y `
+            -Width $Settings.Slot1.Width `
+            -Height $Settings.Slot1.Height `
+            -FirstId $firstId `
+            -SecondId $secondId
+    }
+
+    New-Logo -Text 'RadioDotNet' -Settings $settings -Enricher $drawWave
+}
+
+function New-Logo([string] $Text, [Hashtable] $Settings, [ScriptBlock] $Enricher = {})
 {
     if (-not $Settings)
     {
@@ -260,6 +305,8 @@ function New-Logo([string] $Text, [Hashtable] $Settings)
 
         New-Text -Text $Text.ToUpperInvariant() -GlyphSet $Settings.GlyphSet -TextSettings $Settings.Text
 
+        & $Enricher
+
         New-Diagnostic -Settings $Settings
     } |
     New-SvgDocument -Width $Settings.Document.Width -Height $Settings.Document.Height
@@ -267,3 +314,4 @@ function New-Logo([string] $Text, [Hashtable] $Settings)
 
 # $settings = New-SettingsFromGlyphSize -IncludeId $true -IncludeDiagnostic $true -IncludeBorder $true
 # New-Logo -Text 'SpbDotNet' -Settings $settings | Set-Content (Join-Path $PSScriptRoot 'Logo.svg')
+# New-RadioLogo -Settings $settings | Set-Content (Join-Path $PSScriptRoot 'Logo.svg')
