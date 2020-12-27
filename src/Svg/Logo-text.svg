@@ -2,8 +2,8 @@
   <rect x="0" y="0" width="300" height="300" fill="#68217a"/>
 
   <!-- 50 + 80 = 130 -->
-  <rect x="100" y="100" width="130" height="130" stroke="white" fill-opacity="0" />
-  <text y="145" font-family="Consolas" font-size="30" fill="white">
+  <rect x="100" y="100" width="130" height="130" stroke="#fff" fill-opacity="0" />
+  <text y="145" font-family="Consolas" font-size="30" fill="#fff">
     <tspan x="165" dy="0">SPB</tspan>
     <tspan x="165" dy="1em">DOT</tspan>
     <tspan x="165" dy="1em">NET</tspan>

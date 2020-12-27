@@ -5,7 +5,7 @@ function New-SettingsFromGlyphSize(
     [bool] $IncludeBackground = $true,
     [bool] $IncludeId = $true,
     [bool] $IncludeDiagnostic = $false,
-    [string] $ForegroundColor = 'white',
+    [string] $ForegroundColor = '#fff',
     [string] $BackgroundColor = '#68217a')
 {
     $fontPath = Join-Path $PSScriptRoot 'ConsolasGlyphs.svg'

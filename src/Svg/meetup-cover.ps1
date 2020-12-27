@@ -250,14 +250,14 @@ function New-MeetupConver([Meetup] $Meetup, [SpeakerPart[]] $Parts)
 {0}
 
   <rect x="0" y="300" width="640" height="60" fill="#3e4e86" />
-  <rect x="10" y="310" width="40" height="40" fill="#68217a" stroke="white" />
+  <rect x="10" y="310" width="40" height="40" fill="#68217a" stroke="#fff" />
 {1}
 
   <g fill="#68217a" opacity="0.9">
 {2}
   </g>
 
-  <g font-family="Segoe UI" fill="white" font-size="22">
+  <g font-family="Segoe UI" fill="#fff" font-size="22">
 {3}
     <text x="60" y="340" font-size="28">{4}</text>
   </g>
