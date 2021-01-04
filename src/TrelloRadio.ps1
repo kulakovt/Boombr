@@ -196,6 +196,8 @@ class PodcastAnnouncement
     static [string] $GoogleUrl = 'https://podcasts.google.com/feed/aHR0cHM6Ly9hbmNob3IuZm0vcy9mMGMwZWY0L3BvZGNhc3QvcnNz'
     static [string] $AppleUrl = 'https://podcasts.apple.com/us/podcast/radiodotnet/id1484348948'
     static [string] $YandexUrl = 'https://music.yandex.ru/album/12041961'
+    static [string] $PatreonUrl = 'https://www.patreon.com/RadioDotNet'
+    static [string] $BoostyUrl = 'https://boosty.to/RadioDotNet'
 
     [hashtable] $Podcast
     [hashtable] $Links
@@ -307,6 +309,15 @@ class PodcastAnnouncement
         $this.Report.Paragraph("Яндекс Музыка: $link")
         $link = $this.Report.Link($this::VideoUrl)
         $this.Report.Paragraph("YouTube Playlist: $link")
+        return $this
+    }
+
+    [PodcastAnnouncement] DonatResources()
+    {
+        $link = $this.Report.Link($this::PatreonUrl)
+        $this.Report.Paragraph("Patreon ($): $link")
+        $link = $this.Report.Link($this::BoostyUrl)
+        $this.Report.Paragraph("Boosty (₽): $link")
         return $this
     }
 
@@ -695,6 +706,7 @@ function Format-VKAnnouncement
             Mastering().
             Music().
             PlayResources().
+            DonatResources().
             Tags().
             ToString()
     }
@@ -728,6 +740,7 @@ function Format-YouTubeAnnouncement
             Music().
             Site().
             PlayResources().
+            DonatResources().
             Tags().
             ToString()
     }
