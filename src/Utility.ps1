@@ -1,4 +1,4 @@
-﻿function Resolve-FullPath()
+function Resolve-FullPath()
 {
     if (-not $args)
     {
@@ -79,7 +79,7 @@ function Select-Many
     [CmdletBinding()]
     [OutputType([object[]])]
     param (
-        [Parameter(Mandatory, ValueFromPipeline)]
+        [Parameter(ValueFromPipeline)]
         $Collection
     )
 
@@ -89,7 +89,7 @@ function Select-Many
         {
             $Collection.GetEnumerator()
         }
-        else
+        elseif ($Collection)
         {
             $Collection
         }

@@ -1,4 +1,4 @@
-﻿. $PSScriptRoot\..\Utility.ps1
+. $PSScriptRoot\..\Utility.ps1
 . $PSScriptRoot\..\Model.ps1
 . $PSScriptRoot\..\Serialization.ps1
 . $PSScriptRoot\..\Svg\Logo.ps1
@@ -38,12 +38,6 @@ function Update-BrandLogo([string] $Path, [string] $CommunityName, [Hashtable] $
     $fileName += '.svg'
     $outPath = (Join-Path $Path $fileName)
 
-    if (Test-Path -PathType Leaf $outPath)
-    {
-        Write-Information "Skip existed $fileName file"
-        return
-    }
-
     Write-Information "Generate $fileName"
     $settings = New-SettingsFromGlyphSize -IncludeBorder $Type.IncludeBorder -IncludeBackground $Type.IncludeBackground
 
@@ -54,9 +48,16 @@ function Update-BrandLogo([string] $Path, [string] $CommunityName, [Hashtable] $
         $logoText = 'DotNet.Ru'
     }
 
-    New-Logo -Text $logoText -Settings $settings |
-    Set-Content $outPath
+    if ($CommunityName -ieq 'RadioDotNet')
+    {
+        $logoContent = New-RadioLogo -Settings $settings
+    }
+    else
+    {
+        $logoContent = New-Logo -Text $logoText -Settings $settings
+    }
 
+    $logoContent | Set-Content $outPath
     $outPath | Format-BrandLogo
 }
 
@@ -114,6 +115,15 @@ function Update-BrandBook()
         Description = 'Объединение независимых русскоязычных .NET сообществ'
     }
 
+    $radio = @{
+        Name = 'RadioDotNet'
+        Title = 'Подкаст RadioDotNet'
+        City = $null
+        ShortName = 'Radio'
+        Site = [Uri] 'https://radio.dotnet.ru/'
+        Description = 'Разговоры на тему .NET во всех его проявлениях, новости, статьи, библиотеки, конференции, личности и прочее интересное из мира IT'
+    }
+
     $communities = Read-Community -AuditDir $Config.AuditDir -Sorted |
     ForEach-Object {
 
@@ -129,6 +139,7 @@ function Update-BrandBook()
         }
     } |
     Join-ToPipe -Before $dotNetRu |
+    Join-ToPipe -After $radio |
     Update-BrandCommunity -Path $logoPath
 
     $arts = Get-ChildItem $artPath -Directory |
@@ -137,12 +148,12 @@ function Update-BrandBook()
     } |
     Sort-Object -Property { $_.'Title' }
 
-    $podcasts = Update-PodcastsReadMe -Path $logoPath
+    $podcasts = Update-PodcastsCommunity -Path $logoPath
 
     $all = @{
-        Communities = $communities
+        Communities = $communities | Where-Object { $_.Title -notlike 'Подкаст *'}
         Arts = $arts
-        Podcasts = $podcasts
+        Podcasts = $podcasts | Join-ToPipe -Before ($communities | Where-Object { $_.Title -like 'Подкаст *'})
     }
 
     Update-MainReadMe -Path $Config.BrandBookDir -LogoPath $logoPath -Data $all
@@ -448,37 +459,26 @@ function Update-ArtReadMe([string] $Path)
     $Model
 }
 
-function Update-PodcastsReadMe([string] $Path)
+function Update-PodcastsCommunity([string] $Path)
 {
-    $radioPath = Join-Path $Path 'Radio'
-    $radio = @{
-        Title = 'RadioDotNet'
-        Description = 'Разговоры на тему .NET во всех его проявлениях, новости, статьи, библиотеки, конференции, личности и прочее интересное из мира IT'
-        Site = [Uri] 'https://radio.dotnet.ru/'
-        HashTag = '#radiodotnet'
-        Path = $radioPath
-    }
-
-    $morePath = Join-Path $Path 'More'
     $more = @{
-        Title = 'DotNet & More'
+        Name = 'DotNetMore'
+        Title = 'Подкаст DotNet & More'
+        City = $null
+        ShortName = 'More'
+        Site = [Uri] 'https://more.dotnet.ru/'
         Description = 'Подкаст о DotNet разработке и не только'
-        Site = [Uri] 'https://dotnetmore.ru/'
-        HashTag = '#dotnetmore'
-        Path = $morePath
     }
 
-    @($radio, $more) |
+    @($more) |
     ForEach-Object {
 
-        $Model = $_
-        $Model.Title = "Подкаст $($Model.Title)"
-        $Model.Logos = Get-Family -Path $Model.Path | Expand-LogoFamilyDisplayInfo
-        $readMePath = Join-Path $Model.Path 'README.md'
-        . $PSScriptRoot\BrandBook.Podcast.ps1 |
-        Out-File -FilePath $readMePath -Encoding UTF8
+        $community = $_
+        $shortName = $community.ShortName
+        $communityPath = Join-Path $Path $shortName
+        Confirm-DirectoryExist -Path $communityPath
 
-        $Model
+        Update-BrandReadMe -Path $communityPath -Community $community
     }
 }
 
