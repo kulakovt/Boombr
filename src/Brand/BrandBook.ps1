@@ -1,4 +1,4 @@
-. $PSScriptRoot\..\Utility.ps1
+﻿. $PSScriptRoot\..\Utility.ps1
 . $PSScriptRoot\..\Model.ps1
 . $PSScriptRoot\..\Serialization.ps1
 . $PSScriptRoot\..\Svg\Logo.ps1
@@ -213,10 +213,18 @@ function Get-Image
         if ($image.Format -eq 'svg')
         {
             $svg = Select-Xml -Path $image.LocalPath -XPath '/ns:svg' -Namespace @{ ns = 'http://www.w3.org/2000/svg' }
-            if ($svg -and $svg.Node.width)
+
+            if ($svg)
             {
-                $width = $svg.Node.width -replace 'px',''
-                $image.Width = [int] $width
+                if ($svg.Node.HasAttribute('width'))
+                {
+                    $width = $svg.Node.width -replace 'px',''
+                    $image.Width = [int] $width
+                }
+                elseif ($svg.Node.HasAttribute('viewBox') -and ($svg.Node.viewBox -match '\d+ \d+ (?<Width>\d+) \d+'))
+                {
+                    $image.Width = [int] $Matches.Width
+                }
             }
         }
 

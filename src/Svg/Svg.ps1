@@ -73,7 +73,7 @@ function New-SvgDocument([double] $Width, [double] $Height)
 {
     begin
     {
-'<svg width="{0}" height="{1}" version="1.1" xmlns="http://www.w3.org/2000/svg">' -f "$Width","$Height"
+'<svg viewBox="0 0 {0} {1}" xmlns="http://www.w3.org/2000/svg">' -f "$Width","$Height"
     }
     process
     {

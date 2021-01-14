@@ -1,4 +1,4 @@
-function Resolve-FullPath()
+﻿function Resolve-FullPath()
 {
     if (-not $args)
     {
