@@ -39,7 +39,7 @@ function Update-BrandLogo([string] $Path, [string] $CommunityName, [Hashtable] $
     $outPath = (Join-Path $Path $fileName)
 
     Write-Information "Generate $fileName"
-    $settings = New-SettingsFromGlyphSize -IncludeBorder $Type.IncludeBorder -IncludeBackground $Type.IncludeBackground
+    $settings = New-SettingsFromGlyphSize @Type
 
     $logoText = $CommunityName
     # HACK: for DotNet.Ru logo
@@ -88,7 +88,9 @@ function Update-BrandCommunity
             @{ NameTemplate = '{CommunityName}-logo-squared'; IncludeBorder = $false; IncludeBackground = $true },
             @{ NameTemplate = '{CommunityName}-logo-squared-bordered'; IncludeBorder = $true; IncludeBackground = $true; },
             @{ NameTemplate = '{CommunityName}-logo-squared-white'; IncludeBorder = $false; IncludeBackground = $false; },
-            @{ NameTemplate = '{CommunityName}-logo-squared-white-bordered'; IncludeBorder = $true; IncludeBackground = $false }
+            @{ NameTemplate = '{CommunityName}-logo-squared-white-bordered'; IncludeBorder = $true; IncludeBackground = $false },
+            @{ NameTemplate = '{CommunityName}-logo-squared-black'; IncludeBorder = $false; IncludeBackground = $true; BackgroundColor = '#1e1e1e' },
+            @{ NameTemplate = '{CommunityName}-logo-squared-green'; IncludeBorder = $false; IncludeBackground = $true; BackgroundColor = '#329932' }
         )
 
         foreach ($type in $logoTypes)
@@ -251,7 +253,7 @@ function Get-FamilyName([string] $ImagePath)
 
 function Get-FamilyTag([string] $Name)
 {
-    @('white', 'bordered') |
+    @('white', 'bordered', 'black', 'green') |
     ForEach-Object {
         $tag = $_
         if ($Name -match "\b$tag\b")
@@ -266,9 +268,13 @@ function Get-FamilyOrderer()
     @(
         @{ Expression = {
             $Family = [ImageFamily] $_
-            $rank = 0
-            $rank += ($Family.Tags | Where-Object { $_ -ne 'bordered' } | Measure-Object | Select-Object -ExpandProperty Count) * 10
-            $rank += ($Family.Tags | Where-Object { $_ -eq 'bordered' } | Measure-Object | Select-Object -ExpandProperty Count) * 05
+            $tags = $Family.Tags
+            $types = @('white', 'black', 'green')
+
+            $rank = $tags | ForEach-Object { $types.IndexOf($_) + 1 } | Measure-Object -Sum | Select-Object -ExpandProperty Sum
+            $rank *= 10
+            $rank += $tags | Where-Object { $_ -eq 'bordered' } | Measure-Object | Select-Object -ExpandProperty Count
+
             $rank
         }; Ascending = $true }
         @{ Expression = 'Name'; Ascending = $true }
@@ -286,6 +292,8 @@ function Expand-LogoFamilyDisplayInfo()
             '*-logo-squared-bordered' { @('Квадрат с рамкой', 'На тёмном фоне используйте логотип с рамкой.') }
             '*-logo-squared-white' { @('Квадрат на прозрачном фоне', 'На тёмном цветном фоне используйте прозрачный логотип.') }
             '*-logo-squared-white-bordered' { @('Квадрат на прозрачном фоне с рамкой', 'На тёмном цветном фоне используйте прозрачный логотип с рамкой.') }
+            '*-logo-squared-black' { @('Чёрный квадрат', 'Используйте для организационного направления.') }
+            '*-logo-squared-green' { @('Зелёный квадрат', 'Используйте для образовательного направления.') }
             default { @('', '') }
         }
 
