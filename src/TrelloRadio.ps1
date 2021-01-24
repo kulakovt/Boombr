@@ -74,6 +74,8 @@ class FormatString
         $tail = $tail -replace '/\d{4}/\d{2}/\d{2}/','/'
         # Remove short date segment
         $tail = $tail -replace '/\d{4}/\d{2}/','/'
+        # Remove file extension
+        $tail = $tail -replace '\.\w{3,4}$',''
 
         $tail = $tail.TrimEnd('/', '-')
         $tail = if ($tail.Length -le $max)
@@ -83,7 +85,7 @@ class FormatString
         else
         {
             $suffix = '...'
-            $tail.Substring(0, $max - $suffix.Length) + '...'
+            $tail.Substring(0, $max - $suffix.Length) + $suffix
         }
 
         $authority = $uri.Authority
@@ -117,7 +119,7 @@ class FormatString
             # 'h__'
         }
 
-        throw 'Nothing'
+        throw "Impossible: $mask"
     }
 
     BeginList()
