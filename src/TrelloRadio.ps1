@@ -232,7 +232,17 @@ class PodcastAnnouncement
 
     [string] FormatDate([string] $template)
     {
-        $localPubDate = $this.Podcast['PublishDate'] | ConvertTo-LocalTime
+        return $this.FormatDate($template, $null)
+    }
+
+    [string] FormatDate([string] $template, $date)
+    {
+        if (-not $date)
+        {
+            $date = $this.Podcast['PublishDate']
+        }
+
+        $localPubDate = $date | ConvertTo-LocalTime
         return $localPubDate.ToString($template, [System.Globalization.CultureInfo]::GetCultureInfo('ru-RU'))
     }
 
@@ -253,6 +263,19 @@ class PodcastAnnouncement
     [PodcastAnnouncement] ShortDate()
     {
         $textPubDate = $this.FormatDate('d MMM yyyy')
+        $this.Report.Paragraph($this.Report.Encode($textPubDate))
+        return $this
+    }
+
+    [PodcastAnnouncement] ShortDateOrNow()
+    {
+        $date = Get-Date
+        if ($this.Podcast.Contains('PublishDate'))
+        {
+            $date = $this.Podcast['PublishDate']
+        }
+
+        $textPubDate = $this.FormatDate('d MMM yyyy', $date)
         $this.Report.Paragraph($this.Report.Encode($textPubDate))
         return $this
     }
@@ -767,7 +790,7 @@ function Format-PodcastCover
     {
         [PodcastAnnouncement]::new($Podcast, @{}).
             Identity().
-            ShortDate().
+            ShortDateOrNow().
             Topics($false).
             ToString()
 
