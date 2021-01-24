@@ -89,9 +89,18 @@ function Update-BrandCommunity
             @{ NameTemplate = '{CommunityName}-logo-squared-bordered'; IncludeBorder = $true; IncludeBackground = $true; },
             @{ NameTemplate = '{CommunityName}-logo-squared-white'; IncludeBorder = $false; IncludeBackground = $false; },
             @{ NameTemplate = '{CommunityName}-logo-squared-white-bordered'; IncludeBorder = $true; IncludeBackground = $false },
+            # Color source: Visual Studio, Dark color theme, Editor background
             @{ NameTemplate = '{CommunityName}-logo-squared-black'; IncludeBorder = $false; IncludeBackground = $true; BackgroundColor = '#1e1e1e' },
+            # Color source: ReSharper, Unit test window, Success test run
             @{ NameTemplate = '{CommunityName}-logo-squared-green'; IncludeBorder = $false; IncludeBackground = $true; BackgroundColor = '#329932' }
         )
+
+        if ($CommunityName -ieq 'RadioDotNet')
+        {
+            $logoTypes = $logoTypes | Where-Object { $_.NameTemplate -notlike '*-logo-squared-green'}
+            # Color: Goldenrod (https://en.wikipedia.org/wiki/Goldenrod_(color))
+            $logoTypes += @{ NameTemplate = '{CommunityName}-logo-squared-gold'; IncludeBorder = $false; IncludeBackground = $true; BackgroundColor = '#daa520' }
+        }
 
         foreach ($type in $logoTypes)
         {
@@ -253,7 +262,7 @@ function Get-FamilyName([string] $ImagePath)
 
 function Get-FamilyTag([string] $Name)
 {
-    @('white', 'bordered', 'black', 'green') |
+    @('white', 'bordered', 'black', 'green', 'gold') |
     ForEach-Object {
         $tag = $_
         if ($Name -match "\b$tag\b")
@@ -269,7 +278,7 @@ function Get-FamilyOrderer()
         @{ Expression = {
             $Family = [ImageFamily] $_
             $tags = $Family.Tags
-            $types = @('white', 'black', 'green')
+            $types = @('white', 'black', 'green', 'gold')
 
             $rank = $tags | ForEach-Object { $types.IndexOf($_) + 1 } | Measure-Object -Sum | Select-Object -ExpandProperty Sum
             $rank *= 10
@@ -294,6 +303,7 @@ function Expand-LogoFamilyDisplayInfo()
             '*-logo-squared-white-bordered' { @('Квадрат на прозрачном фоне с рамкой', 'На тёмном цветном фоне используйте прозрачный логотип с рамкой.') }
             '*-logo-squared-black' { @('Чёрный квадрат', 'Используйте для организационного направления.') }
             '*-logo-squared-green' { @('Зелёный квадрат', 'Используйте для образовательного направления.') }
+            '*-logo-squared-gold' { @('Золотой квадрат', 'Используйте для коммерческого направления.') }
             default { @('', '') }
         }
 
