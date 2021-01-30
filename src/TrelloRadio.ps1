@@ -1,4 +1,4 @@
-#Requires -Version 5
+﻿#Requires -Version 5
 #Requires -Modules PowerTrello
 
 Set-StrictMode -version Latest
@@ -294,8 +294,8 @@ class PodcastAnnouncement
             $this.Podcast['Description'] -split "`r`n`r`n" |
             ForEach-Object {
                 $format = $this.Report.Encode($_)
-            $this.Report.Paragraph($format)
-        }
+                $this.Report.Paragraph($format)
+            }
         }
 
         return $this
@@ -315,17 +315,12 @@ class PodcastAnnouncement
         return $this
     }
 
-    [PodcastAnnouncement] Rss()
-    {
-        $link = $this.Report.Link($this::RssUrl)
-        $this.Report.Paragraph("RSS подписка на подкаст: $link")
-        return $this
-    }
-
     [PodcastAnnouncement] PlayResources()
     {
         $link = $this.Report.Link($this::SiteUrl)
-        $this.Report.Paragraph("Сайт: $link")
+        $this.Report.Paragraph("Сайт подкаста: $link")
+        $link = $this.Report.Link($this::RssUrl)
+        $this.Report.Paragraph("RSS подписка: $link")
         $link = $this.Report.Link($this::GoogleUrl)
         $this.Report.Paragraph("Google Podcasts: $link")
         $link = $this.Report.Link($this::AppleUrl)
@@ -724,8 +719,6 @@ function Format-VKAnnouncement
             Identity().
             Home().
             Description().
-            Site().
-            Rss().
             Topics().
             Authors().
             Mastering().
@@ -763,7 +756,6 @@ function Format-YouTubeAnnouncement
             Authors().
             Mastering().
             Music().
-            Site().
             PlayResources().
             DonatResources().
             Tags().
@@ -796,6 +788,7 @@ function Format-PodcastCover
 
         $coverPath = Join-Path $PodcastHome 'cover.svg'
         ''
+        'Optimized SVG:'
         "$coverPath"
         'PNG: 1920 × 1080'
         'https://www.headliner.app/'

@@ -52,7 +52,7 @@ function Format-Program
             $startTime = $session.StartTime.ToLocalTime().ToString('HH:mm')
             $endTime = $session.EndTime.ToLocalTime().ToString('HH:mm')
             $title = $AnnouncementRepository.Talks[$session.TalkId] | Format-TalkTitle -IncludeCompany
-            "$startTime - $endTime $title"
+            "$startTime – $endTime $title"
         }
     }
 }
