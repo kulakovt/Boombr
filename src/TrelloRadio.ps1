@@ -1,4 +1,4 @@
-#Requires -Version 5
+﻿#Requires -Version 5
 #Requires -Modules PowerTrello
 
 Set-StrictMode -version Latest
@@ -848,12 +848,14 @@ function Get-PodcastFromFile
 function Test-PodcastFormat
 {
     [CmdletBinding()]
-    [OutputType([string])]
     param (
         [Parameter(Mandatory)]
         [ValidateNotNullOrEmpty()]
         [hashtable]
-        $Podcast
+        $Podcast,
+
+        [switch]
+        $Full
     )
 
     process
@@ -872,6 +874,23 @@ function Test-PodcastFormat
             }
 
             $prevTimestamp = $topic.Timestamp
+        }
+
+        if ($Full)
+        {
+            $missingFields = @(
+                'PublishDate',
+                'Home',
+                'Audio',
+                'Video'
+            ) |
+            Where-Object { -not $topic.ContainsKey($_) } |
+            Join-ToString
+
+            if ($missingFields)
+            {
+                throw "Missing fields from $($podcast.Title): $missingFields"
+            }
         }
     }
 }
@@ -896,6 +915,14 @@ function New-PodcastFromTrello
         if (-not $list) { throw "Trello list «$TrelloNewCardListName» in board «$TrelloBoardName» not found" }
 
         $episodeNumber = $list.name | Select-EpisodeNumber
+
+        if ($episodeNumber -gt 0)
+        {
+            $prevNumber = $episodeNumber - 1
+            $prevIndex = Join-Path $PodcastHome ('{0:D3}' -f $prevNumber) | Join-Path -ChildPath 'index.md'
+            $prevPodcast = Get-PodcastFromFile -Path $prevIndex
+            Test-PodcastFormat -Podcast $prevPodcast -Full
+        }
 
         $dirName = Join-Path -Path $Path ('{0:D3}' -f $episodeNumber)
         New-Item -Path $dirName -ItemType Directory | Out-Null
