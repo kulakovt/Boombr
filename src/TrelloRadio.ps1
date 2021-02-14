@@ -318,18 +318,30 @@ class PodcastAnnouncement
 
     [PodcastAnnouncement] PlayResources()
     {
-        $link = $this.Report.Link($this::SiteUrl)
-        $this.Report.Paragraph("Сайт подкаста: $link")
-        $link = $this.Report.Link($this::RssUrl)
-        $this.Report.Paragraph("RSS подписка: $link")
-        $link = $this.Report.Link($this::GoogleUrl)
-        $this.Report.Paragraph("Google Podcasts: $link")
-        $link = $this.Report.Link($this::AppleUrl)
-        $this.Report.Paragraph("Apple Podcasts: $link")
-        $link = $this.Report.Link($this::YandexUrl)
-        $this.Report.Paragraph("Яндекс Музыка: $link")
-        $link = $this.Report.Link($this::VideoUrl)
-        $this.Report.Paragraph("YouTube Playlist: $link")
+        return $this.PlayResources($false)
+    }
+
+    [PodcastAnnouncement] PlayResources($Short)
+    {
+        [ordered]@{
+            'Сайт подкаста' = $this::SiteUrl
+            'RSS подписка' = $this::RssUrl
+            'Google Podcasts' = $this::GoogleUrl
+            'Apple Podcasts' = $this::AppleUrl
+            'Яндекс Музыка' = $this::YandexUrl
+            'YouTube Playlist' = $this::VideoUrl
+        } |
+        Select-Many |
+        ForEach-Object {
+            $name = $_.Key
+            $link = $this.Report.Link($_.Value)
+            if ($Short)
+            {
+                $name = $name -split ' ' | Select-Object -First 1
+            }
+            $this.Report.Paragraph("${name}: $link")
+        }
+
         return $this
     }
 
@@ -774,6 +786,31 @@ function Format-YouTubeAnnouncement
     }
 }
 
+function Format-TwitterAnnouncement
+{
+    [CmdletBinding()]
+    [OutputType([string])]
+    param (
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [hashtable]
+        $Podcast,
+
+        [Parameter(Mandatory)]
+        [hashtable]
+        $Links
+    )
+
+    process
+    {
+        [PodcastAnnouncement]::new($Podcast, $Links).
+            Identity().
+            Home().
+            PlayResources($true).
+            ToString()
+    }
+}
+
 function Format-PodcastCover
 {
     [CmdletBinding()]
@@ -1029,6 +1066,9 @@ function New-PodcastAnnouncement
 
         Format-VKAnnouncement -Podcast $podcast -Links $links |
         Set-Content -Path ([IO.Path]::ChangeExtension($Path, 'vk.txt')) -Encoding UTF8
+
+        Format-TwitterAnnouncement -Podcast $podcast -Links $links |
+        Set-Content -Path ([IO.Path]::ChangeExtension($Path, 'twitter.txt')) -Encoding UTF8
     }
 }
 
