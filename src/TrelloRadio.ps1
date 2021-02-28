@@ -14,7 +14,7 @@ $TrelloNewCardListName = 'Обсуждаем-'
 $AuditDir = Join-Path $PSScriptRoot '..\..\Audit\db' -Resolve
 $InformationPreference = 'Continue'
 
-$EpisodeSorter = { @('Number', 'Title', 'PublishDate', 'Authors', 'Mastering', 'Music', 'Home', 'Audio', 'Topics', 'Subject', 'Timestamp', 'Links').IndexOf($_) }
+$EpisodeSorter = { @('Number', 'Title', 'PublishDate', 'Authors', 'Mastering', 'Music', 'Patrons', 'Home', 'Audio', 'Topics', 'Subject', 'Timestamp', 'Links').IndexOf($_) }
 
 
 class FormatString
@@ -418,6 +418,28 @@ class PodcastAnnouncement
         return $this
     }
 
+    [PodcastAnnouncement] Patrons()
+    {
+        $patrons = $this.Podcast['Patrons']
+        if (-not $patrons)
+        {
+            return $this
+        }
+
+        $this.Report.BeginList('Спасибо за помощь:')
+
+        foreach ($patron in $patrons)
+        {
+            $link = $this.Links[$patron]
+            $text = $this.Report.Encode($patron)
+            $format = $this.Report.Link($link, $text)
+            $this.Report.ListItem($format)
+        }
+
+        $this.Report.EndList()
+        return $this
+    }
+
     [PodcastAnnouncement] Topics()
     {
         return $this.Topics($true)
@@ -498,6 +520,7 @@ function Format-PodcastHeader
             Authors = @('Анатолий Кулаков', 'Игорь Лабутин')
             Mastering = 'Максим Шошин'
             Music = @{ 'Максим Аршинов «Pensive yeti.0.1»' = 'https://hightech.group/ru/about' }
+            Patrons = @('Александр')
         }
     }
 }
@@ -744,6 +767,7 @@ function Format-VKAnnouncement
             Authors().
             Mastering().
             Music().
+            Patrons().
             EMail().
             PlayResources().
             DonatResources().
@@ -778,6 +802,7 @@ function Format-YouTubeAnnouncement
             Authors().
             Mastering().
             Music().
+            Patrons().
             EMail().
             PlayResources().
             DonatResources().
