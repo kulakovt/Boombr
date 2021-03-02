@@ -107,5 +107,7 @@ function Get-TwitterRetweet
 
 # 'DotNetRu' |
 # Get-TwitterStatus -Count 1 |
+# Out-Tee |
 # Get-TwitterRetweet |
+# Add-NumberToCustomObject |
 # Export-Csv -Path (Join-Path $PSScriptRoot '../artifacts/tw-dotnetru-retweets.csv') -NoTypeInformation -Encoding UTF8 -Delimiter ';'

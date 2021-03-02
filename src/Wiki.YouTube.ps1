@@ -311,13 +311,15 @@ function Get-YouTubeReply
 # Get-YouTubePlaylist |
 # Where-Object { $_.Title -eq 'RadioDotNet' } |
 # Get-YouTubePlaylistItem |
+# Select-Object -First 1 | # The Last
 # Group-ToStringBatch |
 # Get-YouTubeVideo |
-# Where-Object { $_.Title -eq 'RadioDotNet №11'} |
+# Out-Tee |
 # Select-Object -ExpandProperty Id |
 # Get-YouTubeComment |
 # Where-Object { -not ($_.ParentId) } | # Not a reply
 # Where-Object { $_.AuthorChannel -NotLike '*/UCgt_mJ4akKCp6MVoDPfYFIQ' } | # Anatoly Kulakov
 # Where-Object { $_.AuthorChannel -NotLike '*/UCL1glUx4QToZ2aX8iTcieIw' } | # Igor Labutin
 # Select-Object Author,AuthorChannel,@{ L='Text'; E={ $_.Text -replace "`n",' ' -replace "`r",' ' }} |
+# Add-NumberToCustomObject |
 # Export-Csv -Path (Join-Path $PSScriptRoot '../artifacts/yt-dotnetru-comments.csv') -NoTypeInformation -Encoding UTF8 -Delimiter ';'

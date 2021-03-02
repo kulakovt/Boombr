@@ -158,5 +158,5 @@ function Get-VKRepost
 }
 
 # $post = 'DotNetRu' | Get-VKWall -Count 1
-# $post | Get-VKPostLike | Export-Csv -Path (Join-Path $PSScriptRoot '../artifacts/vk-dotnetru-likes.csv') -NoTypeInformation -Encoding UTF8 -Delimiter ';'
-# $post | Get-VKRepost   | Export-Csv -Path (Join-Path $PSScriptRoot '../artifacts/vk-dotnetru-reposts.csv') -NoTypeInformation -Encoding UTF8 -Delimiter ';'
+# $post | Get-VKPostLike | Add-NumberToCustomObject | Export-Csv -Path (Join-Path $PSScriptRoot '../artifacts/vk-dotnetru-likes.csv') -NoTypeInformation -Encoding UTF8 -Delimiter ';'
+# $post | Get-VKRepost   | Add-NumberToCustomObject | Export-Csv -Path (Join-Path $PSScriptRoot '../artifacts/vk-dotnetru-reposts.csv') -NoTypeInformation -Encoding UTF8 -Delimiter ';'

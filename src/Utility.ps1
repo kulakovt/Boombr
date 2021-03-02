@@ -455,3 +455,34 @@ function Get-GitRemotePath
     }
 }
 
+
+function Add-NumberToCustomObject
+{
+    [CmdletBinding()]
+    [OutputType([PSCustomObject])]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [PSCustomObject]
+        $Object,
+
+        [Parameter()]
+        [string]
+        $NumberPropertyName = 'Number'
+    )
+
+    begin
+    {
+        $number = 0
+    }
+    process
+    {
+        $hashtable = [ordered]@{}
+        $hashtable[$NumberPropertyName] = ++$number
+        foreach ($property in $Object.PSObject.Properties.Name)
+        {
+            $hashtable[$property] = $Object.$property
+        }
+
+        [PSCustomObject]$hashtable
+    }
+}
