@@ -347,10 +347,10 @@ class PodcastAnnouncement
 
     [PodcastAnnouncement] DonatResources()
     {
-        $link = $this.Report.Link($this::PatreonUrl)
-        $this.Report.Paragraph("Patreon ($): $link")
         $link = $this.Report.Link($this::BoostyUrl)
         $this.Report.Paragraph("Boosty (₽): $link")
+        $link = $this.Report.Link($this::PatreonUrl)
+        $this.Report.Paragraph("Patreon ($): $link")
         return $this
     }
 
