@@ -1,4 +1,4 @@
-﻿#Requires -Version 5
+#Requires -Version 5
 #Requires -Modules PowerTrello
 
 Set-StrictMode -version Latest
@@ -576,9 +576,15 @@ function ConvertTo-RssPodcastItem
 
     process
     {
+        # HACK: We have to use this hack because the element is missing for episode number zero
+        $hackEpisode = $RssItem.ChildNodes.GetEnumerator() |
+            Where-Object { $_.Name -eq 'itunes:episode' } |
+            ForEach-Object { [int]$_.InnerText } |
+            Select-Object -First 1
+
         $title = $RssItem.title.'#cdata-section'.Trim()
         @{
-            Number = $title | Select-EpisodeNumber
+            Number = [int]$hackEpisode
             Title = $title
             PublishDate = [datetime]$RssItem.pubDate
             Home = $RssItem.link.Trim()
@@ -1002,7 +1008,7 @@ function New-PodcastFromTrello
 
         $timer | Stop-TimeOperation
 
-        Write-Information "Please, fill in Authors, Description and Timestamps before the next step in «$(Split-Path -Leaf $filePath)»"
+        Write-Information "Please, fill in Title, Authors, Description and Timestamps before the next step in «$(Split-Path -Leaf $filePath)»"
     }
 }
 
