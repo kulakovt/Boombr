@@ -1,4 +1,4 @@
-#Requires -Version 5
+﻿#Requires -Version 5
 #Requires -Modules PowerTrello
 
 Set-StrictMode -version Latest
@@ -952,12 +952,12 @@ function Test-PodcastFormat
                 'Audio',
                 'Video'
             ) |
-            Where-Object { -not $topic.ContainsKey($_) } |
+            Where-Object { -not $Podcast.ContainsKey($_) } |
             Join-ToString
 
             if ($missingFields)
             {
-                throw "Missing fields from $($podcast.Title): $missingFields"
+                throw "Missing fields from «$($podcast.Number)»: $missingFields"
             }
         }
     }
@@ -987,7 +987,7 @@ function New-PodcastFromTrello
         if ($episodeNumber -gt 0)
         {
             $prevNumber = $episodeNumber - 1
-            $prevIndex = Join-Path $PodcastHome ('{0:D3}' -f $prevNumber) | Join-Path -ChildPath 'index.md'
+            $prevIndex = Join-Path $Path ('{0:D3}' -f $prevNumber) | Join-Path -ChildPath 'index.md'
             $prevPodcast = Get-PodcastFromFile -Path $prevIndex
             Test-PodcastFormat -Podcast $prevPodcast -Full
         }
