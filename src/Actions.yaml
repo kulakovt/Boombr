@@ -13,7 +13,7 @@ Speaker:
   - 'Провести тренировки для ${SpeakerName} #Программа'
   - '[${MeetupKey}] Получить данные для анонса от ${SpeakerName} #Программа'
   # Phase 5 (After Meetup)
-  - '[${MeetupKey}] Забрать сдайды у ${SpeakerName} и выложить на SpeakerDeck #Программа'
+  - '[${MeetupKey}] Забрать слайды у ${SpeakerName} и выложить на SpeakerDeck #Программа'
 
 Meetup:
   # Phase 3 (Before Meetup)
