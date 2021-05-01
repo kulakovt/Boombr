@@ -1,4 +1,4 @@
-﻿#Requires -Version 5
+#Requires -Version 5
 #Requires -Modules PowerTrello
 
 Set-StrictMode -version Latest
@@ -520,7 +520,7 @@ function Format-PodcastHeader
             Authors = @('Анатолий Кулаков', 'Игорь Лабутин')
             Mastering = 'Максим Шошин'
             Music = @{ 'Максим Аршинов «Pensive yeti.0.1»' = 'https://hightech.group/ru/about' }
-            Patrons = @('Александр')
+            Patrons = @('Александр', 'Сергей')
         }
     }
 }
