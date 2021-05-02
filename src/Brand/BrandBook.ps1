@@ -1,4 +1,4 @@
-﻿. $PSScriptRoot\..\Utility.ps1
+. $PSScriptRoot\..\Utility.ps1
 . $PSScriptRoot\..\Model.ps1
 . $PSScriptRoot\..\Serialization.ps1
 . $PSScriptRoot\..\Svg\Logo.ps1
@@ -89,11 +89,17 @@ function Update-BrandCommunity
             @{ NameTemplate = '{CommunityName}-logo-squared-bordered'; IncludeBorder = $true; IncludeBackground = $true; },
             @{ NameTemplate = '{CommunityName}-logo-squared-white'; IncludeBorder = $false; IncludeBackground = $false; },
             @{ NameTemplate = '{CommunityName}-logo-squared-white-bordered'; IncludeBorder = $true; IncludeBackground = $false },
-            # Color source: Visual Studio, Dark color theme, Editor background
+            # Color: Visual Studio, Dark color theme, Editor background
             @{ NameTemplate = '{CommunityName}-logo-squared-black'; IncludeBorder = $false; IncludeBackground = $true; BackgroundColor = '#1e1e1e' },
-            # Color source: ReSharper, Unit test window, Success test run
+            # Color: ReSharper, Unit test window, Success test run
             @{ NameTemplate = '{CommunityName}-logo-squared-green'; IncludeBorder = $false; IncludeBackground = $true; BackgroundColor = '#329932' }
         )
+
+        if ($CommunityName -ieq 'DotNetRu')
+        {
+            # Color: F# logo color
+            $logoTypes += @{ NameTemplate = '{CommunityName}-logo-squared-blue'; IncludeBorder = $false; IncludeBackground = $true; BackgroundColor = '#378bba' }
+        }
 
         if ($CommunityName -ieq 'RadioDotNet')
         {
@@ -262,7 +268,7 @@ function Get-FamilyName([string] $ImagePath)
 
 function Get-FamilyTag([string] $Name)
 {
-    @('white', 'bordered', 'black', 'green', 'gold') |
+    @('white', 'bordered', 'black', 'green', 'gold', 'blue') |
     ForEach-Object {
         $tag = $_
         if ($Name -match "\b$tag\b")
@@ -278,7 +284,7 @@ function Get-FamilyOrderer()
         @{ Expression = {
             $Family = [ImageFamily] $_
             $tags = $Family.Tags
-            $types = @('white', 'black', 'green', 'gold')
+            $types = @('white', 'black', 'green', 'gold', 'blue')
 
             $rank = $tags | ForEach-Object { $types.IndexOf($_) + 1 } | Measure-Object -Sum | Select-Object -ExpandProperty Sum
             $rank *= 10
@@ -301,9 +307,10 @@ function Expand-LogoFamilyDisplayInfo()
             '*-logo-squared-bordered' { @('Квадрат с рамкой', 'На тёмном фоне используйте логотип с рамкой.') }
             '*-logo-squared-white' { @('Квадрат на прозрачном фоне', 'На тёмном цветном фоне используйте прозрачный логотип.') }
             '*-logo-squared-white-bordered' { @('Квадрат на прозрачном фоне с рамкой', 'На тёмном цветном фоне используйте прозрачный логотип с рамкой.') }
-            '*-logo-squared-black' { @('Чёрный квадрат', 'Используйте для организационного направления.') }
-            '*-logo-squared-green' { @('Зелёный квадрат', 'Используйте для образовательного направления.') }
-            '*-logo-squared-gold' { @('Золотой квадрат', 'Используйте для коммерческого направления.') }
+            '*-logo-squared-black' { @('Чёрный квадрат', 'Для внутреннего использования на организационном направлении.') }
+            '*-logo-squared-green' { @('Зелёный квадрат', 'Для внутреннего использования на образовательном направлении.') }
+            '*-logo-squared-gold' { @('Золотой квадрат', 'Для внутреннего использования на коммерческом направлении.') }
+            '*-logo-squared-blue' { @('Синий квадрат', 'Для внутреннего использования на краудсорсинг направлении.') }
             default { @('', '') }
         }
 
