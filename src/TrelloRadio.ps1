@@ -520,7 +520,7 @@ function Format-PodcastHeader
             Authors = @('Анатолий Кулаков', 'Игорь Лабутин')
             Mastering = 'Максим Шошин'
             Music = @{ 'Максим Аршинов «Pensive yeti.0.1»' = 'https://hightech.group/ru/about' }
-            Patrons = @('Александр', 'Сергей')
+            Patrons = @('Александр', 'Сергей', 'Владислав')
         }
     }
 }
