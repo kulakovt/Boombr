@@ -64,6 +64,7 @@ function Format-Talk()
         $talk = [Talk]$_
 
         $talk | Format-TalkTitle
+        ''
         $talk.Description
         ''
         '#### Об авторе'
