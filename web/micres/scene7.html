@@ -1,0 +1,71 @@
+<!DOCTYPE HTML>
+<html lang="ru">
+<head>
+  <title>Исследователь Микробов</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+  <link rel="stylesheet" href="main.css" />
+  <style type="text/css">
+
+  .cage
+  {
+      width: 100%;
+      height:100%;
+      margin: 0;
+      padding: 0;
+      border-collapse: collapse;
+      border-spacing: 0;
+  }
+
+  .cage th, td
+  {
+      border: 1px solid red;
+  }
+
+  .cage .busy
+  {
+      background-image: url(img/microbe-7.png);
+      background-position: left bottom;
+      background-repeat: no-repeat;
+      cursor: pointer;
+  }
+
+  </style>
+</head>
+<body>
+
+  <script>
+
+    // TODO:
+    // - dinamic table size (cell count)
+    // - save microbus to local storage
+
+    function tableCreate()
+    {
+      var body = document.body;
+      var tbl  = document.createElement('table');
+      tbl.className = "cage"
+
+      for (var i = 0; i < 8; i++)
+      {
+        var tr = tbl.insertRow();
+        for (var j = 0; j < 20; j++)
+        {
+          var td = tr.insertCell();
+          td.appendChild(document.createTextNode(' '));
+          if (i == 4 && j == 6)
+          {
+            td.className = "busy"
+            td.addEventListener("click", function() { window.location = 'scene1.html' });
+          }
+        }
+      }
+      body.appendChild(tbl);
+    }
+    tableCreate();
+
+  </script>
+
+</body>
+</html>
+

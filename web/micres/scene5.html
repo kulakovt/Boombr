@@ -1,0 +1,100 @@
+<!DOCTYPE HTML>
+<html lang="ru">
+<head>
+  <title>Исследователь Микробов</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+  <link rel="stylesheet" href="main.css" />
+  <style type="text/css">
+
+  .men
+  {
+    position: absolute;
+    left: 82px;
+    bottom: 194px;
+    width: 383px;
+    height: 351px;
+    background-image: url(img/men-5.png);
+    background-position: left bottom;
+    background-repeat: no-repeat;
+  }
+
+  .microbe
+  {
+    position: absolute;
+    right: 130px;
+    bottom: 260px;
+    width: 71px;
+    height: 128px;
+    background-image: url(img/microbe-5.png);
+    background-position: left bottom;
+    background-repeat: no-repeat;
+  }
+
+  .timer
+  {
+      position: absolute;
+      left: 60px;
+      bottom: 490px;
+      width: 180px;
+      height: 70px;
+      background-image: url(img/timer-bg-5.png);
+      background-position: left bottom;
+      background-repeat: repeat-x;
+      text-align: center;
+      color: skyblue;
+  }
+  .timer span
+  {
+      display: block;
+      height: 100%;
+      padding-top: 10px;
+  }
+
+  </style>
+</head>
+<body>
+  <div class="bed"></div>
+
+  <div id="canvas">
+    <div class="microbe"></div>
+    <div class="men"></div>
+    <div class="timer"><span id="duration">01:08</span></div>
+  </div>
+
+  <div class="floor"></div>
+
+  <script>
+    var durationLabel = document.getElementById("duration");
+    var totalSeconds = 68;
+    setInterval(tickReserch, 1000);
+
+    function tickReserch()
+    {
+      if (totalSeconds <= 0)
+      {
+        window.location = 'scene6.html'
+        return
+      }
+      --totalSeconds;
+      var seconds = pad(totalSeconds % 60);
+      var minutes = pad(parseInt(totalSeconds / 60));
+      durationLabel.innerHTML = minutes + ":" + seconds;
+    }
+
+    function pad(val)
+    {
+      var valString = val + "";
+      if (valString.length < 2)
+      {
+        return "0" + valString;
+      }
+      else
+      {
+        return valString;
+      }
+    }
+  </script>
+</body>
+</html>
+

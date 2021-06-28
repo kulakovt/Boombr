@@ -1,0 +1,153 @@
+body
+{
+  font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+  font-size: 36px;
+}
+
+html, body
+{
+  width: 100%;
+  height:100%;
+  margin: 0;
+  padding: 0;
+}
+
+button
+{
+  font-size: inherit;
+  padding: 0 30px;
+  background-color: yellow;
+  color: green;
+  text-transform: uppercase;
+  text-align: center;
+  cursor: pointer;
+  outline: none;
+  border: none;
+}
+
+button:hover
+{
+  background-color: yellowgreen
+}
+
+button:active
+{
+  background-color: yellowgreen;
+  transform: translateY(4px);
+}
+
+button.taken
+{
+  background-color: yellowgreen
+}
+
+
+ /* Debug */
+
+/* .menu { border: solid 1px green; }
+.menu li { border: solid 1px red; }
+#canvas { background-color: pink; } */
+
+/* Scenes */
+
+.menu
+{
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  display: block;
+  position: relative;
+  top: 50%;
+  transform: translate(0, -50%);
+  text-align: center;
+}
+
+.menu li
+{
+  display: inline-block;
+  position: relative;
+  padding: 16px;
+}
+
+.menu img
+{
+  background-color: yellow;
+  padding: 16px;
+}
+
+.floor
+{
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 150px;
+  background-image: url(img/floor-2.png);
+  background-position: left bottom;
+  background-repeat: repeat-x;
+}
+
+.bed
+{
+  position: absolute;
+  left: 0;
+  bottom: 150px;
+  width: 500px;
+  height: 298px;
+  background-image: url(img/bed-2.png);
+  background-position: left bottom;
+  background-repeat: no-repeat;
+}
+
+#canvas
+{
+  position: absolute;
+  right: 0;
+  bottom: 150px;
+  width: 650px;
+  height: 550px;
+  background-image: url(img/table-2.png);
+  background-position: left bottom;
+  background-repeat: no-repeat;
+}
+
+@media (max-width: 1150px)
+{
+  .bed
+  {
+    display: none;
+  }
+
+  #canvas
+  {
+    margin-left: auto;
+    margin-right: auto;
+    left: 0;
+    right: 0;
+  }
+}
+
+.men2
+{
+  position: absolute;
+  left: 142px;
+  bottom: 194px;
+  width: 225px;
+  height: 347px;
+  background-image: url(img/men-2.png);
+  background-position: left bottom;
+  background-repeat: no-repeat;
+}
+
+.microbe3
+{
+  position: absolute;
+  right: 160px;
+  bottom: 260px;
+  width: 117px;
+  height: 128px;
+  background-image: url(img/microbe-3.png);
+  background-position: left bottom;
+  background-repeat: no-repeat;
+}

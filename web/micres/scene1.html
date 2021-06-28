@@ -1,0 +1,56 @@
+<!DOCTYPE HTML>
+<html lang="ru">
+<head>
+  <title>Исследователь Микробов</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+  <link rel="stylesheet" href="main.css" />
+</head>
+<body>
+
+  <ul class="menu">
+    <li>
+      <div>
+        <img src="img/men-1.png" /><br/>
+        <button onclick="takeThing(this)">Купить</button>
+      </div>
+    </li>
+    <li>
+      <div>
+        <img src="img/bottle-1.png" /><br/>
+        <button onclick="takeThing(this)">Купить</button>
+      </div>
+    </li>
+    <li>
+      <div>
+        <img src="img/magnifier-1.png" /><br/>
+        <button onclick="takeThing(this)">Купить</button>
+      </div>
+    </li>
+    <li>
+      <div>
+        <img src="img/microbe-1.png" /><br/>
+        <button onclick="takeThing(this)">Купить</button>
+      </div>
+    </li>
+  </ul>
+
+  <script>
+    var thingCount = document.querySelectorAll(".menu li").length;
+
+    function takeThing(btn)
+    {
+      if (!btn.classList.contains("taken"))
+      {
+        btn.classList.add("taken");
+        --thingCount
+        if (thingCount <= 0)
+        {
+          window.location = 'scene2.html'
+        }
+      }
+    }
+  </script>
+</body>
+</html>
+
