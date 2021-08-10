@@ -1,4 +1,4 @@
-#Requires -Version 5
+﻿#Requires -Version 5
 #Requires -Modules PowerTrello
 
 Set-StrictMode -version Latest
@@ -11,6 +11,7 @@ $ErrorActionPreference = 'Stop'
 
 $TrelloBoardName = 'RadioDotNet'
 $TrelloNewCardListName = 'Обсуждаем-'
+$PodcastHome = Join-Path $PSScriptRoot '..\..\Audit\db\podcasts' -Resolve
 $AuditDir = Join-Path $PSScriptRoot '..\..\Audit\db' -Resolve
 $InformationPreference = 'Continue'
 
@@ -963,14 +964,39 @@ function Test-PodcastFormat
     }
 }
 
-function New-PodcastFromTrello
+function Resolve-IndexPath
 {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
-        [ValidateNotNullOrEmpty()]
-        [string] $Path
+        [int]
+        $Number
     )
+
+    process
+    {
+        Join-Path $PodcastHome "RadioDotNet-$Number" | Join-Path -ChildPath 'index.md'
+    }
+}
+
+function Resolve-LastIndexPath()
+{
+    Get-ChildItem $PodcastHome |
+    ForEach-Object {
+        if ($_.Name -match 'RadioDotNet-(?<number>\d+)')
+        {
+            [int] $Matches['number']
+        }
+     } |
+     Measure-Object -Maximum |
+     Select-Object -ExpandProperty 'Maximum' |
+     Resolve-IndexPath
+}
+
+function New-PodcastFromTrello
+{
+    [CmdletBinding()]
+    param ()
 
     process
     {
@@ -986,16 +1012,15 @@ function New-PodcastFromTrello
 
         if ($episodeNumber -gt 0)
         {
-            $prevNumber = $episodeNumber - 1
-            $prevIndex = Join-Path $Path ('{0:D3}' -f $prevNumber) | Join-Path -ChildPath 'index.md'
+            $prevIndex = $episodeNumber - 1 | Resolve-IndexPath
             $prevPodcast = Get-PodcastFromFile -Path $prevIndex
             Test-PodcastFormat -Podcast $prevPodcast -Full
         }
 
-        $dirName = Join-Path -Path $Path ('{0:D3}' -f $episodeNumber)
-        New-Item -Path $dirName -ItemType Directory | Out-Null
+        $filePath = $episodeNumber | Resolve-IndexPath
 
-        $filePath = Join-Path -Path $dirName 'index.md'
+        $dirName = Split-Path -Path $filePath
+        New-Item -Path $dirName -ItemType Directory | Out-Null
 
         Write-Information "Scan «$($list.name)» list in «$($board.name)» board for episode №$episodeNumber"
 
@@ -1103,12 +1128,11 @@ function New-PodcastAnnouncement
     }
 }
 
-# $PodcastHome = Join-Path $PSScriptRoot '..\..\Site\input\Radio' -Resolve
-# $PodcastIndex = Join-Path $PodcastHome '000' | Join-Path -ChildPath 'index.md'
+# $PodcastIndex = Resolve-LastIndexPath
 
 # Step 1
 # Get-TrelloConfiguration | Out-Null
-# $PodcastHome | New-PodcastFromTrello
+# New-PodcastFromTrello
 
 # Step 2
 # New-PodcastAnnouncementForAnchor -Path $PodcastIndex
@@ -1118,7 +1142,7 @@ function New-PodcastAnnouncement
 
 # Step 4
 # New-PodcastAnnouncement -Path $PodcastIndex
+# - YT/DotNetRu (https://www.headliner.app/)
 # - VK/DotNetRu
 # - Tg/DotNetRu
 # - Tw/DotNetRu
-# - YT/DotNetRu
