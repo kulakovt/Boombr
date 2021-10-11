@@ -1,4 +1,4 @@
-. $PSScriptRoot\..\Utility.ps1
+﻿. $PSScriptRoot\..\Utility.ps1
 . $PSScriptRoot\..\Model.ps1
 . $PSScriptRoot\..\Serialization.ps1
 . $PSScriptRoot\..\Svg\Logo.ps1
@@ -503,7 +503,16 @@ function Update-PodcastsCommunity([string] $Path)
         Description = 'Подкаст о DotNet разработке и не только'
     }
 
-    @($more) |
+    $bookclub = @{
+        Name = 'BookClubDotNet'
+        Title = 'Подкаст Книжный Клуб'
+        City = $null
+        ShortName = 'BookClub'
+        Site = [Uri] 'https://bookclub.dotnet.ru/'
+        Description = 'Книжный клуб для .NET-разработчиков'
+    }
+
+    @($more, $bookclub) |
     ForEach-Object {
 
         $community = $_
