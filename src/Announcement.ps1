@@ -24,12 +24,17 @@ function Format-Meetup()
         {
             'Встреча будет проходить во всемирной сети «Интернет»'
         }
-        ''
-        '#### Спонсоры'
-        $meetup.FriendIds |
-            ForEach-Object { $AnnouncementRepository.Friends[$_] } |
-            Format-Friend
-        ''
+
+        if ($meetup.FriendIds)
+        {
+            ''
+            '#### Спонсоры'
+            $meetup.FriendIds |
+                ForEach-Object { $AnnouncementRepository.Friends[$_] } |
+                Format-Friend
+            ''
+        }
+
         "#### Программа $($meetup.Name -replace 'Встреча','встречи')"
         $meetup | Format-Program
         ''
