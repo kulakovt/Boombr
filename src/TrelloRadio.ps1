@@ -1,4 +1,4 @@
-﻿#Requires -Version 5
+#Requires -Version 5
 #Requires -Modules PowerTrello
 
 Set-StrictMode -version Latest
@@ -232,53 +232,44 @@ class PodcastAnnouncement
         return $this.Report.ToString()
     }
 
-    [string] FormatDate([string] $template)
+    [DateTime] GetForcePublishDate()
     {
-        return $this.FormatDate($template, $null)
-    }
-
-    [string] FormatDate([string] $template, $date)
-    {
-        if (-not $date)
-        {
-            $date = $this.Podcast['PublishDate']
-        }
-
-        $localPubDate = $date | ConvertTo-LocalTime
-        return $localPubDate.ToString($template, [System.Globalization.CultureInfo]::GetCultureInfo('ru-RU'))
-    }
-
-    [PodcastAnnouncement] Identity()
-    {
-        $textPubDate = ''
         if ($this.Podcast.Contains('PublishDate'))
         {
-            $textPubDate = $this.FormatDate(' от d MMMM yyyy года')
+            return $this.Podcast['PublishDate']
         }
 
-        $text = "Подкаст $($this::PodcastName) выпуск №$($this.Podcast['Number'])$textPubDate"
-        $format = $this.Report.Strong($this.Report.Encode($text))
-        $this.Report.Paragraph($format)
-        return $this
+        $date = Get-Date
+        $left = 23 - $date.Hour
+        if ($left -lt 3)
+        {
+            $date = $date.AddDays(1)
+        }
+
+        return $date
+    }
+
+    [string] FormatDate([string] $template)
+    {
+        $date = $this.GetForcePublishDate()
+        $localPubDate = $date | ConvertTo-LocalTime
+        return $localPubDate.ToString($template, [System.Globalization.CultureInfo]::GetCultureInfo('ru-RU'))
     }
 
     [PodcastAnnouncement] ShortDate()
     {
         $textPubDate = $this.FormatDate('d MMM yyyy')
-        $this.Report.Paragraph($this.Report.Encode($textPubDate))
+        $format = $this.Report.Encode($textPubDate)
+        $this.Report.Paragraph($format)
         return $this
     }
 
-    [PodcastAnnouncement] ShortDateOrNow()
+    [PodcastAnnouncement] Identity()
     {
-        $date = Get-Date
-        if ($this.Podcast.Contains('PublishDate'))
-        {
-            $date = $this.Podcast['PublishDate']
-        }
-
-        $textPubDate = $this.FormatDate('d MMM yyyy', $date)
-        $this.Report.Paragraph($this.Report.Encode($textPubDate))
+        $textPubDate = $this.FormatDate('d MMMM yyyy')
+        $text = "Подкаст $($this::PodcastName) выпуск №$($this.Podcast['Number']) от $textPubDate года"
+        $format = $this.Report.Strong($this.Report.Encode($text))
+        $this.Report.Paragraph($format)
         return $this
     }
 
@@ -862,8 +853,8 @@ function Format-PodcastCover
     {
         [PodcastAnnouncement]::new($Podcast, @{}).
             Identity().
-            ShortDateOrNow().
-            Topics($false).
+            ShortDate().
+            Topics($false, $false).
             ToString()
 
         $coverPath = Join-Path $PodcastHome 'cover.svg'
