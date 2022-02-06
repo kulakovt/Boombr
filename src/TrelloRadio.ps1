@@ -448,17 +448,34 @@ class PodcastAnnouncement
         return $this
     }
 
-    [PodcastAnnouncement] Topics()
+    [PodcastAnnouncement] TopicsWithZeroBase()
     {
-        return $this.Topics($true)
+        return $this.Topics($true, $true)
     }
 
-    [PodcastAnnouncement] Topics([bool] $IncludeLinks)
+    [PodcastAnnouncement] Topics()
+    {
+        return $this.Topics($true, $false)
+    }
+
+    [PodcastAnnouncement] Topics([bool] $IncludeLinks, [bool] $zeroBase)
     {
         $formatTitle = $this.Report.Strong('Темы:')
         $this.Report.Paragraph($formatTitle)
 
-        foreach ($topic in $this.Podcast['Topics'])
+        $topics = $this.Podcast['Topics']
+        if ($zeroBase)
+        {
+            $zero = @{
+                Subject = 'Приветствие'
+                Timestamp = "$([TimeSpan]::Zero)"
+                Links = @($this::SiteUrl)
+            }
+
+            $topics = @($zero) + $topics
+        }
+
+        foreach ($topic in $topics)
         {
             $formatTopic = $this.Report.Encode("[$($topic.Timestamp)] — $($topic.Subject)")
             if ($IncludeLinks)
@@ -812,7 +829,7 @@ function Format-YouTubeAnnouncement
             Slogan().
             Description().
             Audio().
-            Topics().
+            TopicsWithZeroBase().
             Authors().
             Mastering().
             Music().
