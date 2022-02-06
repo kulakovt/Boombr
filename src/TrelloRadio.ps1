@@ -296,15 +296,31 @@ class PodcastAnnouncement
 
     [PodcastAnnouncement] Home()
     {
-        $link = $this.Report.Link($this.Podcast['Home'])
-        $this.Report.Paragraph($link)
+        $ref = $this.Podcast['Home']
+        if ($ref)
+        {
+            $link = $this.Report.Link($ref)
+            $this.Report.Paragraph($link)
+        }
+        else
+        {
+            Write-Warning "Home link not found, skip it"
+        }
         return $this
     }
 
     [PodcastAnnouncement] Audio()
     {
-        $link = $this.Report.Link($this.Podcast['Audio'])
-        $this.Report.Paragraph("Аудиоверсия: $link")
+        $ref = $this.Podcast['Audio']
+        if ($ref)
+        {
+            $link = $this.Report.Link($ref)
+            $this.Report.Paragraph("Аудиоверсия: $link")
+        }
+        else
+        {
+            Write-Warning "Audio link not found, skip it"
+        }
         return $this
     }
 
