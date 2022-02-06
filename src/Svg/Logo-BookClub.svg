@@ -41,6 +41,6 @@
     <circle cx="592" cy="719" r="8" fill-opacity="1" fill="red"/>
     <circle cx="42" cy="0" r="8" fill-opacity="1" fill="red"/>
   </g>
-  <text x="64" y="16" font-size="16" fill="white">X = 42</text>
+  <text x="72" y="20" font-size="24" fill="white">X = 42</text>
 
 </svg>
