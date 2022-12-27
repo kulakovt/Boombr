@@ -799,7 +799,7 @@ function Format-VideoRatingPage()
         {
             $video = $_
             # TODO: Resolve TalkId, format nice title, make link to wiki talk page
-            "1. [$($video.Title)](https://www.youtube.com/watch?v=$($video.Id)) (:+1: $($video.LikeCount)  :-1: $($video.DislikeCount)  :tv: $($video.ViewCount)  :pager: $($video.CommentCount))"
+            "1. [$($video.Title)](https://www.youtube.com/watch?v=$($video.Id)) (:+1: $($video.LikeCount)  :tv: $($video.ViewCount)  :pager: $($video.CommentCount))"
         }
     }
 
