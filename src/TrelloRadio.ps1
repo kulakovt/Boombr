@@ -1,4 +1,4 @@
-﻿#Requires -Version 5
+#Requires -Version 5
 #Requires -Modules PowerTrello
 
 Set-StrictMode -version Latest
@@ -195,7 +195,7 @@ class PodcastAnnouncement
     static [string] $PodcastName = 'RadioDotNet'
     static [string] $SiteUrl = 'http://Radio.DotNet.Ru'
     static [string] $EMail = 'Radio@DotNet.Ru'
-    static [string] $RssUrl = 'https://anchor.fm/s/f0c0ef4/podcast/rss'
+    static [string] $RssUrl = 'https://cloud.mave.digital/37167'
     static [string] $VideoUrl = 'https://www.youtube.com/playlist?list=PLbxr_aGL4q3SpQ9GRn2jv-NEpvN23CUC5'
     static [string] $GoogleUrl = 'https://podcasts.google.com/feed/aHR0cHM6Ly9hbmNob3IuZm0vcy9mMGMwZWY0L3BvZGNhc3QvcnNz'
     static [string] $AppleUrl = 'https://podcasts.apple.com/us/podcast/radiodotnet/id1484348948'
@@ -357,8 +357,8 @@ class PodcastAnnouncement
     {
         $link = $this.Report.Link($this::BoostyUrl)
         $this.Report.Paragraph("Boosty (₽): $link")
-        $link = $this.Report.Link($this::PatreonUrl)
-        $this.Report.Paragraph("Patreon ($): $link")
+        # $link = $this.Report.Link($this::PatreonUrl)
+        # $this.Report.Paragraph("Patreon ($): $link")
         return $this
     }
 
@@ -607,7 +607,7 @@ function ConvertTo-RssPodcastItem
             ForEach-Object { [int]$_.InnerText } |
             Select-Object -First 1
 
-        $title = $RssItem.title.'#cdata-section'.Trim()
+        $title = $RssItem.title[0].'#cdata-section'.Trim()
         @{
             Number = [int]$hackEpisode
             Title = $title
@@ -750,7 +750,7 @@ function Read-PersonLink
     }
 }
 
-function Format-AnchorAnnouncement
+function Format-MaveAnnouncement
 {
     [CmdletBinding()]
     [OutputType([string])]
@@ -896,7 +896,7 @@ function Format-PodcastCover
         "$coverPath"
         'PNG: 1920 × 1080'
         'https://www.headliner.app/'
-        'Rss: https://anchor.fm/s/f0c0ef4/podcast/rss'
+        'Rss: https://cloud.mave.digital/37167'
     }
 }
 
@@ -1061,7 +1061,7 @@ function New-PodcastFromTrello
     }
 }
 
-function New-PodcastAnnouncementForAnchor
+function New-PodcastAnnouncementForMave
 {
     [CmdletBinding()]
     param (
@@ -1074,15 +1074,15 @@ function New-PodcastAnnouncementForAnchor
     {
         if (-not (Test-Path -Path $Path -PathType Leaf)) { throw "Index file «$Path» not found" }
 
-        Write-Information "Format Anchor announcement from «$Path»"
+        Write-Information "Format Mave announcement from «$Path»"
 
         $podcast = Get-PodcastFromFile -Path $Path
         $podcastHome = Split-Path $Path
 
         Test-PodcastFormat -Podcast $podcast
 
-        Format-AnchorAnnouncement -Podcast $podcast |
-        Set-Content -Path ([IO.Path]::ChangeExtension($Path, 'anchor.html')) -Encoding UTF8
+        Format-MaveAnnouncement -Podcast $podcast |
+        Set-Content -Path ([IO.Path]::ChangeExtension($Path, 'mave.html')) -Encoding UTF8
 
         # TODO: Format SVG cover
         Format-PodcastCover -Podcast $podcast -PodcastHome $podcastHome |
@@ -1090,7 +1090,7 @@ function New-PodcastAnnouncementForAnchor
     }
 }
 
-function New-PodcastFromAchor
+function New-PodcastFromMave
 {
     [CmdletBinding()]
     param (
@@ -1159,10 +1159,10 @@ function New-PodcastAnnouncement
 # New-PodcastFromTrello
 
 # Step 2
-# New-PodcastAnnouncementForAnchor -Path $PodcastIndex
+#  New-PodcastAnnouncementForMave -Path $PodcastIndex
 
 # Step 3
-# New-PodcastFromAchor -Path $PodcastIndex
+# New-PodcastFromMave -Path $PodcastIndex
 
 # Step 4
 # New-PodcastAnnouncement -Path $PodcastIndex
