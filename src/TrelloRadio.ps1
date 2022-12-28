@@ -543,7 +543,7 @@ function Format-PodcastHeader
             Number = $EpisodeNumber
             Title = "$([PodcastAnnouncement]::PodcastName) №${EpisodeNumber}"
             Authors = @('Анатолий Кулаков', 'Игорь Лабутин')
-            Mastering = 'Максим Шошин'
+            Mastering = 'Игорь Лабутин' # 'Максим Шошин'
             Music = @{ 'Максим Аршинов «Pensive yeti.0.1»' = 'https://hightech.group/ru/about' }
             Patrons = @('Александр', 'Сергей', 'Владислав', 'Алексей', 'Шевченко Антон', 'Илья')
         }
