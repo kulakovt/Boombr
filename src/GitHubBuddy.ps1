@@ -184,6 +184,7 @@ function Initialize-CommunitySite
 
         ### TODO ##################################################################
         # - [GitHub Pages] Enable GitHub Pages at master branch
+        # - [Reg.ru] Add DNS record
         # - [GitHub Pages] Enable Enforce HTTPS
         # - [Features] Disable Preserve this repository (Include this code in the GitHub Archive Program)
         # - [Details] Remove Releases
