@@ -1,5 +1,9 @@
-#Requires -Version 5
+﻿#Requires -Version 5
 #Requires -Modules PowerTrello
+
+# TODO:
+# - Draw cover.svg with topics
+#   - https://khalidabuhakmeh.com/programming-svgs-with-csharp-dotnet
 
 Set-StrictMode -version Latest
 $ErrorActionPreference = 'Stop'
@@ -545,7 +549,34 @@ function Format-PodcastHeader
             Authors = @('Анатолий Кулаков', 'Игорь Лабутин')
             Mastering = 'Игорь Лабутин' # 'Максим Шошин'
             Music = @{ 'Максим Аршинов «Pensive yeti.0.1»' = 'https://hightech.group/ru/about' }
-            Patrons = @('Александр', 'Сергей', 'Владислав', 'Алексей', 'Шевченко Антон', 'Илья', 'Гурий Самарин', 'Виктор')
+            Patrons = @('Александр', 'Сергей', 'Владислав', 'Алексей', 'Шевченко Антон', 'Лазарев Илья', 'Гурий Самарин', 'Виктор', 'Руслан Артамонов', 'Александр Ерыгин')
+        }
+    }
+}
+
+function Get-LinksFromMarkDown()
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [ValidateNotNullOrEmpty()]
+        [string] $Description
+    )
+
+    process
+    {
+        $Description -split "`n" |
+        ForEach-Object {
+
+            $line = $_.Trim()
+            if ($line -match '\[(?<Link>https?://[^\]]+)')
+            {
+                $Matches['Link']
+            }
+            elseif ($line -match '^https?://')
+            {
+                $line
+            }
         }
     }
 }
@@ -570,9 +601,7 @@ function Format-PodcastTopic
         $subject = $Card.name.Trim()
         Write-Information "- $subject"
 
-        [string[]] $links = $Card.desc -split "`n" |
-            ForEach-Object { $_.Trim() } |
-            Where-Object { $_ -match '^https?://' }
+        [string[]] $links = $Card.desc | Get-LinksFromMarkDown
 
         @{
             Subject = $subject
@@ -668,6 +697,7 @@ function ConvertTo-PodcastMarkDowm
             $description = $Podcast['Description']
             $podcast.Remove('Description')
         }
+
         '---'
         ConvertTo-CuteYaml -Data $Podcast -KeyOrderer $EpisodeSorter
         '---'
@@ -767,6 +797,7 @@ function Format-MaveAnnouncement
             Identity().
             Description().
             Site().
+            DonatResources().
             Topics().
             Music().
             ToString()
@@ -1159,14 +1190,14 @@ function New-PodcastAnnouncement
 # New-PodcastFromTrello
 
 # Step 2
-#  New-PodcastAnnouncementForMave -Path $PodcastIndex
+# New-PodcastAnnouncementForMave -Path $PodcastIndex
 
 # Step 3
 # New-PodcastFromMave -Path $PodcastIndex
 
 # Step 4
 # New-PodcastAnnouncement -Path $PodcastIndex
-# - YT/DotNetRu (https://www.headliner.app/)
-# - VK/DotNetRu
-# - Tg/DotNetRu
-# - Tw/DotNetRu
+#   - YT/DotNetRu (https://www.headliner.app/)
+#  - VK/DotNetRu
+#  - Tg/DotNetRu
+#  - Tw/DotNetRu

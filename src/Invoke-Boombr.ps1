@@ -92,7 +92,7 @@ function Start-BoombrCommand([string] $Command = $(throw 'Command required'))
 
         'new announcement'
         {
-            . $PSScriptRoot\Announcement.ps1
+            . $PSScriptRoot\AnnouncementHtml.ps1
             Invoke-BuildAnnouncement
         }
 

@@ -247,6 +247,14 @@ function Format-XmlAttributeLine
     }
 }
 
+function Format-HtmlEncode()
+{
+    process
+    {
+        [System.Net.WebUtility]::HtmlEncode($_)
+    }
+}
+
 function Format-UriQuery
 {
     [CmdletBinding()]
