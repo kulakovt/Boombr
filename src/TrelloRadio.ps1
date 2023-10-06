@@ -500,13 +500,6 @@ class PodcastAnnouncement
 
         return $this
     }
-
-    [PodcastAnnouncement] Tags()
-    {
-        $text = $this.Report.Encode('#Podcast #DotNet')
-        $this.Report.Paragraph($text)
-        return $this
-    }
 }
 
 
@@ -549,7 +542,9 @@ function Format-PodcastHeader
             Authors = @('Анатолий Кулаков', 'Игорь Лабутин')
             Mastering = 'Игорь Лабутин' # 'Максим Шошин'
             Music = @{ 'Максим Аршинов «Pensive yeti.0.1»' = 'https://hightech.group/ru/about' }
-            Patrons = @('Александр', 'Сергей', 'Владислав', 'Алексей', 'Шевченко Антон', 'Лазарев Илья', 'Гурий Самарин', 'Виктор', 'Руслан Артамонов', 'Александр Ерыгин')
+            Patrons = @(
+                'Александр', 'Сергей', 'Владислав', 'Лазарев Илья', 'Гурий Самарин',
+                'Виктор', 'Руслан Артамонов', 'Александр Ерыгин', 'Сергей Бензенко', 'Александр Лапердин')
         }
     }
 }
@@ -833,7 +828,6 @@ function Format-VKAnnouncement
             EMail().
             PlayResources().
             DonatResources().
-            Tags().
             ToString()
     }
 }
@@ -868,7 +862,6 @@ function Format-YouTubeAnnouncement
             EMail().
             PlayResources().
             DonatResources().
-            Tags().
             ToString()
     }
 }
@@ -1092,6 +1085,94 @@ function New-PodcastFromTrello
     }
 }
 
+function New-PodcastFromHand
+{
+    [CmdletBinding()]
+    param ()
+
+    process
+    {
+        $timer = Start-TimeOperation -Name 'Create podcast from hand'
+
+        $episodeNumber = 79
+        $topics = @()
+
+        $topics += @{
+            Subject = 'Announcing .NET 8 RC1'
+            Timestamp = '00:00:00'
+            Links = @(
+                'https://devblogs.microsoft.com/dotnet/announcing-dotnet-8-rc1/'
+                'https://devblogs.microsoft.com/dotnet/asp-net-core-updates-in-dotnet-8-rc-1/'
+                'https://devblogs.microsoft.com/dotnet/announcing-ef8-rc1/'
+                'https://devblogs.microsoft.com/dotnet/announcing-dotnet-maui-in-dotnet-8-rc-1/'
+            )
+        }
+        $topics += @{
+            Subject = 'Visual Studio 2022 17.8 Preview 2'
+            Timestamp = '00:00:00'
+            Links = @(
+                'https://devblogs.microsoft.com/visualstudio/visual-studio-2022-17-8-preview-2-has-arrived/'
+                'https://devblogs.microsoft.com/visualstudio/safely-use-secrets-in-http-requests-in-visual-studio-2022/'
+            )
+        }
+        $topics += @{
+            Subject = 'Accessing private members without reflection in C#'
+            Timestamp = '00:00:00'
+            Links = @(
+                'https://www.meziantou.net/accessing-private-members-without-reflection-in-csharp.htm'
+            )
+        }
+        $topics += @{
+            Subject = 'Performance Improvements in .NET 8'
+            Timestamp = '00:00:00'
+            Links = @(
+                'https://devblogs.microsoft.com/dotnet/performance-improvements-in-net-8/'
+            )
+        }
+        $topics += @{
+            Subject = 'Unity wants 108% of our gross revenue'
+            Timestamp = '00:00:00'
+            Links = @(
+                'https://blog.unity.com/news/plan-pricing-and-packaging-updates'
+                'https://www.bloomberg.com/news/articles/2023-09-18/unity-overhauls-controversial-price-hike-after-game-developers-revolt'
+            )
+        }
+        $topics += @{
+            Subject = 'Green Thread Experiment Results'
+            Timestamp = '00:00:00'
+            Links = @(
+                'https://github.com/dotnet/runtimelab/issues/2398'
+                'https://blog.jetbrains.com/idea/2023/05/new-livestream-virtual-threads-and-structured-concurrency-in-java-2021-with-loom/'
+            )
+        }
+        $topics += @{
+            Subject = 'Кратко о разном'
+            Timestamp = '00:00:00'
+            Links = @(
+                'https://github.com/mariotoffia/FluentDocker'
+                'https://ardalis.com/building-resilient-email-method-dotnet-retry-outbox-pattern/'
+                'https://learn.microsoft.com/en-us/dotnet/core/diagnostics/observability-with-otel'
+                'https://www.cncf.io/wp-content/uploads/2023/09/The-State-of-WebAssembly-2023.pdf'
+            )
+        }
+
+        $filePath = $episodeNumber | Resolve-IndexPath
+
+        $dirName = Split-Path -Path $filePath
+        New-Item -Path $dirName -ItemType Directory | Out-Null
+
+        $podcast = $episodeNumber | Format-PodcastHeader
+
+        $podcast['Topics'] = $topics
+
+        $filePath | Set-PodcastToFile -Podcast $podcast
+
+        $timer | Stop-TimeOperation
+
+        Write-Information "Please, fill in Title, Authors, Description and Timestamps before the next step in «$(Split-Path -Leaf $filePath)»"
+    }
+}
+
 function New-PodcastAnnouncementForMave
 {
     [CmdletBinding()]
@@ -1187,7 +1268,7 @@ function New-PodcastAnnouncement
 
 # Step 1
 # Get-TrelloConfiguration | Out-Null
-# New-PodcastFromTrello
+# New-PodcastFromHand
 
 # Step 2
 # New-PodcastAnnouncementForMave -Path $PodcastIndex
@@ -1197,7 +1278,7 @@ function New-PodcastAnnouncement
 
 # Step 4
 # New-PodcastAnnouncement -Path $PodcastIndex
-#   - YT/DotNetRu (https://www.headliner.app/)
+#  - YT/DotNetRu (https://www.headliner.app/)
 #  - VK/DotNetRu
 #  - Tg/DotNetRu
-#  - Tw/DotNetRu
+

@@ -509,7 +509,7 @@ function Update-PodcastsCommunity([string] $Path)
         City = $null
         ShortName = 'BookClub'
         Site = [Uri] 'https://bookclub.dotnet.ru/'
-        Description = 'Книжный клуб для разработчиков ПО. Читаем книги и во всех деталях обсуждаем ключевые мысли из них вместе с гостями.'
+        Description = 'Книжный клуб для разработчиков ПО. Читаем книги и во всех деталях обсуждаем ключевые мысли из них вместе с гостями'
     }
 
     @($more, $bookclub) |
