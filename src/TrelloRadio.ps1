@@ -543,8 +543,10 @@ function Format-PodcastHeader
             Mastering = 'Игорь Лабутин' # 'Максим Шошин'
             Music = @{ 'Максим Аршинов «Pensive yeti.0.1»' = 'https://hightech.group/ru/about' }
             Patrons = @(
-                'Александр', 'Сергей', 'Владислав', 'Лазарев Илья', 'Гурий Самарин',
-                'Виктор', 'Руслан Артамонов', 'Александр Ерыгин', 'Сергей Бензенко', 'Александр Лапердин')
+                'Александр', 'Сергей', 'Владислав', 'Шевченко Антон', 'Лазарев Илья', 'Гурий Самарин',
+                'Виктор', 'Руслан Артамонов', 'Александр Ерыгин', 'Сергей Бензенко', 'Александр Лапердин',
+                'Ольга Бондаренко', 'Дмитрий Сорокин', 'Сергей Краснов', 'Константин Ушаков',
+                'Андрей Фазлеев', 'Басим Аль-Джевахири')
         }
     }
 }
@@ -920,6 +922,7 @@ function Format-PodcastCover
         "$coverPath"
         'PNG: 1920 × 1080'
         'https://www.headliner.app/'
+        'https://www.onlineconverter.com/audio-to-video'
         'Rss: https://cloud.mave.digital/37167'
     }
 }
@@ -1094,65 +1097,77 @@ function New-PodcastFromHand
     {
         $timer = Start-TimeOperation -Name 'Create podcast from hand'
 
-        $episodeNumber = 79
+        $episodeNumber = 94
         $topics = @()
+        $index = 0
+
+        $times = @(
+            65.845520
+            1252.028559
+            3365.906391
+            3830.579203
+            5220.998387
+            5490.222106
+            5680.612332
+        ) | ForEach-Object {
+            [TimeSpan]::FromSeconds($_).ToString('hh\:mm\:ss')
+        }
 
         $topics += @{
-            Subject = 'Announcing .NET 8 RC1'
-            Timestamp = '00:00:00'
+            Subject = 'General Availability of .NET Aspire'
+            Timestamp = $times[$index++]
             Links = @(
-                'https://devblogs.microsoft.com/dotnet/announcing-dotnet-8-rc1/'
-                'https://devblogs.microsoft.com/dotnet/asp-net-core-updates-in-dotnet-8-rc-1/'
-                'https://devblogs.microsoft.com/dotnet/announcing-ef8-rc1/'
-                'https://devblogs.microsoft.com/dotnet/announcing-dotnet-maui-in-dotnet-8-rc-1/'
+                'https://devblogs.microsoft.com/dotnet/dotnet-aspire-general-availability/'
             )
         }
         $topics += @{
-            Subject = 'Visual Studio 2022 17.8 Preview 2'
-            Timestamp = '00:00:00'
+            Subject = "What's new in C# 13"
+            Timestamp = $times[$index++]
             Links = @(
-                'https://devblogs.microsoft.com/visualstudio/visual-studio-2022-17-8-preview-2-has-arrived/'
-                'https://devblogs.microsoft.com/visualstudio/safely-use-secrets-in-http-requests-in-visual-studio-2022/'
+                'https://build.microsoft.com/en-US/sessions/689e5104-72e9-4d02-bb52-77676d1ec5bc'
+             )
+        }
+        $topics += @{
+            Subject = '.NET Announcements and Updates from Microsoft Build 2024'
+            Timestamp = $times[$index++]
+            Links = @(
+                'https://devblogs.microsoft.com/dotnet/dotnet-build-2024-announcements/'
+                'https://devblogs.microsoft.com/dotnet/catching-up-on-microsoft-build-2024-essential-sessions-for-dotnet-developers/'
             )
         }
         $topics += @{
-            Subject = 'Accessing private members without reflection in C#'
-            Timestamp = '00:00:00'
+            Subject = '.NET 9 Preview 4'
+            Timestamp = $times[$index++]
             Links = @(
-                'https://www.meziantou.net/accessing-private-members-without-reflection-in-csharp.htm'
+                'https://github.com/dotnet/core/discussions/9318'
+                'https://github.com/dotnet/core/blob/main/release-notes/9.0/preview/preview4/libraries.md'
+                'https://github.com/dotnet/core/blob/main/release-notes/9.0/preview/preview4/runtime.md'
+                'https://github.com/dotnet/core/blob/main/release-notes/9.0/preview/preview4/efcoreanddata.md'
+                'https://github.com/dotnet/core/blob/main/release-notes/9.0/preview/preview4/aspnetcore.md'
             )
         }
         $topics += @{
-            Subject = 'Performance Improvements in .NET 8'
-            Timestamp = '00:00:00'
+            Subject = 'Visual Studio 2022 17.10 and GitHub Copilot, First preview of Visual Studio 2022 v17.11'
+            Timestamp = $times[$index++]
             Links = @(
-                'https://devblogs.microsoft.com/dotnet/performance-improvements-in-net-8/'
+                'https://devblogs.microsoft.com/visualstudio/visual-studio-2022-17-10-now-available/'
+                'https://devblogs.microsoft.com/visualstudio/first-preview-of-visual-studio-2022-v17-11/'
             )
         }
         $topics += @{
-            Subject = 'Unity wants 108% of our gross revenue'
-            Timestamp = '00:00:00'
+            Subject = 'Announcing NuGet 6.10'
+            Timestamp = $times[$index++]
             Links = @(
-                'https://blog.unity.com/news/plan-pricing-and-packaging-updates'
-                'https://www.bloomberg.com/news/articles/2023-09-18/unity-overhauls-controversial-price-hike-after-game-developers-revolt'
-            )
-        }
-        $topics += @{
-            Subject = 'Green Thread Experiment Results'
-            Timestamp = '00:00:00'
-            Links = @(
-                'https://github.com/dotnet/runtimelab/issues/2398'
-                'https://blog.jetbrains.com/idea/2023/05/new-livestream-virtual-threads-and-structured-concurrency-in-java-2021-with-loom/'
+                'https://devblogs.microsoft.com/nuget/announcing-nuget-6-10/'
             )
         }
         $topics += @{
             Subject = 'Кратко о разном'
-            Timestamp = '00:00:00'
+            Timestamp = $times[$index++]
             Links = @(
-                'https://github.com/mariotoffia/FluentDocker'
-                'https://ardalis.com/building-resilient-email-method-dotnet-retry-outbox-pattern/'
-                'https://learn.microsoft.com/en-us/dotnet/core/diagnostics/observability-with-otel'
-                'https://www.cncf.io/wp-content/uploads/2023/09/The-State-of-WebAssembly-2023.pdf'
+                'https://www.youtube.com/watch?v=TRFfTdzpk-M'
+                'https://habr.com/ru/companies/pvs-studio/articles/816221/'
+                'https://xunit.net/releases/v2/2.8.1'
             )
         }
 
@@ -1275,8 +1290,6 @@ function New-PodcastAnnouncement
 
 # Step 3
 # New-PodcastFromMave -Path $PodcastIndex
-
-# Step 4
 # New-PodcastAnnouncement -Path $PodcastIndex
 #  - YT/DotNetRu (https://www.headliner.app/)
 #  - VK/DotNetRu

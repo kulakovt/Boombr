@@ -179,7 +179,6 @@ function Format-Footer
   <li>VK: <a href="https://vk.com/spbdotnet">https://vk.com/SpbDotNet</a></li>
   <li>Telegram channel: <a href="https://t.me/spbdotnet">https://t.me/SpbDotNet</a></li>
   <li>Telegram chat: <a href="https://t.me/spbdotnet">https://t.me/SpbDotNetChat</a></li>
-  <li>Meetup.com: <a href="https://www.meetup.com/SpbDotNet/">https://www.meetup.com/SpbDotNet</a></li>
 </ul>
 
 <p>Подписывайтесь на новости, задавайте вопросы, участвуйте в жизни сообщества!</p>
