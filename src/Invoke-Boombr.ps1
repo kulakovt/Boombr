@@ -2,6 +2,7 @@
 
 Set-StrictMode -version Latest
 $ErrorActionPreference = 'Stop'
+$PSNativeCommandUseErrorActionPreference = $true
 
 $InformationPreference = 'Continue'
 $VerbosePreference = 'SilentlyContinue'
@@ -18,10 +19,10 @@ $ProgressPreference = 'SilentlyContinue'
 
 $Config = @{
     RootDir = $PSScriptRoot
-    ArtifactsDir = Resolve-FullPath $PSScriptRoot '..\artifacts'
-    AuditDir = Resolve-FullPath $PSScriptRoot '..\..\Audit\db'
-    BrandBookDir = Resolve-FullPath $PSScriptRoot '..\..\BrandBook'
-    Inkscape = Resolve-FullPath $PSScriptRoot '..\..\..\inkscape\bin\inkscape.com'
+    ArtifactsDir = Resolve-FullPath $PSScriptRoot '..' 'artifacts'
+    AuditDir = Resolve-FullPath $PSScriptRoot '..' '..' 'Audit' 'db'
+    BrandBookDir = Resolve-FullPath $PSScriptRoot '..' '..' 'BrandBook'
+    Inkscape = Resolve-FullPath $PSScriptRoot '..' '..' '..' 'inkscape' 'bin' 'inkscape.com'
     IsOffline = $false
 }
 
