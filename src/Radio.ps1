@@ -1,5 +1,4 @@
-#Requires -Version 5
-#Requires -Modules PowerTrello
+﻿#Requires -Version 5
 
 # TODO:
 # - Draw cover.svg with topics
@@ -12,9 +11,8 @@ $ErrorActionPreference = 'Stop'
 . $PSScriptRoot\YamlCuteSerialization.ps1
 . $PSScriptRoot\Model.ps1
 . $PSScriptRoot\Serialization.ps1
+. $PSScriptRoot\RadioKaiten.ps1
 
-$TrelloBoardName = 'RadioDotNet'
-$TrelloNewCardListName = 'Обсуждаем-'
 $PodcastHome = Join-Path $PSScriptRoot '..\..\Audit\db\podcasts' -Resolve
 $AuditDir = Join-Path $PSScriptRoot '..\..\Audit\db' -Resolve
 $InformationPreference = 'Continue'
@@ -201,7 +199,6 @@ class PodcastAnnouncement
     static [string] $EMail = 'Radio@DotNet.Ru'
     static [string] $RssUrl = 'https://cloud.mave.digital/37167'
     static [string] $VideoUrl = 'https://www.youtube.com/playlist?list=PLbxr_aGL4q3SpQ9GRn2jv-NEpvN23CUC5'
-    static [string] $GoogleUrl = 'https://podcasts.google.com/feed/aHR0cHM6Ly9hbmNob3IuZm0vcy9mMGMwZWY0L3BvZGNhc3QvcnNz'
     static [string] $AppleUrl = 'https://podcasts.apple.com/us/podcast/radiodotnet/id1484348948'
     static [string] $YandexUrl = 'https://music.yandex.ru/album/12041961'
     static [string] $PatreonUrl = 'https://www.patreon.com/RadioDotNet'
@@ -338,7 +335,6 @@ class PodcastAnnouncement
         [ordered]@{
             'Сайт подкаста' = $this::SiteUrl
             'RSS подписка' = $this::RssUrl
-            'Google Podcasts' = $this::GoogleUrl
             'Apple Podcasts' = $this::AppleUrl
             'Яндекс Музыка' = $this::YandexUrl
             'YouTube Playlist' = $this::VideoUrl
@@ -499,120 +495,6 @@ class PodcastAnnouncement
         }
 
         return $this
-    }
-}
-
-
-function Select-EpisodeNumber
-{
-    [CmdletBinding()]
-    [OutputType([int])]
-    param (
-        [Parameter(Mandatory, ValueFromPipeline)]
-        [ValidateNotNullOrEmpty()]
-        [string] $EpisodeId
-    )
-
-    process
-    {
-        if ($EpisodeId -match '\w+-(?<number>\d+)')
-        {
-            return [int]$Matches['number']
-        }
-
-        throw "Can't extract episode number from «$EpisodeId»"
-    }
-}
-
-function Format-PodcastHeader
-{
-    [CmdletBinding()]
-    [OutputType([hashtable])]
-    param (
-        [Parameter(Mandatory, ValueFromPipeline)]
-        [ValidateNotNullOrEmpty()]
-        [int] $EpisodeNumber
-    )
-
-    process
-    {
-        @{
-            Number = $EpisodeNumber
-            Title = "$([PodcastAnnouncement]::PodcastName) №${EpisodeNumber}"
-            Authors = @('Анатолий Кулаков', 'Игорь Лабутин')
-            Mastering = 'Игорь Лабутин' # 'Максим Шошин'
-            Music = @{ 'Максим Аршинов «Pensive yeti.0.1»' = 'https://hightech.group/ru/about' }
-            Patrons = @(
-                'Александр', 'Сергей', 'Владислав', 'Шевченко Антон', 'Лазарев Илья', 'Гурий Самарин',
-                'Виктор', 'Руслан Артамонов', 'Александр Ерыгин', 'Сергей Бензенко', 'Александр Лапердин',
-                'Ольга Бондаренко', 'Дмитрий Сорокин', 'Сергей Краснов', 'Константин Ушаков',
-                'Андрей Фазлеев', 'Басим Аль-Джевахири', 'Андрей Маслов', 'Дмитрий Павлов',
-                 'Постарнаков Андрей')
-        }
-    }
-}
-
-function Get-LinksFromMarkDown()
-{
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory, ValueFromPipeline)]
-        [ValidateNotNullOrEmpty()]
-        [string] $Description
-    )
-
-    process
-    {
-        $Description -split "`n" |
-        ForEach-Object {
-
-            $line = $_.Trim()
-            if ($line -match '\[(?<Link>https?://[^\]]+)')
-            {
-                $Matches['Link']
-            }
-            elseif ($line -match '^https?://')
-            {
-                $line
-            }
-        }
-    }
-}
-
-function Format-PodcastTopic
-{
-    [CmdletBinding()]
-    [OutputType([hashtable])]
-    param (
-        [Parameter(Mandatory, ValueFromPipeline)]
-        [ValidateNotNullOrEmpty()]
-        [object] $Card
-    )
-
-    begin
-    {
-        $topicCount = 0
-        $linkCount = 0
-    }
-    process
-    {
-        $subject = $Card.name.Trim()
-        Write-Information "- $subject"
-
-        [string[]] $links = $Card.desc | Get-LinksFromMarkDown
-
-        @{
-            Subject = $subject
-            Timestamp = '00:00:00'
-            Links = $links
-        }
-
-        $topicCount++
-        $linkCount += $links.Count
-    }
-    end
-    {
-        Write-Information "Found: $topicCount topics, $linkCount links"
     }
 }
 
@@ -869,31 +751,6 @@ function Format-YouTubeAnnouncement
     }
 }
 
-function Format-TwitterAnnouncement
-{
-    [CmdletBinding()]
-    [OutputType([string])]
-    param (
-        [Parameter(Mandatory)]
-        [ValidateNotNullOrEmpty()]
-        [hashtable]
-        $Podcast,
-
-        [Parameter(Mandatory)]
-        [hashtable]
-        $Links
-    )
-
-    process
-    {
-        [PodcastAnnouncement]::new($Podcast, $Links).
-            Identity().
-            Home().
-            PlayResources($true).
-            ToString()
-    }
-}
-
 function Format-PodcastCover
 {
     [CmdletBinding()]
@@ -1045,157 +902,13 @@ function Resolve-LastIndexPath()
      Resolve-IndexPath
 }
 
-function New-PodcastFromTrello
-{
-    [CmdletBinding()]
-    param ()
-
-    process
-    {
-        $timer = Start-TimeOperation -Name 'Create podcast from Trello'
-
-        $board = Get-TrelloBoard -Name $TrelloBoardName
-        if (-not $board) { throw "Trello board «$TrelloBoardName» not found" }
-
-        $list = $board | Get-TrelloList | Where-Object { $_.name.StartsWith($TrelloNewCardListName) }
-        if (-not $list) { throw "Trello list «$TrelloNewCardListName» in board «$TrelloBoardName» not found" }
-
-        $episodeNumber = $list.name | Select-EpisodeNumber
-
-        if ($episodeNumber -gt 0)
-        {
-            $prevIndex = $episodeNumber - 1 | Resolve-IndexPath
-            $prevPodcast = Get-PodcastFromFile -Path $prevIndex
-            Test-PodcastFormat -Podcast $prevPodcast -Full
-        }
-
-        $filePath = $episodeNumber | Resolve-IndexPath
-
-        $dirName = Split-Path -Path $filePath
-        New-Item -Path $dirName -ItemType Directory | Out-Null
-
-        Write-Information "Scan «$($list.name)» list in «$($board.name)» board for episode №$episodeNumber"
-
-        $podcast = $episodeNumber | Format-PodcastHeader
-        $podcast['Topics'] = $board |
-             Get-TrelloCard -List $list |
-             Format-PodcastTopic
-
-        $filePath | Set-PodcastToFile -Podcast $podcast
-
-        $timer | Stop-TimeOperation
-
-        Write-Information "Please, fill in Title, Authors, Description and Timestamps before the next step in «$(Split-Path -Leaf $filePath)»"
-    }
-}
-
-function New-PodcastFromHand
-{
-    [CmdletBinding()]
-    param ()
-
-    process
-    {
-        $timer = Start-TimeOperation -Name 'Create podcast from hand'
-
-        $episodeNumber = 94
-        $topics = @()
-        $index = 0
-
-        $times = @(
-            65.845520
-            1252.028559
-            3365.906391
-            3830.579203
-            5220.998387
-            5490.222106
-            5680.612332
-        ) | ForEach-Object {
-            [TimeSpan]::FromSeconds($_).ToString('hh\:mm\:ss')
-        }
-
-        $topics += @{
-            Subject = 'General Availability of .NET Aspire'
-            Timestamp = $times[$index++]
-            Links = @(
-                'https://devblogs.microsoft.com/dotnet/dotnet-aspire-general-availability/'
-            )
-        }
-        $topics += @{
-            Subject = "What's new in C# 13"
-            Timestamp = $times[$index++]
-            Links = @(
-                'https://build.microsoft.com/en-US/sessions/689e5104-72e9-4d02-bb52-77676d1ec5bc'
-             )
-        }
-        $topics += @{
-            Subject = '.NET Announcements and Updates from Microsoft Build 2024'
-            Timestamp = $times[$index++]
-            Links = @(
-                'https://devblogs.microsoft.com/dotnet/dotnet-build-2024-announcements/'
-                'https://devblogs.microsoft.com/dotnet/catching-up-on-microsoft-build-2024-essential-sessions-for-dotnet-developers/'
-            )
-        }
-        $topics += @{
-            Subject = '.NET 9 Preview 4'
-            Timestamp = $times[$index++]
-            Links = @(
-                'https://github.com/dotnet/core/discussions/9318'
-                'https://github.com/dotnet/core/blob/main/release-notes/9.0/preview/preview4/libraries.md'
-                'https://github.com/dotnet/core/blob/main/release-notes/9.0/preview/preview4/runtime.md'
-                'https://github.com/dotnet/core/blob/main/release-notes/9.0/preview/preview4/efcoreanddata.md'
-                'https://github.com/dotnet/core/blob/main/release-notes/9.0/preview/preview4/aspnetcore.md'
-            )
-        }
-        $topics += @{
-            Subject = 'Visual Studio 2022 17.10 and GitHub Copilot, First preview of Visual Studio 2022 v17.11'
-            Timestamp = $times[$index++]
-            Links = @(
-                'https://devblogs.microsoft.com/visualstudio/visual-studio-2022-17-10-now-available/'
-                'https://devblogs.microsoft.com/visualstudio/first-preview-of-visual-studio-2022-v17-11/'
-            )
-        }
-        $topics += @{
-            Subject = 'Announcing NuGet 6.10'
-            Timestamp = $times[$index++]
-            Links = @(
-                'https://devblogs.microsoft.com/nuget/announcing-nuget-6-10/'
-            )
-        }
-        $topics += @{
-            Subject = 'Кратко о разном'
-            Timestamp = $times[$index++]
-            Links = @(
-                'https://www.youtube.com/watch?v=TRFfTdzpk-M'
-                'https://habr.com/ru/companies/pvs-studio/articles/816221/'
-                'https://xunit.net/releases/v2/2.8.1'
-            )
-        }
-
-        $filePath = $episodeNumber | Resolve-IndexPath
-
-        $dirName = Split-Path -Path $filePath
-        New-Item -Path $dirName -ItemType Directory | Out-Null
-
-        $podcast = $episodeNumber | Format-PodcastHeader
-
-        $podcast['Topics'] = $topics
-
-        $filePath | Set-PodcastToFile -Podcast $podcast
-
-        $timer | Stop-TimeOperation
-
-        Write-Information "Please, fill in Title, Authors, Description and Timestamps before the next step in «$(Split-Path -Leaf $filePath)»"
-    }
-}
-
 function New-PodcastAnnouncementForMave
 {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory, ValueFromPipeline)]
+        [Parameter(ValueFromPipeline)]
         [ValidateNotNullOrEmpty()]
-        [string] $Path
+        [string] $Path = (Resolve-LastIndexPath)
     )
 
     process
@@ -1222,9 +935,9 @@ function New-PodcastFromMave
 {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory, ValueFromPipeline)]
+        [Parameter(ValueFromPipeline)]
         [ValidateNotNullOrEmpty()]
-        [string] $Path
+        [string] $Path = (Resolve-LastIndexPath)
     )
 
     process
@@ -1255,9 +968,9 @@ function New-PodcastAnnouncement
 {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory, ValueFromPipeline)]
+        [Parameter(ValueFromPipeline)]
         [ValidateNotNullOrEmpty()]
-        [string] $Path
+        [string] $Path = (Resolve-LastIndexPath)
     )
 
     process
@@ -1274,25 +987,164 @@ function New-PodcastAnnouncement
 
         Format-VKAnnouncement -Podcast $podcast -Links $links |
         Set-Content -Path ([IO.Path]::ChangeExtension($Path, 'vk.txt')) -Encoding UTF8
-
-        Format-TwitterAnnouncement -Podcast $podcast -Links $links |
-        Set-Content -Path ([IO.Path]::ChangeExtension($Path, 'twitter.txt')) -Encoding UTF8
     }
 }
 
-# $PodcastIndex = Resolve-LastIndexPath
+function New-ManualPodcast
+{
+    [CmdletBinding()]
+    param ()
+
+    process
+    {
+        $timer = Start-TimeOperation -Name 'Create manual podcast'
+
+        $episodeNumber = 101
+        $topics = @()
+        $index = 0
+
+        $times = @(
+            174.505936
+            820.253329
+            2221.530925
+            3164.258342
+            3736.442718
+            4488.397521
+            4559.623217
+        ) | ForEach-Object {
+            [TimeSpan]::FromSeconds($_).ToString('hh\:mm\:ss')
+        }
+
+        $topics += @{
+            Subject = 'Getting started with testing and .NET Aspire'
+            Timestamp = $times[$index++]
+            Links = @(
+                'https://devblogs.microsoft.com/dotnet/getting-started-with-testing-and-dotnet-aspire/'
+            )
+        }
+        $topics += @{
+            Subject = 'Заглядываем под капот FrozenDictionary'
+            Timestamp = $times[$index++]
+            Links = @(
+                'https://habr.com/ru/articles/837926/'
+             )
+        }
+        $topics += @{
+            Subject = 'Run a Large Language Model (LLM) Locally With C#'
+            Timestamp = $times[$index++]
+            Links = @(
+                'https://code-maze.com/csharp-run-large-language-model-like-chatgpt-locally/'
+                'https://www.youtube.com/watch?v=rmxRxpyYtZA&list=PLbxr_aGL4q3QUNRtZjlDArZeTvYB_qp0v'
+            )
+        }
+        $topics += @{
+            Subject = 'Differences Between Onion and Clean Architecture'
+            Timestamp = $times[$index++]
+            Links = @(
+                'https://code-maze.com/dotnet-differences-between-onion-architecture-and-clean-architecture/'
+            )
+        }
+
+        $topics += @{
+            Subject = 'Avoid using enums in the domain layer'
+            Timestamp = $times[$index++]
+            Links = @(
+                'https://www.infoworld.com/article/2336631/avoid-using-enums-in-the-domain-layer-in-c-sharp.html'
+            )
+        }
+
+        $topics += @{
+            Subject = 'Подслушано'
+            Timestamp = $times[$index++]
+            Links = @(
+                'https://podlodka.io/374'
+            )
+        }
+
+        $topics += @{
+            Subject = 'Кратко о разном'
+            Timestamp = $times[$index++]
+            Links = @(
+                'https://www.jimmybogard.com/integrating-the-particular-service-platform-with-aspire/'
+                'https://steven-giesel.com/blogPost/a807373c-dcc6-42f9-995f-e69dcea1cd47/to-soft-delete-or-not-to-soft-delete'
+                'https://github.com/dotnet/roslyn/blob/main/docs/Language%20Feature%20Status.md'
+                'https://ardalis.com/interfaces-describe-what-implementations-describe-how/'
+                'https://andrewlock.net/major-updates-to-netescapades-aspnetcore-security-headers/'
+            )
+        }
+
+        $filePath = $episodeNumber | Resolve-IndexPath
+
+        $dirName = Split-Path -Path $filePath
+        New-Item -Path $dirName -ItemType Directory | Out-Null
+
+        $podcast = $episodeNumber | Format-PodcastHeader
+
+        $podcast['Topics'] = $topics
+
+        $filePath | Set-PodcastToFile -Podcast $podcast
+
+        $timer | Stop-TimeOperation
+
+        Write-Information "Please, fill in Title, Authors, Description and Timestamps before the next step in «$(Split-Path -Leaf $filePath)»"
+    }
+}
+
+function New-Podcast
+{
+    [CmdletBinding()]
+    param ()
+
+    process
+    {
+        $timer = Start-TimeOperation -Name 'Create podcast from Kaiten'
+
+        $podcast = New-KaitenPodcast
+        $episodeNumber = $podcast.Number
+
+        # Test previous eposode
+        if ($episodeNumber -gt 0)
+        {
+            $prevIndex = $episodeNumber - 1 | Resolve-IndexPath
+            $prevPodcast = Get-PodcastFromFile -Path $prevIndex
+            Test-PodcastFormat -Podcast $prevPodcast -Full
+        }
+
+        $filePath = $episodeNumber | Resolve-IndexPath
+
+        $dirName = Split-Path -Path $filePath
+        New-Item -Path $dirName -ItemType Directory | Out-Null
+
+        $filePath | Set-PodcastToFile -Podcast $podcast
+
+        $timer | Stop-TimeOperation
+
+        Write-Information "Please, fill in Timestamps, Title, Authors and Description before the next step in «$(Split-Path -Leaf $filePath)»"
+    }
+}
 
 # Step 1
-# Get-TrelloConfiguration | Out-Null
-# New-PodcastFromHand
+# $PodcastTimestamps = @(
+#     122.141282
+#     335.945975
+#     2381.971662
+#     3209.131548
+#     3726.778737
+#     4428.223352
+#     4994.495302
+#     5229.380653
+# ) | ForEach-Object {
+#     [TimeSpan]::FromSeconds($_).ToString('hh\:mm\:ss')
+# }
+# New-Podcast
 
 # Step 2
-# New-PodcastAnnouncementForMave -Path $PodcastIndex
+# New-PodcastAnnouncementForMave
 
 # Step 3
-# New-PodcastFromMave -Path $PodcastIndex
-# New-PodcastAnnouncement -Path $PodcastIndex
-#  - YT/DotNetRu (https://www.headliner.app/)
+# New-PodcastFromMave
+# New-PodcastAnnouncement
+#  - YT/DotNetRu
 #  - VK/DotNetRu
 #  - Tg/DotNetRu
 
