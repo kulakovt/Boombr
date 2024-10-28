@@ -267,6 +267,10 @@ class PodcastAnnouncement
 
     [PodcastAnnouncement] Identity()
     {
+        $title = $this.Podcast['Title']
+        $formatTitle = $this.Report.Strong($this.Report.Encode($title))
+        $this.Report.Paragraph($formatTitle)
+
         $textPubDate = $this.FormatDate('d MMMM yyyy')
         $text = "Подкаст $($this::PodcastName) выпуск №$($this.Podcast['Number']) от $textPubDate года"
         $format = $this.Report.Strong($this.Report.Encode($text))
