@@ -16,6 +16,7 @@ function Format-Meetup()
         $meetup | Format-Comment
         $meetup | Format-ShortProgram
         $meetup | Format-LongProgram
+        $meetup | Format-Venue
         $meetup | Format-Footer
     }
 }
@@ -46,7 +47,7 @@ $date
 "@
         if ($venue)
         {
-            "Адресс: $venue"
+            "Адрес: $venue"
         }
 
         if ($meetup.FriendIds)
@@ -154,6 +155,28 @@ function Format-LongProgram
             }
         }
         '</tbody></table>'
+    }
+}
+
+function Format-Venue
+{
+    process
+    {
+        $meetup = [Meetup]$_
+        if (-not $meetup.VenueId)
+        {
+            # Online
+            return
+        }
+
+        $venue = $AnnouncementRepository.Venues[$meetup.VenueId]
+
+@"
+  <h3>Место</h3>
+  <p>
+    Встреча пройдёт по адресу: <a href="$($venue.MapUrl)">$($venue.Address)</a>, $($venue.Name).
+  </p>
+"@
     }
 }
 
