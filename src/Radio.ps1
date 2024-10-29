@@ -176,6 +176,19 @@ class FormatString
         $this.Writer.AppendLine($format)
     }
 
+    Line([string] $text)
+    {
+        if ($this.AsHtml)
+        {
+            $format = "$text<br />"
+            $this.Writer.AppendLine($format)
+        }
+        else
+        {
+            $this.Writer.AppendLine($text)
+        }
+    }
+
     Paragraph([string] $text)
     {
         if ($this.AsHtml)
@@ -351,8 +364,10 @@ class PodcastAnnouncement
             {
                 $name = $name -split ' ' | Select-Object -First 1
             }
-            $this.Report.Paragraph("${name}: $link")
+            $this.Report.Line("${name}: $link")
         }
+
+        $this.Report.Line('')
 
         return $this
     }
@@ -494,7 +509,7 @@ class PodcastAnnouncement
             }
             else
             {
-                $this.Report.Paragraph($formatTopic)
+                $this.Report.Line($formatTopic)
             }
         }
 
@@ -1151,4 +1166,3 @@ function New-Podcast
 #  - YT/DotNetRu
 #  - VK/DotNetRu
 #  - Tg/DotNetRu
-
