@@ -1,4 +1,4 @@
-﻿#Requires -Version 5
+#Requires -Version 5
 
 # TODO:
 # - Draw cover.svg with topics
@@ -793,14 +793,16 @@ function Format-PodcastCover
             Topics($false, $false).
             ToString()
 
-        $coverPath = Join-Path $PodcastHome 'cover.svg'
         ''
         'Optimized SVG:'
-        "$coverPath"
+        Join-Path $PodcastHome 'cover.svg'
         'PNG: 1920 × 1080'
+        Join-Path $PodcastHome 'cover.png'
+        Join-Path $PodcastHome 'cover-video.png'
+        'PNG: 1280 × 150'
+        Join-Path $PodcastHome 'cover-head.png'
         'https://www.headliner.app/'
         'https://www.onlineconverter.com/audio-to-video'
-        'Rss: https://cloud.mave.digital/37167'
     }
 }
 
@@ -1009,6 +1011,27 @@ function New-PodcastAnnouncement
     }
 }
 
+function Repair-VideoHeader
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(ValueFromPipeline)]
+        [ValidateNotNullOrEmpty()]
+        [string] $Path = (Resolve-LastIndexPath)
+    )
+
+    process
+    {
+        $podcast = Get-PodcastFromFile -Path $Path
+        $episodName = [PodcastAnnouncement]::PodcastName + '-' + $podcast['Number']
+        $inputFileName = "${episodName}.mp4"
+        $outputFileName = "${episodName}-new.mp4"
+        $headerFileName = 'cover-head.png'
+
+        ffmpeg -i $inputFileName -i $headerFileName -filter_complex "overlay=x=0:y=0" $outputFileName
+    }
+}
+
 function New-ManualPodcast
 {
     [CmdletBinding()]
@@ -1112,7 +1135,10 @@ function New-ManualPodcast
 function New-Podcast
 {
     [CmdletBinding()]
-    param ()
+    param (
+        [Parameter(ValueFromPipeline)]
+        [string] $Description
+    )
 
     process
     {
@@ -1120,6 +1146,10 @@ function New-Podcast
 
         $podcast = New-KaitenPodcast
         $episodeNumber = $podcast.Number
+        if ($Description)
+        {
+            $podcast.Description = $Description.Trim()
+        }
 
         # Test previous eposode
         if ($episodeNumber -gt 0)
@@ -1155,6 +1185,11 @@ function New-Podcast
 # ) | ForEach-Object {
 #     [TimeSpan]::FromSeconds($_).ToString('hh\:mm\:ss')
 # }
+# @'
+# Подкаст поддерживает международный разработчик высоконагруженного ПО Altenar.
+# Узнать подробнее про их митапы и не только: https://t.me/+_TzcYVVVqEgyZGIy
+# Реклама. ООО «Аистсофт». ИНН 3327121697. Erid: 2VtzqvFfFXU
+# '@ |
 # New-Podcast
 
 # Step 2
