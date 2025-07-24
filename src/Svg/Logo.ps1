@@ -121,9 +121,9 @@ function New-TextGlyph([SvgGlyph] $Glyph, [int] $Position, [hashtable] $GlyphSet
         (($Position -eq 8) -and ($Glyph.Unicode -eq 'U')))
     {
         # BUG: It works only for glyph size 113×131
-        # «-38.7» — is the third number from glyph «T»
-        $factor = if ($Glyph.Unicode -eq '.') { 0.5 } else { 1.0 }
-        $x -= 38.7 * $factor
+        # Выравниваем точку под левой палочкой буквы N
+        # Выравниваем правую палочку буквы U под вертикальной палочкой буквы T
+        $x -= if ($Glyph.Unicode -eq '.') { 35.6 } else { 36.8 }
     }
 
     $Glyph.Move($x, $y)
@@ -324,5 +324,5 @@ function New-Logo([string] $Text, [Hashtable] $Settings, [ScriptBlock] $Enricher
 }
 
 # $settings = New-SettingsFromGlyphSize -IncludeId $true -IncludeDiagnostic $true -IncludeBorder $true
-# New-Logo -Text 'SpbDotNet' -Settings $settings | Set-Content (Join-Path $PSScriptRoot 'Logo.svg')
+# New-Logo -Text 'DotNet.Ru' -Settings $settings | Set-Content (Join-Path $PSScriptRoot 'Logo.svg')
 # New-RadioLogo -Settings $settings | Set-Content (Join-Path $PSScriptRoot 'Logo.svg')
