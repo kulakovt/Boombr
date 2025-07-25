@@ -1,4 +1,4 @@
-#Requires -Version 5
+﻿#Requires -Version 5
 
 # TODO:
 # - Draw cover.svg with topics
@@ -255,7 +255,7 @@ class PodcastAnnouncement
 
         $date = Get-Date
         $left = 23 - $date.Hour
-        if ($left -lt 3)
+        if ($left -lt 5)
         {
             $date = $date.AddDays(1)
         }
@@ -673,9 +673,12 @@ function Read-PersonLink
 
     process
     {
-        Read-Speaker -AuditDir $AuditPath |
-            Where-Object { $_.TwitterUrl } |
-            ConvertTo-Hashtable { $_.Name } { $_.TwitterUrl }
+        # В спикерах есть дубли, они возвращают неправильные ссылки
+        @{}
+
+        # Read-Speaker -AuditDir $AuditPath |
+        #     Where-Object { $_.TwitterUrl } |
+        #     ConvertTo-Hashtable { $_.Name } { $_.TwitterUrl }
     }
 }
 
@@ -1035,83 +1038,60 @@ function Repair-VideoHeader
 function New-ManualPodcast
 {
     [CmdletBinding()]
-    param ()
+    param (
+        [Parameter(ValueFromPipeline)]
+        [string] $Description
+    )
 
     process
     {
         $timer = Start-TimeOperation -Name 'Create manual podcast'
 
-        $episodeNumber = 101
-        $topics = @()
-        $index = 0
+        $prevPath = Resolve-LastIndexPath
+        $prevPodcast = Get-PodcastFromFile -Path $prevPath
+        $episodeNumber = $prevPodcast.Number + 1
 
-        $times = @(
-            174.505936
-            820.253329
-            2221.530925
-            3164.258342
-            3736.442718
-            4488.397521
-            4559.623217
-        ) | ForEach-Object {
-            [TimeSpan]::FromSeconds($_).ToString('hh\:mm\:ss')
-        }
+        $topics = @()
+        $topicCount = 0
 
         $topics += @{
-            Subject = 'Getting started with testing and .NET Aspire'
-            Timestamp = $times[$index++]
+            Subject = '.NET 10 Preview 6'
+            Timestamp = $PodcastTimestamps[$topicCount++]
             Links = @(
-                'https://devblogs.microsoft.com/dotnet/getting-started-with-testing-and-dotnet-aspire/'
+                'https://github.com/dotnet/core/discussions/9974'
             )
         }
         $topics += @{
-            Subject = 'Заглядываем под капот FrozenDictionary'
-            Timestamp = $times[$index++]
+            Subject = 'Practical DDD Refactor From Anemic to Behavior-Driven Models'
+            Timestamp = $PodcastTimestamps[$topicCount++]
             Links = @(
-                'https://habr.com/ru/articles/837926/'
+                'https://www.milanjovanovic.tech/blog/from-anemic-models-to-behavior-driven-models-a-practical-ddd-refactor-in-csharp'
              )
         }
         $topics += @{
-            Subject = 'Run a Large Language Model (LLM) Locally With C#'
-            Timestamp = $times[$index++]
+            Subject = 'Allocating Small Objects on the Stack in .NET 9 and Beyond'
+            Timestamp = $PodcastTimestamps[$topicCount++]
             Links = @(
-                'https://code-maze.com/csharp-run-large-language-model-like-chatgpt-locally/'
-                'https://www.youtube.com/watch?v=rmxRxpyYtZA&list=PLbxr_aGL4q3QUNRtZjlDArZeTvYB_qp0v'
+                'https://giannisakritidis.com/blog/Objects-On-Stack/'
+                'https://github.com/dotnet/runtime/blob/main/docs/design/coreclr/jit/DeabstractionAndConditionalEscapeAnalysis.md'
             )
         }
         $topics += @{
-            Subject = 'Differences Between Onion and Clean Architecture'
-            Timestamp = $times[$index++]
+            Subject = 'Top 5 Mistakes Developers Make When Building APIs'
+            Timestamp = $PodcastTimestamps[$topicCount++]
             Links = @(
-                'https://code-maze.com/dotnet-differences-between-onion-architecture-and-clean-architecture/'
-            )
-        }
-
-        $topics += @{
-            Subject = 'Avoid using enums in the domain layer'
-            Timestamp = $times[$index++]
-            Links = @(
-                'https://www.infoworld.com/article/2336631/avoid-using-enums-in-the-domain-layer-in-c-sharp.html'
-            )
-        }
-
-        $topics += @{
-            Subject = 'Подслушано'
-            Timestamp = $times[$index++]
-            Links = @(
-                'https://podlodka.io/374'
+                'https://thecodeman.net/posts/building-apis-top-5-mistakes'
             )
         }
 
         $topics += @{
             Subject = 'Кратко о разном'
-            Timestamp = $times[$index++]
+            Timestamp = $PodcastTimestamps[$topicCount++]
             Links = @(
-                'https://www.jimmybogard.com/integrating-the-particular-service-platform-with-aspire/'
-                'https://steven-giesel.com/blogPost/a807373c-dcc6-42f9-995f-e69dcea1cd47/to-soft-delete-or-not-to-soft-delete'
-                'https://github.com/dotnet/roslyn/blob/main/docs/Language%20Feature%20Status.md'
-                'https://ardalis.com/interfaces-describe-what-implementations-describe-how/'
-                'https://andrewlock.net/major-updates-to-netescapades-aspnetcore-security-headers/'
+                'https://github.com/omarzawahry/Rejigs'
+                'https://medium.com/@omarzawahry/rejigs-making-regular-expressions-human-readable-1fad37cb3eae'
+                'https://habr.com/ru/companies/skbkontur/articles/914868/'
+                'https://www.youtube.com/watch?v=VDyu9YkUxHI&list=PLbxr_aGL4q3RNjP3co1CK1O5XFLihCcU6&index=1'
             )
         }
 
@@ -1122,7 +1102,12 @@ function New-ManualPodcast
 
         $podcast = $episodeNumber | Format-PodcastHeader
 
-        $podcast['Topics'] = $topics
+        $podcast.Topics = $topics
+
+        if ($Description)
+        {
+            $podcast.Description = $Description.Trim()
+        }
 
         $filePath | Set-PodcastToFile -Podcast $podcast
 
@@ -1172,24 +1157,25 @@ function New-Podcast
     }
 }
 
+# if ([Net.ServicePointManager]::SecurityProtocol -ne 'tls12') { [Net.ServicePointManager]::SecurityProtocol = 'tls12' }
+
 # Step 1
+# [Net.ServicePointManager]::SecurityProtocol = 'tls12'
 # $PodcastTimestamps = @(
-#     122.141282
-#     335.945975
-#     2381.971662
-#     3209.131548
-#     3726.778737
-#     4428.223352
-#     4994.495302
-#     5229.380653
+#     179.110339
+#     1688.477754
+#     3411.284341
+#     5097.737017
+#     6343.180645
 # ) | ForEach-Object {
 #     [TimeSpan]::FromSeconds($_).ToString('hh\:mm\:ss')
 # }
 # @'
 # Подкаст поддерживает международный разработчик высоконагруженного ПО Altenar.
 # Узнать подробнее про их митапы и не только: https://t.me/+_TzcYVVVqEgyZGIy
-# Реклама. ООО «Аистсофт». ИНН 3327121697. Erid: 2VtzqvFfFXU
+# Реклама. ООО «Аистсофт». ИНН 3327121697. Erid: 2VtzqutxE47
 # '@ |
+# New-ManualPodcast
 # New-Podcast
 
 # Step 2
@@ -1198,6 +1184,6 @@ function New-Podcast
 # Step 3
 # New-PodcastFromMave
 # New-PodcastAnnouncement
-#  - YT/DotNetRu
-#  - VK/DotNetRu
-#  - Tg/DotNetRu
+# #  - YT/DotNetRu
+# #  - VK/DotNetRu
+# #  - Tg/DotNetRu
