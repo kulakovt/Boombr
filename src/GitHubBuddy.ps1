@@ -183,9 +183,9 @@ function Initialize-CommunitySite
         }
 
         ### TODO ##################################################################
-        # - [GitHub Pages] Enable GitHub Pages at master branch
+        # - [Pages] Enable GitHub Pages at master branch
         # - [Reg.ru] Add DNS record
-        # - [GitHub Pages] Enable Enforce HTTPS
+        # - [Pages] Enable Enforce HTTPS
         # - [Features] Disable Preserve this repository (Include this code in the GitHub Archive Program)
         # - [Details] Remove Releases
         # - [Details] Remove Packages
@@ -204,3 +204,6 @@ function Initialize-CommunityEnv
     Initialize-CommunitySite -InformationAction Continue
 }
 
+# 'GitHubOrgAccessToken' | Get-Secret
+# Set-GitHubAuthentication
+# Initialize-CommunityEnv

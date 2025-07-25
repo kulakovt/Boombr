@@ -537,3 +537,18 @@ function Update-MainReadMe([string] $Path, [string] $LogoPath, [Hashtable] $Data
     . $PSScriptRoot\BrandBook.Main.ps1 |
     Out-File -FilePath $readMePath -Encoding UTF8
 }
+
+###
+
+# $Config = @{
+#     Inkscape = Resolve-FullPath $PSScriptRoot '..' '..' '..' '..' 'inkscape' 'bin' 'inkscape.com'
+# }
+#  @{
+#     Name = 'DotNetRu'
+#     Title = 'DotNetRu'
+#     City = $null
+#     ShortName = 'Ru'
+#     Site = [Uri] 'https://dotnet.ru/'
+#     Description = 'Объединение независимых русскоязычных .NET сообществ'
+# } |
+# Update-BrandCommunity -Path 'C:\Users\akulakov\Desktop\GitHub\BrandBook\Logo'
