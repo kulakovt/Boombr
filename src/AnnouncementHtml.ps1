@@ -21,6 +21,15 @@ function Format-Meetup()
     }
 }
 
+function Format-TimePad()
+{
+    process
+    {
+        # TimePad удаляет один пробел перед точкой
+        $_ -replace ' .NET','  .NET' | Format-HtmlEncode
+    }
+}
+
 function Format-Comment
 {
     process
@@ -91,9 +100,9 @@ function Format-ShortProgram
                 ForEach-Object { $AnnouncementRepository.Speakers[$_] } |
                 ForEach-Object { $_.Name + $(if ($_.CompanyName) { " ($($_.CompanyName))" } else { '' }) } |
                 Join-ToString -Delimeter ', ' |
-                Format-HtmlEncode
+                Format-TimePad
 
-            $title = $talk.Title | Format-HtmlEncode
+            $title = $talk.Title | Format-TimePad
 
             if ($lastEndTime -ne $null)
             {
@@ -126,10 +135,10 @@ function Format-LongProgram
             $speakers = $talk.SpeakerIds |
                 ForEach-Object { $AnnouncementRepository.Speakers[$_].Name } |
                 Join-ToString -Delimeter ', ' |
-                Format-HtmlEncode
+                Format-TimePad
 
-            $title = $talk.Title | Format-HtmlEncode
-            $description = $talk.Description | Format-HtmlEncode
+            $title = $talk.Title | Format-TimePad
+            $description = $talk.Description | Format-TimePad
             $aboutHeader = if ($talk.SpeakerIds.Length -eq 1) { 'Об авторе' } else { 'Об авторах' }
 @"
   <tr><td>
@@ -142,7 +151,7 @@ function Format-LongProgram
             {
                 $speaker = $AnnouncementRepository.Speakers[$speakerId]
                 $imagePath = Join-Path $Config.AuditDir "speakers/$($speaker.Id)/avatar.small.jpg"
-                $about = $speaker.Description | Format-HtmlEncode
+                $about = $speaker.Description | Format-TimePad
 @"
   <tr><td>
   <p>
