@@ -1055,32 +1055,34 @@ function New-ManualPodcast
         $topicCount = 0
 
         $topics += @{
-            Subject = '.NET 10 Preview 6'
+            Subject = 'Announcing .NET 10 Release Candidate 1'
             Timestamp = $PodcastTimestamps[$topicCount++]
             Links = @(
-                'https://github.com/dotnet/core/discussions/9974'
+                'https://devblogs.microsoft.com/dotnet/dotnet-10-rc-1/'
             )
         }
         $topics += @{
-            Subject = 'Practical DDD Refactor From Anemic to Behavior-Driven Models'
+            Subject = 'Performance Improvements in .NET 10'
             Timestamp = $PodcastTimestamps[$topicCount++]
             Links = @(
-                'https://www.milanjovanovic.tech/blog/from-anemic-models-to-behavior-driven-models-a-practical-ddd-refactor-in-csharp'
+                'https://devblogs.microsoft.com/dotnet/performance-improvements-in-net-10/'
              )
         }
         $topics += @{
-            Subject = 'Allocating Small Objects on the Stack in .NET 9 and Beyond'
+            Subject = 'Visual Studio 2026 Insiders is here'
             Timestamp = $PodcastTimestamps[$topicCount++]
             Links = @(
-                'https://giannisakritidis.com/blog/Objects-On-Stack/'
-                'https://github.com/dotnet/runtime/blob/main/docs/design/coreclr/jit/DeabstractionAndConditionalEscapeAnalysis.md'
+                'https://blog.ndepend.com/visual-studio-next-version/'
+                'https://www.youtube.com/watch?v=eQaZytCQsLE'
+                'https://devblogs.microsoft.com/visualstudio/visual-studio-2026-insiders-is-here/'
+                'https://visualstudio.microsoft.com/insiders/'
             )
         }
         $topics += @{
-            Subject = 'Top 5 Mistakes Developers Make When Building APIs'
+            Subject = 'Книга «C# Concurrency» в правильном переводе DotNetRu'
             Timestamp = $PodcastTimestamps[$topicCount++]
             Links = @(
-                'https://thecodeman.net/posts/building-apis-top-5-mistakes'
+                'https://habr.com/ru/articles/946512/'
             )
         }
 
@@ -1088,10 +1090,7 @@ function New-ManualPodcast
             Subject = 'Кратко о разном'
             Timestamp = $PodcastTimestamps[$topicCount++]
             Links = @(
-                'https://github.com/omarzawahry/Rejigs'
-                'https://medium.com/@omarzawahry/rejigs-making-regular-expressions-human-readable-1fad37cb3eae'
-                'https://habr.com/ru/companies/skbkontur/articles/914868/'
-                'https://www.youtube.com/watch?v=VDyu9YkUxHI&list=PLbxr_aGL4q3RNjP3co1CK1O5XFLihCcU6&index=1'
+                'https://devblogs.microsoft.com/dotnet/dotnet-sts-releases-supported-for-24-months/'
             )
         }
 
@@ -1162,18 +1161,16 @@ function New-Podcast
 # Step 1
 # [Net.ServicePointManager]::SecurityProtocol = 'tls12'
 # $PodcastTimestamps = @(
-#     179.110339
-#     1688.477754
-#     3411.284341
-#     5097.737017
-#     6343.180645
+#     188.858215
+#     1179.887036
+#     3999.117573
+#     4838.680723
+#     5087.583671
 # ) | ForEach-Object {
 #     [TimeSpan]::FromSeconds($_).ToString('hh\:mm\:ss')
 # }
 # @'
-# Подкаст поддерживает международный разработчик высоконагруженного ПО Altenar.
-# Узнать подробнее про их митапы и не только: https://t.me/+_TzcYVVVqEgyZGIy
-# Реклама. ООО «Аистсофт». ИНН 3327121697. Erid: 2VtzqutxE47
+# В этом эпизоде вы можете услышать историю про что-то интересное от международного разработчика ПО Altenar.
 # '@ |
 # New-ManualPodcast
 # New-Podcast
