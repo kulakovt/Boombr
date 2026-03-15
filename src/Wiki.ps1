@@ -1,4 +1,5 @@
 ﻿. $PSScriptRoot\Wiki.YouTube.ps1
+. $PSScriptRoot\Wiki.OpenGraph.ps1
 
 $WikiConfig = @{
     CacheDir = Resolve-FullPath $Config.ArtifactsDir 'cache'
@@ -117,7 +118,7 @@ function Export-Talk()
 
 function Export-DetailedTalkList($Talks)
 {
-    Write-Verbose "Export talk list"
+    Write-Verbose "Export detailed talk list"
 
     $Talks |
     ForEach-Object {
@@ -164,156 +165,12 @@ function Export-Speaker([string] $SpeakerDir = $(throw "Speaker dir required"))
     }
 }
 
-function Get-UrlHash()
-{
-    begin
-    {
-        $hasher = New-Object -TypeName System.Security.Cryptography.MD5CryptoServiceProvider
-    }
-    process
-    {
-        $url = [Uri]$_
-
-        $site = $url.Host -replace '^www\.|\.com$|\.net$',''
-
-        $buff = [System.Text.Encoding]::UTF8.GetBytes($url.PathAndQuery)
-        $hash = $hasher.ComputeHash($buff) | ForEach-Object { '{0:x2}' -f $_ }
-
-        "$site-$($hash -join '')"
-    }
-    end
-    {
-        $hasher.Dispose()
-    }
-}
-
-function Get-YouTubeOEmbed()
+function Format-Link([string] $url)
 {
     process
     {
-        $url = [Uri]$_
-        $oEmbedUrl = [Uri]"http://www.youtube.com/oembed?url=${url}&format=json"
-
-        try
-        {
-            $response = Invoke-WebRequest -Uri $oEmbedUrl -UseBasicParsing
-        }
-        catch
-        {
-            return
-        }
-
-        $meta = $response.Content | ConvertFrom-Json
-
-        @{
-            SiteName = $meta.provider_name
-            Type = $meta.type
-            Url = [string]$url
-            Title = $meta.title
-            Description = $null
-            Image = $meta.thumbnail_url
-        }
-    }
-}
-
-function Get-OpenGraph()
-{
-    process
-    {
-        $url = [Uri]$_
-
-        try
-        {
-            # BUG: hangs in some cases, unless -UseBasicParsing is used
-            # https://github.com/PowerShell/PowerShell/issues/2812
-            $response = Invoke-WebRequest -Uri $url -UseBasicParsing
-        }
-        catch
-        {
-            return
-        }
-
-        $html = New-Object -ComObject 'HTMLFile'
-        $html.IHTMLDocument2_write($response.Content)
-        $meta = $html.getElementsByTagName('meta') | Where-Object { ($_.outerHTML) -and ($_.outerHTML.Contains("property=`"og:")) }
-        if (-not $meta)
-        {
-            return
-        }
-
-        function Get-PropertyContent([string] $propertyValue)
-        {
-            $value = $meta |
-                # This is not the correct search, but the fastest
-                Where-Object { $_.outerHTML.Contains("property=`"og:$propertyValue`"") } |
-                ForEach-Object { $_.content } |
-                Select-Object -First 1
-
-            # Remove empty set
-            if ($value) { $value } else { $null }
-        }
-
-        @{
-            SiteName = Get-PropertyContent 'site_name'
-            Type = Get-PropertyContent 'type'
-            #Url = Get-PropertyContent 'url'
-            Url = [string]$url
-            Title = Get-PropertyContent 'title'
-            Description = Get-PropertyContent 'description'
-            Image = Get-PropertyContent 'image'
-        }
-    }
-}
-
-function Resolve-OpenGraph()
-{
-    process
-    {
-        $url = [Uri]$_
-        $hash = $url | Get-UrlHash
-        $cachePath = Join-Path $WikiConfig.CacheDir "$hash.json"
-
-        $og = @{}
-        if (Test-Path -Path $cachePath -PathType Leaf)
-        {
-            $json = Get-Content -Path $cachePath -Encoding UTF8 -Raw | ConvertFrom-Json
-            # Convert from PSObject to Dict
-            $json | Get-Member -MemberType NoteProperty | ForEach-Object { $og.Add($_.Name, [string]$json."$($_.Name)") }
-        }
-        elseif ($Config.IsOffline)
-        {
-            # Keep $og empty
-        }
-        else
-        {
-            if ($url.Host -eq 'www.youtube.com')
-            {
-                $latestOG = $url | Get-YouTubeOEmbed
-            }
-            else
-            {
-                $latestOG = $url | Get-OpenGraph
-            }
-
-            if ($latestOG)
-            {
-                $og = $latestOG
-                # Save cache
-                $og | ConvertTo-Json | Set-Content -Path $cachePath -Encoding UTF8 -Force
-            }
-            # else Keep $og empty
-        }
-
-        # HACK: Choose small image for YouTube
-        if ($og['SiteName'] -eq 'YouTube')
-        {
-            $og.Image = $og.Image -replace '/maxresdefault\.jpg','/sddefault.jpg' -replace '/hqdefault\.jpg','/sddefault.jpg'
-        }
-
-        if ($og -and ($og.Count -gt 0))
-        {
-            $og
-        }
+        # Markdown link rendering is faster then wiki
+        "[$_]($url)"
     }
 }
 
@@ -330,9 +187,9 @@ function Format-TalkLine()
         $talk = $WikiRepository.Talks[$_]
         $speaker = $talk.SpeakerIds |
         ForEach-Object { $WikiRepository.Speakers[$_] } |
-        ForEach-Object { "[[$($_.Name)|$($_.Id)]]" }
+        Format-SpeakerLine
 
-        "$($speaker -join ', ') [[«$($talk.Title)»|$($talk.Id)]]"
+        "$($speaker -join ', ') «$($talk.Title | Format-Link $talk.Id)»"
     }
 }
 
@@ -341,7 +198,7 @@ function Format-MeetupLine()
     process
     {
         $meetup = [Meetup]$_
-        "[[$($meetup.Name) ($(Format-RuDate -Date $meetup.Sessions[0].StartTime))|$($meetup.Id)]]"
+        "$($meetup.Name) ($(Format-RuDate -Date $meetup.Sessions[0].StartTime))" | Format-Link $meetup.Id
     }
 }
 
@@ -350,7 +207,7 @@ function Format-SpeakerLine()
     # [Speaker]
     process
     {
-        "[[$($_.Name)|$($_.Id)]]"
+        $_.Name | Format-Link $_.Id
     }
 }
 
@@ -381,12 +238,6 @@ function Get-FriendRank($CommunityId = $(throw "CommunityId required"))
     process
     {
         $friendId = [string]$_
-
-        if ($friendId -eq 'DotNext')
-        {
-            # yep, we like DotNext
-            return 10000
-        }
 
         $WikiRepository.Meetups.Values |
         Where-Object { $_.CommunityId -eq $CommunityId } |
@@ -471,10 +322,7 @@ function Format-CommunityPage()
             Select-Object -Unique |
             Sort-Object -Property @{ Expression = { $_ | Get-FriendRank -CommunityId $community.Id } } -Descending |
             ForEach-Object { $WikiRepository.Friends[$_] } |
-            #Format-FriendImage
-            ForEach-Object {
-                "- [[$($_.Name)|$($_.Id)]]"
-            }
+            Format-FriendImage
     }
 }
 
@@ -494,7 +342,7 @@ function Format-HomePage([Community[]] $Communities)
         ''
         $sorted |
         ForEach-Object {
-            "- [[$($_.City)|$($_.Id)]]"
+            "- $($_.City | Format-Link $_.Id)"
         }
     }
 
@@ -505,14 +353,13 @@ function Format-HomePage([Community[]] $Communities)
     Select-Object -Unique |
     Sort-Object -Descending |
     ForEach-Object {
-        "- [[За $_ год|DetailedTalks-$_]]"
+        "- " + ("За $_ год" | Format-Link "DetailedTalks-$_")
     }
-
 
     ''
     '## Рейтинги докладов'
     ''
-    ' - [[Рейтинг любимых докладов по версии YouTube зрителей|LikedVideos]]'
+    "- $('Рейтинг любимых докладов по версии YouTube зрителей' | Format-Link 'LikedVideos')"
 }
 
 function Format-MeetupPage()
@@ -524,7 +371,7 @@ function Format-MeetupPage()
 @"
 # $($meetup.Name)
 
-$($meetup.Name) состоялась $(Format-RuDate -Date $meetupDate)
+Встреча $($meetup.Name) состоялась $(Format-RuDate -Date $meetupDate)
 
 ## Доклады
 
@@ -535,9 +382,9 @@ $($meetup.Name) состоялась $(Format-RuDate -Date $meetupDate)
         $friendPart = ''
         if ($friends)
         {
-            $rank = if ($friends -contains 'ITGM') { '' } elseif ($friends -contains 'DotNext') { 'конференции ' } else { 'компании ' }
-            $friendNames = $friends | ForEach-Object { "[[$_]]" }
-            $friendPart = " в гостях у $rank$($friendNames -join ', ')"
+            # $rank = if ($friends -contains 'ITGM') { '' } elseif ($friends -contains 'DotNext') { 'конференции ' } else { 'компании ' }
+            $friendNames = $friends | ForEach-Object { $_ | Format-Link $_ }
+            $friendPart = " в гостях у $($friendNames -join ', ')"
         }
 
         $venuePart = 'во всемирной сети «Интернет»'
@@ -577,7 +424,7 @@ $($_.Description)
 "@
 
         $WikiRepository.Meetups.Values |
-        Sort-Object -Property @{ Expression = { $_.Sessions[0].StartTime }} |
+        Sort-Object -Descending -Property @{ Expression = { $_.Sessions[0].StartTime }} |
         Where-Object { $_.FriendIds -contains $id } |
         Format-MeetupLine |
         ForEach-Object { "- $_" }
@@ -596,7 +443,7 @@ function Format-TalkPage()
         $id = $talk.Id
         $meetup = $WikiRepository.Meetups.Values |
         Where-Object { $_.Sessions.TalkId -contains $id } |
-        ForEach-Object { "[[$($_.Name -replace 'Встреча','Встречи')|$($_.Id)]]" }
+        ForEach-Object { $_.Name -replace 'Встреча','Встречи' | Format-Link $_.Id }
 
 @"
 # $($speakers | ForEach-Object { $_.Name } | Format-ChainLine) «$($_.Title)»
@@ -614,7 +461,7 @@ $($talk.Description)
             ''
             $talk.SeeAlsoTalkIds |
                 ForEach-Object { $WikiRepository.Talks[$_] } |
-                ForEach-Object { "- [[$($_.Title)|$($_.Id)]]" }
+                ForEach-Object { "- $($_.Title | Format-Link $_.Id)" }
             ''
         }
 
@@ -663,7 +510,7 @@ function Format-DetailedTalkList()
         $talk = [Talk]$_
 
         $meetup = Get-MeetupByTalk -TalkId $talk.Id
-        $meetupSection = "$(Format-RuDate -Date $meetup.Sessions[0].StartTime)<br/>[[$($meetup.Name)|$($meetup.Id)]]" | Format-EscapeCell
+        $meetupSection = "$(Format-RuDate -Date $meetup.Sessions[0].StartTime)<br/>$($meetup.Name | Format-Link $meetup.Id)" | Format-EscapeCell
 
         $speakersSection = $talk.SpeakerIds |
         ForEach-Object { $WikiRepository.Speakers[$_] } |
@@ -675,7 +522,7 @@ function Format-DetailedTalkList()
         Format-EscapeCell |
         Join-ToString -Delimeter '<br/>'
 
-        $talkSection = "**[[$($talk.Title)|$($talk.Id)]]**<br/>$($talk.Description)" | Format-EscapeCell
+        $talkSection = "**$($talk.Title | Format-Link $talk.Id)**<br/>$($talk.Description)" | Format-EscapeCell
 
         $linkSection = ''
         if ($talk.VideoUrl) { $linkSection += "[Видео]($($talk.VideoUrl))<br>" }
@@ -702,7 +549,7 @@ function Format-TalkTitle()
         $session = $meetup.Sessions | Where-Object { $_.TalkId -eq $talk.Id } | Select-Single
         $date = Format-RuDate -Date $session.StartTime
 
-        "[[$($talk.Title)|$($talk.Id)]] ($date)"
+        "$($talk.Title | Format-Link $talk.Id) ($date)"
     }
 }
 
@@ -718,11 +565,14 @@ function Format-SpeakerPage()
 
 [![Photo](./$id/$id-small.jpg)](./$id/$id.jpg)
 
-Работает в компании [$($speaker.CompanyName)]($($speaker.CompanyUrl))
-
-$($speaker.Description)
-
 "@
+        if ($speaker.CompanyName -and $speaker.CompanyUrl)
+        {
+            "Работает в компании [$($speaker.CompanyName)]($($speaker.CompanyUrl))"
+            ''
+        }
+
+        $speaker.Description
 
         $links = @()
         if ($speaker.BlogUrl)
@@ -762,7 +612,7 @@ $($speaker.Description)
         ''
         $WikiRepository.Talks.Values |
         Where-Object { $_.SpeakerIds -contains $id } |
-        Sort-Object -Property @{ Expression = {
+        Sort-Object -Descending -Property @{ Expression = {
             $talkId = $_.Id
             $meetup = Get-MeetupByTalk -TalkId $talkId
 
@@ -794,7 +644,7 @@ function Format-VideoRatingPage()
         {
             $video = $_
             # TODO: Resolve TalkId, format nice title, make link to wiki talk page
-            "1. [$($video.Title)](https://www.youtube.com/watch?v=$($video.Id)) (:+1: $($video.LikeCount)  :tv: $($video.ViewCount)  :pager: $($video.CommentCount))"
+            "1. [$($video.Title)](https://www.youtube.com/watch?v=$($video.Id)) ( :+1: $($video.LikeCount)  :tv: $($video.ViewCount)  :pager: $($video.CommentCount))"
         }
     }
 
@@ -864,41 +714,6 @@ function Format-VideoRatingPage()
     }
 }
 
-function Invoke-ReCache()
-{
-    Test-WikiEnvironment
-
-    $timer = Start-TimeOperation -Name 'Build cache'
-
-    Read-All -AuditDir $Config.AuditDir |
-    Where-Object { $_ -is [Talk] } |
-    ForEach-Object {
-
-        $talk = $_
-
-        @($talk.CodeUrl, $talk.SlidesUrl, $talk.VideoUrl) |
-        Where-Object { $_ } |
-        ForEach-Object {
-
-            $link = [Uri]$_
-
-            if ($link | Resolve-OpenGraph)
-            {
-                $status = 'OK'
-            }
-            else
-            {
-                $status = 'Fail'
-            }
-
-            Write-Information "$($talk.Title): $($link.Host)    [ $status ]"
-        }
-    }
-
-    $timer | Stop-TimeOperation
-
-}
-
 function Select-SortedCommunity
 {
     [CmdletBinding()]
@@ -931,6 +746,51 @@ function Select-SortedCommunity
     {
         $communities | Sort-Object -Property { $communityOrder.IndexOf($_.Name) }
     }
+}
+
+
+function Invoke-ReCache()
+{
+    Test-WikiEnvironment
+
+    $timer = Start-TimeOperation -Name 'Build cache'
+
+    $talks = Read-All -AuditDir $Config.AuditDir | Where-Object { $_ -is [Talk] }
+    $index = 0
+
+    $talks |
+    ForEach-Object {
+
+        $talk = $_
+
+        @($talk.CodeUrl, $talk.SlidesUrl, $talk.VideoUrl) |
+        ForEach-Object {
+
+            $index = $index + 1
+            if (-not $_)
+            {
+                return
+            }
+
+            $link = [Uri]$_
+
+            $completed = $index / ($talks.Count * 3) * 100
+            Write-Progress -Activity "Build cache" -Status "$($talk.Title): $($link.Host)" -PercentComplete $completed
+
+            if ($link | Resolve-OpenGraph)
+            {
+                $status = 'OK'
+            }
+            else
+            {
+                $status = 'Fail'
+            }
+
+            Write-Information "$($talk.Title): $($link.Host)    [ $status ]"
+        }
+    }
+
+    $timer | Stop-TimeOperation
 }
 
 function Invoke-BuildWiki()
