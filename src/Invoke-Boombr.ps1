@@ -64,6 +64,7 @@ function Start-BoombrCommand([string] $Command = $(throw 'Command required'))
 
         'build cache'
         {
+            $ProgressPreference = 'Continue'
             . $PSScriptRoot\Wiki.ps1
             Invoke-ReCache
         }
@@ -95,6 +96,12 @@ function Start-BoombrCommand([string] $Command = $(throw 'Command required'))
         {
             . $PSScriptRoot\AnnouncementHtml.ps1
             Invoke-BuildAnnouncement
+        }
+
+        'new artifacts'
+        {
+            . $PSScriptRoot\Artifacts.ps1
+            Invoke-BuildArtifact
         }
 
         'build brand'
@@ -129,6 +136,7 @@ if ($args.Length -lt 2)
     Write-Information '- export xml'
     Write-Information '- export images'
     Write-Information '- new announcement'
+    Write-Information '- new artifacts'
     Write-Information '- build brand'
     return
 }
